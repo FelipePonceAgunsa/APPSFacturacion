@@ -9,7 +9,8 @@ docs/arquitectura/
 ├── adr/                         Decisiones de arquitectura (ADR-000…011)
 ├── arquitectura-despliegue.md   Dónde y cómo se levanta el aplicativo (AWS, red, CI/CD)
 ├── modelo-datos.md              Modelo físico de BD (DDL PostgreSQL, tablas, claves, índices)
-└── contratos-integracion.md     Contratos de los puertos (SAP, AEXSA, IA) y cómo se consumen
+├── contratos-integracion.md     Contratos de los puertos (SAP, AEXSA, IA) y cómo se consumen
+└── motor-tarifas-detalle.md     Diseño del cálculo determinístico (pipeline, reglas, casos de prueba)
 
 .kiro/specs/satelite-facturacion/
 ├── design.md                    Diseño de arquitectura (capas, dominio, flujo, diagramas)

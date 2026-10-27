@@ -25,6 +25,7 @@ docs/arquitectura/*
 !docs/arquitectura/modelo-datos.md
 !docs/arquitectura/contratos-integracion.md
 !docs/arquitectura/handoff-a-analista.md
+!docs/arquitectura/motor-tarifas-detalle.md
 
 # Documentación de gestión/presentación: NO va al repo (no es entregable de construcción).
 # (preguntas-arquitectura.md, plan-entregas.md, estimacion-hh.md, estado-arquitectura.md)
