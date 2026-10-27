@@ -1,0 +1,54 @@
+# === Política del repositorio: SOLO ARQUITECTURA ===
+# Este repo versiona únicamente los artefactos de arquitectura del Satélite.
+# NO van: levantamiento, procesos, insumos de convenios (datos de clientes, BR-021),
+# presentaciones, requirements de negocio, ni configuración de agentes/steering.
+# Estrategia: ignorar todo por defecto y permitir explícitamente lo de arquitectura.
+
+# 1) Ignorar todo
+/*
+.kiro/
+docs/
+
+# 2) Permitir la raíz mínima necesaria
+!.gitignore
+!README.md
+
+# 3) Permitir SOLO la documentación de arquitectura
+!docs/
+docs/*
+!docs/arquitectura/
+!docs/arquitectura/**
+
+# 4) Permitir SOLO el diseño y el plan del spec (son arquitectura),
+#    NO el requirements.md (negocio)
+!.kiro/
+.kiro/*
+!.kiro/specs/
+.kiro/specs/*
+!.kiro/specs/satelite-facturacion/
+.kiro/specs/satelite-facturacion/*
+!.kiro/specs/satelite-facturacion/design.md
+!.kiro/specs/satelite-facturacion/tasks.md
+
+# === Exclusiones técnicas habituales (por si se agrega código a futuro) ===
+# Secretos — nunca (evita el antipatrón del legacy, BR-016)
+.env
+.env.*
+*.pfx
+secrets.json
+appsettings.*.local.json
+# Temporales de Office y sistema
+~$*.docx
+~$*.xlsx
+~$*.pptx
+*.tmp
+*.bak
+Thumbs.db
+.DS_Store
+# Build .NET / Node (futuro)
+bin/
+obj/
+node_modules/
+dist/
+.angular/
+.vs/
