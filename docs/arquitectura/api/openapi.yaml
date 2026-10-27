@@ -1,0 +1,543 @@
+openapi: 3.0.3
+info:
+  title: Satélite de Facturación AEXSA — API REST
+  version: 1.0.0
+  description: >
+    Contrato de la API REST del Satélite de Facturación. Cubre lo que consume el
+    frontend Angular (convenios, operaciones, OFA, facturas, pagos, ajustes) y los
+    callbacks de integración que entran por Agunsa Connect (folio/DTE desde SAP).
+    Alineado con modelo-datos.md (ADR-010), contratos-integracion.md (ADR-002/003/004/005),
+    motor-tarifas-detalle.md (ADR-006) y convenios por carga directa (ADR-012).
+    Principio: el monto nunca lo fija la IA; la IA solo propone con confirmación humana.
+  contact:
+    name: Arquitecto de Solución — Satélite AEXSA
+
+servers:
+  - url: https://satelite.aexsa.cl/api
+    description: Producción (vía CloudFront/WAF/ALB)
+  - url: https://qa-satelite.aexsa.cl/api
+    description: QA
+
+tags:
+  - name: Convenios
+    description: Carga directa, versionado y vigencia de convenios (ADR-007/012)
+  - name: Operaciones
+    description: Evento facturable, clasificación de ruta y destinatarios (REQ-001/002/003)
+  - name: OFA
+    description: Orden de Facturación valorizada, cálculo y ajustes (REQ-005/006/008)
+  - name: Facturas
+    description: Folio, DTE y conciliación (REQ-009)
+  - name: Pagos
+    description: Estado de pago y conciliación (REQ-010)
+  - name: Omisiones
+    description: Detección de servicios no facturados (REQ-007)
+  - name: Callbacks
+    description: Entradas de integración por Agunsa Connect (folio/DTE, eventos AEXSA)
+
+paths:
+  # ---------------------------------------------------------------- Convenios
+  /convenios:
+    get:
+      tags: [Convenios]
+      summary: Listar convenios (por cliente, estado, vigencia)
+      parameters:
+        - { name: rut, in: query, schema: { type: string }, description: RUT del cliente }
+        - { name: estado, in: query, schema: { $ref: '#/components/schemas/EstadoVersionConvenio' } }
+      responses:
+        '200':
+          description: Lista de convenios
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ConvenioResumen' }
+    post:
+      tags: [Convenios]
+      summary: Cargar un convenio (carga directa, ADR-012). Dispara extracción IA (propuesta).
+      description: >
+        El comercial sube el documento (PDF/Word). La IA extrae una propuesta en estado
+        BORRADOR; requiere confirmación humana para quedar VIGENTE. También admite ingreso manual.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                rut: { type: string }
+                comercial: { type: string }
+                documento: { type: string, format: binary }
+      responses:
+        '201':
+          description: Propuesta de convenio creada en estado BORRADOR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VersionConvenio' }
+        '400': { $ref: '#/components/responses/Error400' }
+
+  /convenios/{convenioId}/versiones/{versionId}/confirmar:
+    post:
+      tags: [Convenios]
+      summary: Confirmar una versión de convenio (humano) → pasa a VIGENTE
+      description: La IA nunca deja un convenio vigente por sí sola (ADR-007).
+      parameters:
+        - { name: convenioId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Versión confirmada y vigente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VersionConvenio' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  # ------------------------------------------------------------- Operaciones
+  /operaciones:
+    get:
+      tags: [Operaciones]
+      summary: Listar operaciones (por estado, cliente, pendientes de facturar)
+      parameters:
+        - { name: facturable, in: query, schema: { type: boolean } }
+        - { name: rut, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Lista de operaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/OperacionResumen' }
+
+  /operaciones/{operacionId}:
+    get:
+      tags: [Operaciones]
+      summary: Detalle de una operación (ruta clasificada, servicios, destinatarios)
+      parameters:
+        - { name: operacionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Detalle de la operación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operacion' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  # --------------------------------------------------------------------- OFA
+  /operaciones/{operacionId}/ofa:
+    post:
+      tags: [OFA]
+      summary: Calcular/armar la OFA de una operación (motor determinístico)
+      description: Ejecuta el pipeline de cálculo (ADR-006) y devuelve la OFA valorizada con su memoria.
+      parameters:
+        - { name: operacionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OFA calculada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ofa' }
+
+  /ofa/{ofaId}:
+    get:
+      tags: [OFA]
+      summary: Obtener una OFA con sus líneas, destinatarios y memoria de cálculo
+      parameters:
+        - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OFA
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ofa' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  /ofa/{ofaId}/lineas/{lineaId}/ajuste:
+    post:
+      tags: [OFA]
+      summary: Aplicar un ajuste manual auditable a una línea (REQ-006, nivel 3)
+      description: El monto lo fija la persona; queda registrado (usuario, motivo, valor anterior/nuevo). La IA no fija el monto.
+      parameters:
+        - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: lineaId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AjusteManualRequest' }
+      responses:
+        '200':
+          description: Línea ajustada con su memoria actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LineaOfa' }
+        '400': { $ref: '#/components/responses/Error400' }
+
+  /ofa/{ofaId}/validar:
+    post:
+      tags: [OFA]
+      summary: Validar completitud de la OFA antes de enviarla a SAP (REQ-008)
+      description: Bloquea si falta destinatario, ítems sin tarifa, recargos/días sin resolver.
+      parameters:
+        - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Resultado de la validación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoValidacion' }
+
+  /ofa/{ofaId}/enviar:
+    post:
+      tags: [OFA]
+      summary: Encolar la OFA hacia SAP (Outbox asíncrono, ADR-002)
+      description: No llama a SAP en línea; escribe en el Outbox. El worker la envía por Agunsa Connect.
+      parameters:
+        - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '202':
+          description: OFA encolada (procesamiento asíncrono)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ofaId: { type: string, format: uuid }
+                  estado: { $ref: '#/components/schemas/EstadoOfa' }
+        '409':
+          description: OFA incompleta o ya enviada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ----------------------------------------------------------------- Facturas
+  /facturas:
+    get:
+      tags: [Facturas]
+      summary: Listar facturas (por folio, operación, estado)
+      parameters:
+        - { name: folio, in: query, schema: { type: string } }
+        - { name: operacionId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Lista de facturas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Factura' }
+
+  # ------------------------------------------------------------------- Pagos
+  /pagos:
+    get:
+      tags: [Pagos]
+      summary: Listar pagos y su conciliación (incluye impagos)
+      parameters:
+        - { name: estado, in: query, schema: { $ref: '#/components/schemas/EstadoPago' } }
+      responses:
+        '200':
+          description: Lista de pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Pago' }
+
+  # --------------------------------------------------------------- Omisiones
+  /operaciones/{operacionId}/omisiones:
+    get:
+      tags: [Omisiones]
+      summary: Faltantes detectados (prestado vs. valorizado) para una operación (REQ-007)
+      parameters:
+        - { name: operacionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Lista de posibles omisiones (propuestas; la decisión humana se registra)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Omision' }
+
+  # --------------------------------------------------------------- Callbacks
+  /sap/callbacks/folio:
+    post:
+      tags: [Callbacks]
+      summary: Recepción de folio/DTE desde SAP (vía Agunsa Connect) — ADR-002/004
+      description: Entrada de integración. Une por folio y dispara la conciliación.
+      security:
+        - agunsaConnect: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FolioCallback' }
+      responses:
+        '200': { description: Folio recibido y vinculado }
+        '401': { $ref: '#/components/responses/Error401' }
+
+  /aexsa/eventos:
+    post:
+      tags: [Callbacks]
+      summary: Ingesta push de evento facturable desde AEXSA SYS (opcional, ADR-005)
+      description: Alternativa push a la ingesta por pull. Idempotente por operacionIdAexsa.
+      security:
+        - agunsaConnect: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventoFacturable' }
+      responses:
+        '202': { description: Evento aceptado para ingesta }
+        '401': { $ref: '#/components/responses/Error401' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Autenticación de usuarios del frontend (token corporativo).
+    agunsaConnect:
+      type: apiKey
+      in: header
+      name: X-AgunsaConnect-Signature
+      description: Firma/credencial del middleware corporativo para callbacks de integración.
+
+  responses:
+    Error400:
+      description: Solicitud inválida
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Error401:
+      description: No autenticado / firma inválida
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Error404:
+      description: No encontrado
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    # ----- enums
+    Moneda:
+      type: string
+      enum: [CLP, USD, UF]
+    UnidadCobro:
+      type: string
+      enum: [BL, DUS, CTR, CTR_DIA, TON, M3, CAMION, PALLET, UNIDAD]
+    EstadoVersionConvenio:
+      type: string
+      enum: [BORRADOR, VIGENTE, VENCIDA, REEMPLAZADA]
+    EstadoOfa:
+      type: string
+      enum: [BORRADOR, VALIDADA, ENVIADA, EMITIDA, EMITIDA_SIN_CONFIRMACION, CONCILIADA]
+    EstadoPago:
+      type: string
+      enum: [PAGADA, PENDIENTE, PARCIAL]
+
+    # ----- convenios
+    ConvenioResumen:
+      type: object
+      properties:
+        convenioId: { type: string, format: uuid }
+        rut: { type: string }
+        comercial: { type: string }
+        versionVigente: { type: integer, nullable: true }
+    VersionConvenio:
+      type: object
+      properties:
+        versionId: { type: string, format: uuid }
+        convenioId: { type: string, format: uuid }
+        numero: { type: integer }
+        estado: { $ref: '#/components/schemas/EstadoVersionConvenio' }
+        vigenciaDesde: { type: string, format: date }
+        vigenciaHasta: { type: string, format: date, nullable: true }
+        tcMinimo: { type: number, nullable: true }
+        diasLibres: { type: integer, nullable: true }
+        origen: { type: string, enum: [IA_EXTRAIDO, MANUAL, COMPLEMENTO_CORREO] }
+        confianzaIa: { type: number, nullable: true, description: Score IA; null si manual }
+        servicios:
+          type: array
+          items: { $ref: '#/components/schemas/ServicioConvenio' }
+    ServicioConvenio:
+      type: object
+      properties:
+        tipoServicioId: { type: integer }
+        tarifa: { type: number }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        unidad: { $ref: '#/components/schemas/UnidadCobro' }
+
+    # ----- operaciones
+    OperacionResumen:
+      type: object
+      properties:
+        operacionId: { type: string, format: uuid }
+        operacionIdAexsa: { type: string }
+        rut: { type: string }
+        conConvenio: { type: boolean }
+        facturable: { type: boolean }
+    Operacion:
+      allOf:
+        - $ref: '#/components/schemas/OperacionResumen'
+        - type: object
+          properties:
+            tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
+            tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO] }
+            puerto: { type: string }
+            din: { type: string, nullable: true }
+            dus: { type: string, nullable: true }
+            cantidadDus: { type: integer, nullable: true }
+            rutaClasificada: { type: string }
+            momentoFacturacion: { type: string, enum: [EN_VISACION, POST_DESPACHO] }
+            servicios:
+              type: array
+              items: { $ref: '#/components/schemas/ServicioPrestado' }
+    ServicioPrestado:
+      type: object
+      properties:
+        tipoServicioId: { type: integer }
+        cantidad: { type: number }
+        unidad: { $ref: '#/components/schemas/UnidadCobro' }
+
+    # ----- OFA
+    Ofa:
+      type: object
+      properties:
+        ofaId: { type: string, format: uuid }
+        operacionId: { type: string, format: uuid }
+        estado: { $ref: '#/components/schemas/EstadoOfa' }
+        fechaCalculo: { type: string, format: date-time }
+        asignaciones:
+          type: array
+          items: { $ref: '#/components/schemas/AsignacionCobro' }
+        lineas:
+          type: array
+          items: { $ref: '#/components/schemas/LineaOfa' }
+    AsignacionCobro:
+      type: object
+      properties:
+        asignacionId: { type: string, format: uuid }
+        destinatarioRut: { type: string }
+        rol: { type: string, enum: [CONSIGNATARIO, FORWARDER, EMBARCADOR] }
+        origenInstruccion: { type: string, nullable: true }
+    LineaOfa:
+      type: object
+      properties:
+        lineaId: { type: string, format: uuid }
+        asignacionId: { type: string, format: uuid, nullable: true }
+        tipoServicioId: { type: integer }
+        cantidad: { type: number }
+        unidad: { $ref: '#/components/schemas/UnidadCobro' }
+        tarifa: { type: number }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        montoClp: { type: number }
+        esExcepcion: { type: boolean }
+        memoria: { $ref: '#/components/schemas/MemoriaCalculo' }
+    MemoriaCalculo:
+      type: object
+      description: Reconstrucción auditable del monto (REQ-011). Append-only.
+      properties:
+        reglasAplicadas:
+          type: array
+          items:
+            type: object
+            properties:
+              regla: { type: string }
+              version: { type: integer }
+        versionConvenio: { type: integer, nullable: true }
+        versionTarifaPublica: { type: integer, nullable: true }
+        tipoCambioAplicado: { type: number, nullable: true }
+        reglaConfigurableId: { type: string, format: uuid, nullable: true }
+        ajusteManual: { $ref: '#/components/schemas/AjusteManual' }
+    AjusteManualRequest:
+      type: object
+      required: [motivo, nuevoMonto]
+      properties:
+        nuevoMonto: { type: number }
+        motivo: { type: string }
+    AjusteManual:
+      type: object
+      nullable: true
+      properties:
+        usuario: { type: string }
+        fecha: { type: string, format: date-time }
+        motivo: { type: string }
+        valorAnterior: { type: number }
+        valorNuevo: { type: number }
+    ResultadoValidacion:
+      type: object
+      properties:
+        valida: { type: boolean }
+        faltantes:
+          type: array
+          items: { type: string }
+
+    # ----- facturas / pagos / omisiones
+    Factura:
+      type: object
+      properties:
+        facturaId: { type: string, format: uuid }
+        ofaId: { type: string, format: uuid }
+        folio: { type: string }
+        tipoDte: { type: integer }
+        montoTotal: { type: number }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        emitidaEn: { type: string, format: date-time, nullable: true }
+        conciliada: { type: boolean }
+    Pago:
+      type: object
+      properties:
+        pagoId: { type: string, format: uuid }
+        referenciaSap: { type: string, nullable: true }
+        pagadorRut: { type: string, nullable: true }
+        monto: { type: number }
+        estado: { $ref: '#/components/schemas/EstadoPago' }
+        folios:
+          type: array
+          items: { type: string }
+          description: Folios cubiertos (un pago puede agrupar varias facturas, RN-067)
+    Omision:
+      type: object
+      properties:
+        tipoServicioId: { type: integer }
+        descripcion: { type: string }
+        origen: { type: string, enum: [CRUCE_DETERMINISTICO, PROPUESTA_IA] }
+        confianza: { type: number, nullable: true }
+
+    # ----- callbacks
+    FolioCallback:
+      type: object
+      required: [ofaId, folio, tipoDte]
+      properties:
+        ofaId: { type: string, format: uuid }
+        folio: { type: string }
+        tipoDte: { type: integer }
+        montoNeto: { type: number }
+        montoTotal: { type: number }
+        dteXmlBase64: { type: string }
+        emitidoEn: { type: string, format: date-time }
+    EventoFacturable:
+      type: object
+      required: [operacionIdAexsa]
+      properties:
+        operacionIdAexsa: { type: string }
+        tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
+        tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO] }
+        conConvenio: { type: boolean }
+        puerto: { type: string }
+        din: { type: string, nullable: true }
+        dus: { type: string, nullable: true }
+        cantidadDus: { type: integer, nullable: true }
+        consignatarioRut: { type: string }
+        servicios:
+          type: array
+          items: { $ref: '#/components/schemas/ServicioPrestado' }
+
+    # ----- error comun
+    Error:
+      type: object
+      properties:
+        codigo: { type: string }
+        mensaje: { type: string }
+        detalle: { type: string, nullable: true }
+
+security:
+  - bearerAuth: []
