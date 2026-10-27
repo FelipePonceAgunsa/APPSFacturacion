@@ -8,7 +8,8 @@ Este repositorio versiona **lo entregable para construir el software**: las deci
 docs/arquitectura/
 ├── adr/                         Decisiones de arquitectura (ADR-000…011)
 ├── arquitectura-despliegue.md   Dónde y cómo se levanta el aplicativo (AWS, red, CI/CD)
-└── modelo-datos.md              Modelo físico de BD (DDL PostgreSQL, tablas, claves, índices)
+├── modelo-datos.md              Modelo físico de BD (DDL PostgreSQL, tablas, claves, índices)
+└── contratos-integracion.md     Contratos de los puertos (SAP, AEXSA, IA) y cómo se consumen
 
 .kiro/specs/satelite-facturacion/
 ├── design.md                    Diseño de arquitectura (capas, dominio, flujo, diagramas)
