@@ -13,11 +13,18 @@ docs/
 !.gitignore
 !README.md
 
-# 3) Permitir SOLO la documentación de arquitectura
+# 3) Permitir SOLO lo entregable para construir el software:
+#    los ADR (decisiones técnicas que guían el desarrollo).
 !docs/
 docs/*
 !docs/arquitectura/
-!docs/arquitectura/**
+docs/arquitectura/*
+!docs/arquitectura/adr/
+!docs/arquitectura/adr/**
+
+# Documentación de gestión/presentación: NO va al repo (no es entregable de construcción).
+# (preguntas-arquitectura.md, plan-entregas.md, estimacion-hh.md, estado-arquitectura.md)
+# Quedan en disco, fuera del control de versiones.
 
 # 4) Permitir SOLO el diseño y el plan del spec (son arquitectura),
 #    NO el requirements.md (negocio)
