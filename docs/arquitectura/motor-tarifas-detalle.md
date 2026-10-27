@@ -158,6 +158,9 @@ El determinismo se garantiza con pruebas. Mínimo obligatorio (cada uno es un te
 
 ---
 
+## 5b. Carga suelta / letra tarifaria (2ª etapa)
+La **letra tarifaria** (clasificación A–F por BL que llega por correo del MBO/CC, RN-040) es de **carga suelta**, fuera del alcance de la 1ª etapa (BR-018). Su diseño anticipado está en `adr/ADR-013-carga-suelta-letra-tarifaria.md`. Clave para este motor: la letra se incorpora como una **tercera fuente de tarifa** en la Regla 1 (convenio | pública | **letra**), reutilizando el mismo pipeline. Por eso la Regla 1 se diseña como estrategia enchufable, no como un `if` cerrado a dos casos.
+
 ## 6. Qué queda fuera del motor (por diseño)
 - **La IA no interviene** en el cálculo. Puede proponer un ajuste o una regla (ADR-008/009), pero entra como propuesta que un humano confirma; el motor solo ejecuta reglas y ajustes ya fijados.
 - **El IVA y la emisión del DTE** los hace SAP (RN-025/059); el motor entrega el neto valorizado para la OFA.
