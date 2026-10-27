@@ -7,6 +7,8 @@ Decide: Arquitecto de Solución
 ## Contexto
 Decisión de negocio cerrada (no reabrir): **el convenio vigente vive en el Satélite** como fuente autoritativa (RN-071, REQ-012), reemplazando SharePoint/correos/carpetas (BR-001, BR-019). El comercial lo ingresa por **lectura asistida por IA** desde PDF/Word (extrae servicios, tarifas, unidades, moneda, TC mínimo, días libres, vigencia) **o manual**, con **confirmación humana antes de quedar vigente** (RN-071). El convenio tiene validez 1 año, se ajusta por correo como complemento, y puede haber varias versiones; manda la vigente y se conserva el histórico (RN-021, RN-037, RN-043, REQ-004). La IA **nunca fija un monto** (principio): extrae y propone; un humano confirma.
 
+> **Refinado por ADR-012 (2026-10-26):** el punto de entrada del convenio es la **carga directa en el Satélite** por el comercial (Opción B); SharePoint deja de ser el flujo de trabajo y queda como archivo histórico. Ver `ADR-012-flujo-convenios-carga-directa.md`.
+
 ## Decisión
 Modelar el **convenio como entidad versionada de primera clase en el Satélite**, con extracción asistida por IA como **adaptador opcional** detrás de un puerto, y **confirmación humana obligatoria** antes de que una versión quede vigente.
 

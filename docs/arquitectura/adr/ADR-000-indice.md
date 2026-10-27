@@ -17,6 +17,7 @@ Cada ADR documenta una decisión de arquitectura relevante con sus alternativas,
 | [ADR-009](ADR-009-deteccion-omisiones.md) | Motor de detección de omisiones (IA propone, no decide) | Aceptado | REQ-007, RN-068, BR-013 |
 | [ADR-010](ADR-010-modelo-datos-auditoria.md) | Modelo de datos del núcleo, auditoría y trazabilidad | Aceptado | REQ-011, RNF-01, RNF-02 |
 | [ADR-011](ADR-011-facturacion-repartida-dus.md) | Facturación repartida y DUS como driver de cobro | Aceptado | REQ-003, REQ-005, RN-077, RN-047, BR-024, BR-030 |
+| [ADR-012](ADR-012-flujo-convenios-carga-directa.md) | Flujo de convenios: carga directa en el Satélite (reemplaza SharePoint) | Aceptado | REQ-004, REQ-012, RN-071, BR-001, BR-011, BR-019 |
 
 ## Estados
 - **Propuesto:** decisión tomada por el Arquitecto, pendiente de confirmación de un tercero (TI/SAP/seguridad). Ver la PA asociada.
