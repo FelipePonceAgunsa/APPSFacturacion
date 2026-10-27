@@ -14,13 +14,15 @@ docs/
 !README.md
 
 # 3) Permitir SOLO lo entregable para construir el software:
-#    los ADR (decisiones técnicas que guían el desarrollo).
+#    los ADR (decisiones), la arquitectura de despliegue y el modelo de datos.
 !docs/
 docs/*
 !docs/arquitectura/
 docs/arquitectura/*
 !docs/arquitectura/adr/
 !docs/arquitectura/adr/**
+!docs/arquitectura/arquitectura-despliegue.md
+!docs/arquitectura/modelo-datos.md
 
 # Documentación de gestión/presentación: NO va al repo (no es entregable de construcción).
 # (preguntas-arquitectura.md, plan-entregas.md, estimacion-hh.md, estado-arquitectura.md)
