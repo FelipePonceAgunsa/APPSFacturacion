@@ -31,8 +31,10 @@ docs/arquitectura/*
 !docs/arquitectura/mapa-pantallas.md
 !docs/arquitectura/api/
 !docs/arquitectura/api/**
-!docs/arquitectura/diagramas/
-!docs/arquitectura/diagramas/**
+
+# La carpeta docs/arquitectura/diagramas/ (gráficos de presentación: .drawio, .svg,
+# estándar de gráficos) NO va al repo: es material de presentación/gestión, no
+# entregable de construcción. Queda en disco, fuera del control de versiones.
 
 # Documentación de gestión/presentación: NO va al repo (no es entregable de construcción).
 # (preguntas-arquitectura.md, plan-entregas.md, estimacion-hh.md, estado-arquitectura.md)

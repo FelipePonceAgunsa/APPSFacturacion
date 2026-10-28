@@ -14,8 +14,7 @@ docs/arquitectura/
 ├── restricciones-tecnicas.md    Restricciones técnicas conocidas y su enlace a las PA
 ├── estrategia-pruebas.md        Cómo se garantiza el determinismo del cálculo y las integraciones
 ├── mapa-pantallas.md            Pantallas del frontend por rol y su mapeo a la API
-├── api/openapi.yaml             Especificación OpenAPI de la API REST (contrato frontend↔backend)
-└── diagramas/mapa-pantallas.svg Modelo visual del mapa de pantallas (para presentación)
+└── api/openapi.yaml             Especificación OpenAPI de la API REST (contrato frontend↔backend)
 
 .kiro/specs/satelite-facturacion/
 ├── design.md                    Diseño de arquitectura (capas, dominio, flujo, diagramas)
