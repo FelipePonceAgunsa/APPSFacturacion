@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Montserrat, Arial, sans-serif">
+  <!-- Fondo -->
+  <rect width="1280" height="720" fill="#F9F9F9"/>
+
+  <!-- Header -->
+  <rect width="1280" height="72" fill="#1A1A1A"/>
+  <rect y="72" width="1280" height="4" fill="#CC0000"/>
+  <text x="40" y="46" fill="#FFFFFF" font-size="24" font-weight="700">Satélite de Facturación AEXSA</text>
+  <text x="40" y="64" fill="#BBBBBB" font-size="13">Mapa de pantallas del frontend — navegación por rol</text>
+  <rect x="1120" y="24" width="120" height="28" rx="4" fill="#CC0000"/>
+  <text x="1180" y="43" fill="#FFFFFF" font-size="13" font-weight="600" text-anchor="middle">Login SSO</text>
+
+  <!-- Nodo Inicio -->
+  <rect x="540" y="104" width="200" height="48" rx="8" fill="#1A1A1A"/>
+  <text x="640" y="133" fill="#FFFFFF" font-size="15" font-weight="700" text-anchor="middle">Inicio / Dashboard</text>
+
+  <!-- Conectores a las 3 áreas -->
+  <g stroke="#CC0000" stroke-width="2" fill="none">
+    <path d="M600 152 C 400 180, 230 180, 230 210"/>
+    <path d="M640 152 L 640 210"/>
+    <path d="M680 152 C 880 180, 1050 180, 1050 210"/>
+  </g>
+
+  <!-- ============ Columna COMERCIAL ============ -->
+  <rect x="60" y="210" width="340" height="300" rx="10" fill="#FFFFFF" stroke="#E2E2E2"/>
+  <rect x="60" y="210" width="340" height="40" rx="10" fill="#CC0000"/>
+  <rect x="60" y="238" width="340" height="12" fill="#CC0000"/>
+  <text x="80" y="236" fill="#FFFFFF" font-size="16" font-weight="700">Comercial — Convenios</text>
+
+  <g>
+    <rect x="80" y="266" width="300" height="46" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="92" y="286" fill="#111827" font-size="13" font-weight="600">C1 · Convenios — lista</text>
+    <text x="92" y="302" fill="#666666" font-size="11">vigencia, alertas de vencimiento</text>
+
+    <rect x="80" y="320" width="300" height="46" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="92" y="340" fill="#111827" font-size="13" font-weight="600">C2 · Cargar convenio</text>
+    <text x="92" y="356" fill="#666666" font-size="11">carga directa PDF/Word · extracción IA</text>
+
+    <rect x="80" y="374" width="300" height="46" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="92" y="394" fill="#111827" font-size="13" font-weight="600">C3 · Detalle / versiones</text>
+    <text x="92" y="410" fill="#666666" font-size="11">tarifas, TC mínimo, días libres</text>
+
+    <rect x="80" y="428" width="300" height="46" rx="6" fill="#FFF4F4" stroke="#CC0000"/>
+    <text x="92" y="448" fill="#111827" font-size="13" font-weight="600">C4 · Confirmar versión (humano)</text>
+    <text x="92" y="464" fill="#CC0000" font-size="11">la IA propone · el humano deja VIGENTE</text>
+  </g>
+
+  <!-- ============ Columna FACTURACIÓN ============ -->
+  <rect x="420" y="210" width="440" height="470" rx="10" fill="#FFFFFF" stroke="#E2E2E2"/>
+  <rect x="420" y="210" width="440" height="40" rx="10" fill="#CC0000"/>
+  <rect x="420" y="238" width="440" height="12" fill="#CC0000"/>
+  <text x="440" y="236" fill="#FFFFFF" font-size="16" font-weight="700">Facturación — Operaciones y OFA</text>
+
+  <g>
+    <rect x="440" y="266" width="400" height="44" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="452" y="285" fill="#111827" font-size="13" font-weight="600">F1 · Bandeja de operaciones</text>
+    <text x="452" y="300" fill="#666666" font-size="11">operaciones a facturar, estado y ruta</text>
+
+    <rect x="440" y="318" width="400" height="44" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="452" y="337" fill="#111827" font-size="13" font-weight="600">F2 · Detalle de operación</text>
+    <text x="452" y="352" fill="#666666" font-size="11">DIN/DUS, destinatarios, servicios prestados</text>
+
+    <rect x="440" y="370" width="400" height="56" rx="6" fill="#FFF4F4" stroke="#CC0000" stroke-width="2"/>
+    <text x="452" y="390" fill="#111827" font-size="14" font-weight="700">F3 · OFA — cálculo y líneas</text>
+    <text x="452" y="406" fill="#666666" font-size="11">prefactura valorizada · motor determinístico</text>
+    <text x="452" y="420" fill="#CC0000" font-size="11">núcleo del valor · memoria de cálculo auditable</text>
+
+    <rect x="440" y="434" width="193" height="44" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="452" y="453" fill="#111827" font-size="12" font-weight="600">F4 · Ajuste manual</text>
+    <text x="452" y="468" fill="#666666" font-size="10">auditable · con motivo</text>
+
+    <rect x="647" y="434" width="193" height="44" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="659" y="453" fill="#111827" font-size="12" font-weight="600">F5 · Omisiones</text>
+    <text x="659" y="468" fill="#666666" font-size="10">cruce + propuesta IA</text>
+
+    <rect x="440" y="486" width="400" height="48" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="452" y="506" fill="#111827" font-size="13" font-weight="600">F6 · Validar y enviar a SAP</text>
+    <text x="452" y="522" fill="#666666" font-size="11">valida completitud · envío asíncrono (Outbox)</text>
+
+    <!-- flecha al SAP -->
+    <rect x="440" y="560" width="400" height="40" rx="6" fill="#1A1A1A"/>
+    <text x="640" y="585" fill="#FFFFFF" font-size="12" font-weight="600" text-anchor="middle">→ SAP B1 (vía Agunsa Connect) · folio vuelve por callback</text>
+
+    <!-- conector F6 -> SAP -->
+    <path d="M640 534 L 640 560" stroke="#CC0000" stroke-width="2" fill="none"/>
+  </g>
+
+  <!-- ============ Columna RECAUDACIÓN ============ -->
+  <rect x="880" y="210" width="340" height="300" rx="10" fill="#FFFFFF" stroke="#E2E2E2"/>
+  <rect x="880" y="210" width="340" height="40" rx="10" fill="#CC0000"/>
+  <rect x="880" y="238" width="340" height="12" fill="#CC0000"/>
+  <text x="900" y="236" fill="#FFFFFF" font-size="16" font-weight="700">Recaudación — Pagos</text>
+
+  <g>
+    <rect x="900" y="266" width="300" height="46" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="912" y="286" fill="#111827" font-size="13" font-weight="600">R1 · Facturas — estado</text>
+    <text x="912" y="302" fill="#666666" font-size="11">folio, tipo DTE, montos, conciliada</text>
+
+    <rect x="900" y="320" width="300" height="46" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="912" y="340" fill="#111827" font-size="13" font-weight="600">R2 · Pagos y conciliación</text>
+    <text x="912" y="356" fill="#666666" font-size="11">pago agrupado · folios cubiertos</text>
+
+    <rect x="900" y="374" width="300" height="46" rx="6" fill="#F9F9F9" stroke="#E2E2E2"/>
+    <text x="912" y="394" fill="#111827" font-size="13" font-weight="600">R3 · Impagos / alertas</text>
+    <text x="912" y="410" fill="#666666" font-size="11">crédito vencido, saldos a favor</text>
+
+    <!-- Transversal dentro de la columna -->
+    <rect x="900" y="432" width="300" height="60" rx="6" fill="#1A1A1A"/>
+    <text x="912" y="454" fill="#FFFFFF" font-size="13" font-weight="700">Transversal</text>
+    <text x="912" y="472" fill="#DDDDDD" font-size="11">T1 Trazabilidad op→factura→pago</text>
+    <text x="912" y="487" fill="#DDDDDD" font-size="11">T2 Cuadraturas y alertas</text>
+  </g>
+
+  <!-- Leyenda -->
+  <rect x="60" y="640" width="340" height="40" rx="6" fill="#F0F0F0"/>
+  <rect x="72" y="652" width="16" height="16" rx="3" fill="#FFF4F4" stroke="#CC0000"/>
+  <text x="96" y="665" fill="#666666" font-size="11">Punto donde el humano decide (IA solo propone)</text>
+
+  <!-- Footer -->
+  <text x="420" y="705" fill="#888888" font-size="11">Satélite de Facturación AEXSA · Mapa de pantallas · 2026-10-26</text>
+</svg>

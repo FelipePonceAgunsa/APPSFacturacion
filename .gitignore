@@ -27,8 +27,12 @@ docs/arquitectura/*
 !docs/arquitectura/handoff-a-analista.md
 !docs/arquitectura/motor-tarifas-detalle.md
 !docs/arquitectura/restricciones-tecnicas.md
+!docs/arquitectura/estrategia-pruebas.md
+!docs/arquitectura/mapa-pantallas.md
 !docs/arquitectura/api/
 !docs/arquitectura/api/**
+!docs/arquitectura/diagramas/
+!docs/arquitectura/diagramas/**
 
 # Documentación de gestión/presentación: NO va al repo (no es entregable de construcción).
 # (preguntas-arquitectura.md, plan-entregas.md, estimacion-hh.md, estado-arquitectura.md)

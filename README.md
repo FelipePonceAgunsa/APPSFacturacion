@@ -12,7 +12,10 @@ docs/arquitectura/
 ├── contratos-integracion.md     Contratos de los puertos (SAP, AEXSA, IA) y cómo se consumen
 ├── motor-tarifas-detalle.md     Diseño del cálculo determinístico (pipeline, reglas, casos de prueba)
 ├── restricciones-tecnicas.md    Restricciones técnicas conocidas y su enlace a las PA
-└── api/openapi.yaml             Especificación OpenAPI de la API REST (contrato frontend↔backend)
+├── estrategia-pruebas.md        Cómo se garantiza el determinismo del cálculo y las integraciones
+├── mapa-pantallas.md            Pantallas del frontend por rol y su mapeo a la API
+├── api/openapi.yaml             Especificación OpenAPI de la API REST (contrato frontend↔backend)
+└── diagramas/mapa-pantallas.svg Modelo visual del mapa de pantallas (para presentación)
 
 .kiro/specs/satelite-facturacion/
 ├── design.md                    Diseño de arquitectura (capas, dominio, flujo, diagramas)
