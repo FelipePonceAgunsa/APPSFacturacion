@@ -128,8 +128,9 @@ CREATE TABLE operacion (
     con_convenio        boolean NOT NULL DEFAULT false,
     puerto              text,
     din                 varchar(40),                     -- declaracion import
-    dus                 varchar(40),                     -- declaracion export (ref)
-    cantidad_dus        int,                             -- driver de cobro expo (RN-047, capacidad nueva)
+    dus                 varchar(40),                     -- declaracion export (ref); BL<->DUS 1:N
+    cantidad_dus        int,                             -- driver de cobro expo; CAPTURA MANUAL (RN-047, adenda A2)
+    terminal            text CHECK (terminal IN ('STI','DP_WORLD','OTRO')), -- terminal de retiro; gobierna refacturacion del directo (RN-079, ADR-015)
     ruta_clasificada    text,                            -- {carga}x{retiro}x{convenio} (REQ-002)
     momento_facturacion text CHECK (momento_facturacion IN ('EN_VISACION','POST_DESPACHO')), -- RN-046
     facturable          boolean NOT NULL DEFAULT true,   -- false si DIN<>papeleta (RN-001)

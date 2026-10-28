@@ -20,8 +20,8 @@ Modelar ambas como capacidades de primera clase del Satélite, sin forzarlas al 
 4. Cada `AsignacionCobro` genera su propia orden de venta hacia SAP (ADR-002): repartir ⇒ varias órdenes/facturas desde una operación.
 
 ### DUS como driver de cobro
-5. **Unidad de cobro parametrizable por servicio:** el `TipoServicio` declara su unidad (BL, DUS, CTR, TON, M3, CTR-DIA…). En expo, los servicios cuyo driver es DUS se cobran por **cantidad de DUS** de la operación (RN-047).
-6. **`CantidadDus` como atributo de la Operacion** (capacidad nueva; AEXSA no lo tiene): se captura en la ingesta o manualmente, y alimenta el motor de tarifas (ADR-006).
+5. **Unidad de cobro parametrizable por servicio:** el `TipoServicio` declara su unidad (BL, DUS, CTR, TON, M3, CTR-DIA…). En expo, los servicios cuyo driver es DUS se cobran por **cantidad de DUS** de la operación (RN-047). **Qué se cobra por DUS lo define el convenio** (toda expo viene con convenio — adenda 2026-10-28 A2).
+6. **`CantidadDus` como atributo de la Operacion** (capacidad nueva; AEXSA no lo tiene): es **captura MANUAL** — no existe fuente en AEXSA ni en Aduana de dónde leerla (adenda A2). La relación **BL↔DUS es 1:N** (un BL puede tener varios DUS). Alimenta el motor de tarifas (ADR-006).
 7. "El mayor paga" (m³ vs tonelada) se aplica donde el driver es volumen/peso (RN-048).
 
 ## Alternativas consideradas
@@ -32,7 +32,7 @@ Modelar ambas como capacidades de primera clase del Satélite, sin forzarlas al 
 ## Consecuencias
 - Una operación puede producir **varias facturas** (repartido); la trazabilidad por folio (ADR-010) las asocia a la misma operación.
 - El motor de tarifas trata la unidad de cobro de forma uniforme (incluido DUS), sin casos especiales dispersos.
-- Pendiente menor de negocio: mecánica fina de cantidad de DUS por operación (BR-030); el modelo ya la admite.
+- Cantidad de DUS cerrada (adenda A2): es **captura manual**, BL↔DUS 1:N, cobro definido por convenio; el modelo ya la admite. Nueva BR-031: expo de carga suelta sin unión carga↔contenedor en el dato → 2ª etapa (ADR-013/014).
 
 ## Reglas / requerimientos relacionados
 REQ-003, REQ-005, REQ-008, RN-047, RN-048, RN-050, RN-057, RN-077, BR-018, BR-024, BR-026, BR-030.

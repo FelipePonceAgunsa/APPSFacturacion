@@ -20,6 +20,8 @@ La decisión de negocio ya cerrada (RN-071, ADR-007) es que **el convenio vigent
 5. **Autoría y auditoría:** se registra quién cargó, quién confirmó y cuándo (`evento_auditoria`), cerrando la brecha de "no se sabe quién cambió qué" de SharePoint (BR-019).
 6. **Ajustes por correo:** un ajuste puntual (porteo, días libres, inspección) se registra como **complemento versionado** del convenio en el Satélite (RN-037), no como un archivo suelto.
 7. **Migración inicial (una vez):** los convenios vigentes que hoy están en SharePoint se cargan al Satélite en un proceso de arranque (carga asistida por IA, lote), con confirmación humana. A partir de ahí, SharePoint no vuelve a ser origen.
+   - **Universo dimensionado (adenda 2026-10-28, PQ-033):** 167 carpetas de cliente, 162 con convenio, **539 archivos** (313 pdf, 198 docx, 15 msg); 58 clientes con subcarpetas por año/"Ultimo" (se toma la vigente por correlativo, RN-043). Concentración: AGUNSA 103, Schenker 25, ZEAL 18, Samsung 14; la mayoría 1–2 archivos. Dimensiona el lote de carga inicial.
+   - **Gestión del cambio (PQ-034):** lideran René (comercial) y Francisco (documental).
 
 ## Alternativas consideradas
 1. **Opción A — el Satélite vigila SharePoint** (Microsoft Graph API, detección de cambios) y lo lee automáticamente. Descartada por el negocio: mantiene a SharePoint como origen (y con él su desorden de versiones y falta de trazabilidad), y acopla el Satélite a un repositorio no estructurado.

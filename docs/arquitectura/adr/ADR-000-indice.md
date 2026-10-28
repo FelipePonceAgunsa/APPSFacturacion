@@ -20,6 +20,7 @@ Cada ADR documenta una decisión de arquitectura relevante con sus alternativas,
 | [ADR-012](ADR-012-flujo-convenios-carga-directa.md) | Flujo de convenios: carga directa en el Satélite (reemplaza SharePoint) | Aceptado | REQ-004, REQ-012, RN-071, BR-001, BR-011, BR-019 |
 | [ADR-013](ADR-013-carga-suelta-letra-tarifaria.md) | Carga suelta y letra tarifaria (diseño anticipado, 2ª etapa) | Aceptado (construcción diferida) | RN-040, BR-018, BR-025, PQ-007 |
 | [ADR-014](ADR-014-alcance-2a-etapa-restante.md) | Alcance restante de 2ª etapa: expo DUS, licitaciones, notas de crédito (diseño anticipado) | Aceptado (construcción diferida) | RN-034, RN-047, RN-069, BR-030, PQ-024 |
+| [ADR-015](ADR-015-calculo-contenedor-directo-sti-dpw.md) | Cálculo del contenedor directo (STI vs DP World) | Aceptado | RN-078, RN-079, RN-007, PQ-006, BR-007 |
 
 ## Estados
 - **Propuesto:** decisión tomada por el Arquitecto, pendiente de confirmación de un tercero (TI/SAP/seguridad). Ver la PA asociada.

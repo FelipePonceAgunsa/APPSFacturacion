@@ -40,7 +40,9 @@ public sealed record ContextoCalculo(
     string Puerto,                       // STI | DPW ... (RN-007)
     bool ConConvenio,
     bool EsExportacion,                  // expo -> DUS (RN-047)
-    int? CantidadDus,                    // driver de cobro expo (RN-047)
+    int? CantidadDus,                    // driver de cobro expo; CAPTURA MANUAL (RN-047, adenda A2); BL<->DUS 1:N
+    TipoRetiro Retiro,                   // DIRECTO | INDIRECTO (RN-026)
+    Terminal Terminal,                   // STI | DP_WORLD | OTRO — del itinerario (RN-079, ADR-015)
     VersionConvenioSnapshot? Convenio,   // version fijada (null si sin convenio)
     TarifaPublicaSnapshot TarifaPublica, // kit spot SAP, version fijada (RN-014)
     decimal TipoCambioDia,               // USD observado del dia
@@ -93,10 +95,19 @@ public sealed record MemoriaCalculo(
 
 ## 4. Las reglas, una por una
 
+### Regla 0 — Composición del contenedor directo (RN-078, RN-079; ADR-015)
+Aplica **antes** de resolver tarifas, solo cuando `Retiro = DIRECTO` **sin convenio**:
+- El directo **NO lleva** recepción, despacho ni movilización (el contenedor no entra a AEXSA).
+- La OFA contiene **exactamente 3 conceptos**: **visación + security fee + refacturación**.
+- La línea de **refacturación** se gobierna por el terminal (RN-079):
+  - `Terminal = STI` → refacturación con su tarifa pública (con valor).
+  - `Terminal = DP_WORLD` → refacturación = 0.
+- Determinístico, con **tarifa pública** (el directo sin convenio no usa convenio). Si el consignatario tuviera convenio vigente, manda el convenio (RN-045) y no aplica esta regla.
+
 ### Regla 1 — Resolución de tarifa (RN-006, RN-014, RN-045)
 - Si el servicio tiene tarifa en el **convenio vigente** → usa esa (precedencia del convenio, RN-045).
 - Si no está en el convenio → usa la **tarifa pública / kit spot** de SAP y marca la línea `EsExcepcion = true` (RN-006).
-- Si no hay convenio → todo con tarifa pública.
+- Si no hay convenio → todo con tarifa pública (incluye el directo de la Regla 0).
 - Registra en memoria: fuente de la tarifa (convenio vX / snapshot público vY).
 
 ### Regla 2 — Cantidad por unidad (RN-047, RN-048)
@@ -125,7 +136,7 @@ public sealed record MemoriaCalculo(
 - Registra qué recargo, su base y su porcentaje.
 
 ### Regla 6 — Reglas configurables (ADR-008, nivel 2)
-- Evalúa las `ReglasVigentes` cuya condición (forwarder/puerto/concepto) hace match: agregar concepto, poner en cero, aplicar factor (p. ej. STI vs DPW cuando se cierre PQ-006).
+- Evalúa las `ReglasVigentes` cuya condición (forwarder/puerto/concepto) hace match: agregar concepto, poner en cero, aplicar factor. (La regla STI/DP World NO vive aquí: quedó como regla determinística en la Regla 0, ADR-015, al cerrarse PQ-006.)
 - Es determinística: la regla está versionada y parametrizada, no es código libre.
 - Registra qué regla configurable se aplicó.
 
@@ -150,11 +161,13 @@ El determinismo se garantiza con pruebas. Mínimo obligatorio (cada uno es un te
 | T7 | Mayor m³/ton | R2 | m³=18, ton=12 | cobra por 18 |
 | T8 | Cobro por DUS (expo) | R2 | 3 DUS | cantidad = 3 |
 | T9 | Recargo 15% refacturación | R5 | base 100.000 | +15.000 |
-| T10 | Regla configurable pone ítem en cero | R6 | puerto DPW, ítem refacturación | monto = 0 |
+| T10 | Directo STI — refacturación con valor | R0 | directo sin convenio, terminal STI | 3 ítems: visación + security fee + refacturación (con valor) |
+| T10b | Directo DP World — refacturación en cero | R0 | directo sin convenio, terminal DP World | 3 ítems: visación + security fee + refacturación = 0 |
+| T10c | Directo NO cobra recepción/despacho | R0 | directo sin convenio | la OFA no contiene recepción ni despacho ni movilización |
 | T11 | Ajuste manual auditable | R7 | ajuste −5.000 con motivo | monto ajustado + memoria con autor |
 | T12 | Reproducibilidad | pipeline | mismo contexto dos veces | resultado idéntico |
 
-> Estos casos usan valores del levantamiento (pisos 650/700/750/800 RN-022; días libres 5/7/10/15 RN-023; recargo 15% RN-024; DUS RN-047; mayor m³/ton RN-048). Al confirmarse STI/DPW (PQ-006) se agrega el caso real de T10.
+> Estos casos usan valores del levantamiento (pisos 650/700/750/800 RN-022; días libres 5/7/10/15 RN-023; recargo 15% RN-024; DUS RN-047; mayor m³/ton RN-048; directo STI/DP World RN-078/079, ADR-015). PQ-006 cerrada: T10/T10b/T10c son la regla confirmada, ya no un pendiente.
 
 ---
 
@@ -167,6 +180,8 @@ La **letra tarifaria** (clasificación A–F por BL que llega por correo del MBO
 - Reglas no escritas aún no automatizadas: se cubren con nivel 2/3 (configurable/manual), no bloquean el cálculo (RN-070).
 
 ## 7. Dependencias abiertas
-- **PQ-006 (STI vs DPW):** se implementa como regla configurable (R6) en cuanto el negocio confirme el criterio. El motor ya lo soporta.
-- **BR-030 (mecánica DUS):** la cantidad de DUS entra por `CantidadDus`; falta confirmar cómo se obtiene por operación.
+- **PQ-006 (STI vs DP World): CERRADA** (adenda 2026-10-28). Es la Regla 0 determinística (ADR-015, RN-078/079), no un pendiente.
+- **DUS (RN-047, adenda A2):** la cantidad de DUS es **captura manual** (no hay fuente que leer); el motor la recibe por `CantidadDus`. BL↔DUS es 1:N. Qué se cobra por DUS lo define el convenio.
 - **PA-003:** la tarifa pública (snapshot) depende de la lectura real de SAP; hasta entonces, stub con datos de ejemplo.
+
+> Con PQ-006 cerrada, el **levantamiento de facturación queda cerrado** para efectos de cálculo. Las únicas dependencias restantes son técnicas (PA-001/PA-002/PA-003: integración con SAP vía Agunsa Connect), no de negocio.
