@@ -34,11 +34,12 @@ La API de lectura (PA-003) no existe y depende de Agunsa Connect, por lo que no 
 - Aparece una **dependencia pequeña**: alguien del equipo de SAP exporta al inicio y cada vez que cambien los precios. No es un proveedor, pero la Fase A deja de ser 100% independiente.
 - Riesgo de **precios desfasados** entre exportaciones. Se mitiga mostrando versión y fecha del catálogo en cada OFA.
 - La calidad del vínculo servicio↔artículo depende del catálogo de AEXSA, hoy sin normalizar (BR-014).
-- Suma trabajo a E2: del orden de 4 a 6 horas Kiro `[SUPUESTO]`. No se ajustó aún el cronograma ni la estimación.
+- Suma trabajo a E2: del orden de 4 a 6 horas Kiro `[SUPUESTO]`. Se decidió no ajustar el cronograma ni la estimación (2026-10-28): se absorbe dentro del plazo.
 - Cuando exista la API, el import por archivo queda como respaldo o carga manual.
 
 ## Pendientes
 - PQ-025: exportación concreta del detalle de los kits por ruta.
+- Desde qué menú o consulta de SAP sale cada exportación, y cómo está armado un kit (PQ-019 habla de "parametrización de formulario"). Lo informa el equipo de SAP; hay que documentarlo para repetir la carga y reutilizarlo en la API de la Fase B.
 - PQ-019: qué convenios ya tienen kit propio en SAP (el levantamiento dice que solo los más usados).
 - Responsable del tipo de cambio diario.
 
