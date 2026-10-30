@@ -86,6 +86,7 @@ flowchart TB
 | Base de datos | **RDS PostgreSQL Multi-AZ** | Datos del Satélite (ADR-010) | Cifrada (KMS), backups automáticos |
 | Documentos | **S3** (bucket privado) | Convenios (PDF/Word), DTE XML | Versionado + cifrado SSE-KMS |
 | Secretos | **Secrets Manager** | Credenciales BD, claves de Agunsa Connect | Nunca en config (evita BR-016) |
+| Identidad | **Cognito + Entra ID** | Login de usuarios y emisión del JWT que valida la API | Entra ID es el directorio; Cognito es el intermediario (ADR-016) |
 | Imágenes | **ECR** | Imágenes de API y Worker | Push desde CI |
 | Observabilidad | **CloudWatch** | Logs, métricas, alarmas | Trazas de integración (ADR-002) |
 

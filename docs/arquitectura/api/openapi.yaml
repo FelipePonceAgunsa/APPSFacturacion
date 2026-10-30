@@ -297,12 +297,17 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Autenticación de usuarios del frontend (token corporativo).
+      description: >
+        Autenticación de usuarios del frontend. JWT emitido por Amazon Cognito, federado con
+        Microsoft Entra ID (ADR-016). La API valida firma, emisor, audiencia y expiración;
+        los roles (Comercial, Facturación, Recaudación, Administrador) vienen en el token.
     agunsaConnect:
       type: apiKey
       in: header
       name: X-AgunsaConnect-Signature
-      description: Firma/credencial del middleware corporativo para callbacks de integración.
+      description: >
+        Firma/credencial del middleware corporativo para callbacks de integración (máquina a
+        máquina, no usa Cognito de usuarios). Mecanismo definitivo según PA-002.
 
   responses:
     Error400:

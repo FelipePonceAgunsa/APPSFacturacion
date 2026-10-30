@@ -25,7 +25,7 @@ Propósito: consolidar las restricciones técnicas conocidas. Lo confirmado se r
 | **Retorno a AEXSA SYS (check de salida)** | Reutiliza canal de conciliación por folio `GetFactura` | RN-074 → **PA-004** |
 | **Volumen de eventos facturables / documentos de venta** | ~2.428 documentos de venta/mes (2025) | **Confirmado** — RNF-04, recaudación 2026-10-22 |
 | **Volumen de pagos** | ~1.468 pagos/mes (un pago agrupa varias facturas) | **Confirmado** — RNF-04, PQ-011 |
-| **Autenticación de usuarios** | [POR CONFIRMAR] (Microsoft 365 / AD corporativo) | TI corporativa |
+| **Autenticación de usuarios** | **Cognito federado con Entra ID** (OIDC/SAML por confirmar) | **Confirmado** — definición de la empresa (F. Ponce, 2026-10-28) → ADR-016; detalle en **PA-009** |
 | **Restricciones de seguridad / datos personales** | Cumplir nueva ley de datos personales; paso por ciberseguridad antes de prod | **Confirmado** — BR-021 → **PA-005** |
 | **Secretos / credenciales** | En AWS Secrets Manager; nunca en código (corrige antipatrón BR-016) | **Confirmado** — arquitectura-despliegue.md |
 | **Pasarela de pago Khipu** | En código pero DESACTIVADA; no se diseña salvo reactivación | **Confirmado** — RN-075 |
