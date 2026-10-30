@@ -17,6 +17,7 @@ Origen: definición de la empresa, confirmada por Felipe Ponce (TI): la identida
 6. **Auditoría:** la identidad del token (`sub` y correo) se registra como `usuario` en `evento_auditoria` y en el ajuste manual.
 7. **Callbacks de integración** (Agunsa Connect → Satélite) no usan este flujo. Son máquina a máquina y su mecanismo depende de PA-002. Si Agunsa Connect lo soporta, se puede usar un cliente de Cognito con client credentials; hasta entonces queda la firma por header del OpenAPI como supuesto.
 8. Secretos del cliente de Cognito, si aplican, van en Secrets Manager.
+9. **User pool: por ahora se usa el existente de la empresa** (decisión provisional, 2026-10-28), no uno propio del Satélite. El Satélite se registra en ese pool con su **propio app client** (client id y URLs de retorno propios). Se revisa si más adelante conviene un pool separado.
 
 ## Alternativas consideradas
 1. **Usuarios y contraseñas propias en la base del Satélite.** Descartada: duplica el directorio, las bajas serían manuales y repite el antipatrón del legacy.
@@ -27,11 +28,12 @@ Origen: definición de la empresa, confirmada por Felipe Ponce (TI): la identida
 - Sin contraseñas en el Satélite; la baja de una persona en Entra corta su acceso.
 - La API queda atada a Cognito como emisor. Un cambio de proveedor solo toca la validación del token.
 - Riesgo a vigilar: si los roles se leen de grupos de Entra, un usuario con muchos grupos puede exceder el límite del token y perder el claim. Usar app roles de Entra evita el problema. Se decide en PA-009.
+- Al compartir el pool con otras aplicaciones, **un token válido no basta**: la API debe rechazar tokens emitidos para otro app client (validar audiencia o `client_id`) y negar el acceso a usuarios del pool que no tengan un rol del Satélite.
+- La configuración del pool (app client, grupos, claims) la controla quien lo administra. Hay que pedirle el app client del Satélite y los grupos de roles.
 - El mockup no tiene pantalla de login (entra directo con un usuario de ejemplo por área). Es una simplificación del prototipo, no del diseño.
 
 ## Por confirmar (PA-009)
-- Si se usa un user pool de Cognito existente de la empresa o uno nuevo para el Satélite.
-- Federación por OIDC o por SAML (`[SUPUESTO: OIDC]`).
+- Federación por OIDC o por SAML (`[SUPUESTO: OIDC]`). Con el pool existente probablemente ya está resuelta; confirmar con quien lo administra.
 - Si los roles salen de grupos o de app roles de Entra, y cómo se llaman.
 - Matriz de permisos por rol y duración de los tokens.
 
