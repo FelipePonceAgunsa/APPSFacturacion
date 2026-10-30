@@ -12,7 +12,7 @@ Base: `design.md` v1.0, ADR-001…ADR-011, `requirements.md` v1.1, `docs/arquite
 > | Entrega (plan-entregas.md) | Fases de este documento | Dependencia externa |
 > |---|---|---|
 > | **E1 — Convenios automatizados** | Fase 0 + 1.2 + 4.1/4.2 | ninguna |
-> | **E2 — Factura con valores ajustados (prefactura)** | 1.1, 1.3–1.6, 2.1–2.3 | ninguna |
+> | **E2 — Factura con valores ajustados (prefactura)** | 1.1, 1.1b, 1.3–1.6, 2.1–2.3 | exportación de SAP (equipo SAP, no proveedor) |
 > | **E3 — Detección de omisiones** | 2.4 + 4.3 | ninguna |
 > | **E4 — Integración automática con SAP** | 3.2, 3.3, 3.4 | PA-001/002/003 |
 > | **E5 — Cierre del lazo y pagos** | 3.1, 3.5, 3.6 + Fase 5 | PA-004/006/008/005 |
@@ -41,6 +41,10 @@ Base: `design.md` v1.0, ADR-001…ADR-011, `requirements.md` v1.1, `docs/arquite
 - [ ] **1.1 Catálogo de servicios normalizado** (`TipoServicio`)
   - Importar desde `MasterData.TipoServicio` (192); normalizar unidades a enum; clave `TipoServicioID`; filtrar `Habilitado`.
   - Cubre: REQ (catálogo), RN-032, BR-014. ADR-010.
+- [ ] **1.1b Importación del catálogo SAP por archivo** (Fase A)
+  - Importar Excel/CSV exportado de SAP: artículos, listas de precios, kits con composición y tipo de cambio → `catalogo_snapshot` versionado, con validación y confirmación humana.
+  - Vínculo servicio↔artículo (`servicio_articulo_sap`): propuesta de IA + confirmación. Kit sugerido en la OFA por ruta. Pantalla "Catálogo SAP" de solo lectura.
+  - Cubre: REQ-005, REQ-008, RN-061, BR-014. ADR-017. **Dependencia menor:** el equipo de SAP entrega la exportación (PQ-025). No usa API.
 - [ ] **1.2 Convenios versionados** (modelo + CRUD)
   - `Convenio/VersionConvenio/ServicioConvenio`; estados y vigencia; multi-versión con histórico; vigente = más reciente (RN-043); alerta de vencimiento (RN-021); multi-convenio → más antiguo + override (RN-018).
   - Cubre: REQ-004, REQ-012, RN-015/018/021/037/043. ADR-007. (Extracción IA → tarea 4.2.)
@@ -77,7 +81,7 @@ Base: `design.md` v1.0, ADR-001…ADR-011, `requirements.md` v1.1, `docs/arquite
 - [ ] **3.1 Ingesta del evento facturable**
   - Puerto `IEventoFacturable`; adaptador **pull** a vista/API de AEXSA (stub primero); validación DIN↔papeleta (RN-001); clasificación de ruta (REQ-002) y momento (RN-046); idempotencia por operación.
   - Cubre: REQ-001, REQ-002. ADR-005. **(real bloqueada por PA-006.)**
-- [ ] **3.2 Lectura de tarifas desde SAP + snapshot**
+- [ ] **3.2 Lectura de tarifas desde SAP por API + snapshot** (Fase B; reemplaza la importación por archivo de 1.1b)
   - Puerto `ISapCatalogo`; sync programada → `TarifaSnapshot` versionado; mapeo RUT→CardCode, condición de pago/lista de precios (RN-065).
   - Cubre: REQ-005 (fuente), RN-014/061. ADR-003. **(real bloqueada por PA-003/PA-007; stub con datos de ejemplo.)**
 - [ ] **3.3 Outbox + despachador de la OFA hacia SAP**

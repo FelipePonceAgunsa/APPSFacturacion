@@ -22,6 +22,7 @@ Cada ADR documenta una decisión de arquitectura relevante con sus alternativas,
 | [ADR-014](ADR-014-alcance-2a-etapa-restante.md) | Alcance restante de 2ª etapa: expo DUS, licitaciones, notas de crédito (diseño anticipado) | Aceptado (construcción diferida) | RN-034, RN-047, RN-069, BR-030, PQ-024 |
 | [ADR-015](ADR-015-calculo-contenedor-directo-sti-dpw.md) | Cálculo del contenedor directo (STI vs DP World) | Aceptado | RN-078, RN-079, RN-007, PQ-006, BR-007 |
 | [ADR-016](ADR-016-autenticacion-cognito-entra-id.md) | Autenticación y autorización: Cognito federado con Entra ID | Aceptado (detalle en PA-009) | REQ-006, REQ-011, BR-016, BR-021, PA-009 |
+| [ADR-017](ADR-017-catalogo-sap-fase-a-importacion-kits.md) | Catálogo SAP en la Fase A: importación por archivo, kits y vínculo servicio↔artículo | Aceptado (Fase A) | REQ-005, REQ-008, RN-061, PQ-019, PQ-025, PA-003 |
 
 ## Estados
 - **Propuesto:** decisión tomada por el Arquitecto, pendiente de confirmación de un tercero (TI/SAP/seguridad). Ver la PA asociada.

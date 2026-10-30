@@ -27,7 +27,7 @@ Leer de SAP por una **API de solo consulta** detrás del puerto `ISapCatalogoPor
 - El cálculo es reproducible: cada OFA guarda qué versión de snapshot de tarifa pública usó.
 - Hay una ventana de desincronización (hasta la próxima sync); se mitiga con sync diaria + posibilidad de refresco manual y con la marca de versión en cada cálculo.
 - Dependencia abierta: objeto/query exacto de SAP (PA-003) y mapeo RUT→CardCode (PA-007). Hasta confirmarse, el adaptador usa un stub con datos de ejemplo.
-- La composición concreta de cada kit por ruta aún debe exportarse de SAP (PQ-025, pendiente menor del levantamiento); el modelo ya la soporta como `Kit → artículos`.
+- La composición concreta de cada kit por ruta aún debe exportarse de SAP (PQ-025). **Corrección (2026-10-28):** el modelo no tenía tablas de kits; se agregan en ADR-017 (`sap_kit`, `sap_kit_articulo`). En la Fase A el catálogo entra por exportación en Excel/CSV, no por API; la API de este ADR queda para la Fase B.
 
 ## Reglas / requerimientos relacionados
 REQ-005, REQ-004, RN-014, RN-061, RN-032, RN-065, BR-012, BR-020, PQ-025, PQ-019, PA-003, PA-007.

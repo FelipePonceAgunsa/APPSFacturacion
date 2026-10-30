@@ -149,12 +149,64 @@ CREATE TABLE servicio_prestado (
 CREATE INDEX ix_servicio_prestado_op ON servicio_prestado (operacion_id);
 ```
 
+### 3.3b Catálogo SAP importado (ADR-017)
+
+```sql
+-- Cabecera de cada carga del catalogo (archivo Excel/CSV en Fase A, API en Fase B).
+CREATE TABLE catalogo_snapshot (
+    version         int PRIMARY KEY,
+    fecha           timestamptz NOT NULL DEFAULT now(),
+    origen          text NOT NULL CHECK (origen IN ('ARCHIVO_SAP','API_SAP')),
+    archivo         text,                                -- archivo importado (S3)
+    cargado_por     text NOT NULL,
+    confirmado_por  text,                                -- confirmacion humana antes de activar
+    confirmado_en   timestamptz
+);
+
+-- Kits de SAP: encabezado y composicion (RN-061). Referencia, no entrada del calculo.
+CREATE TABLE sap_kit (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    snapshot_version int  NOT NULL REFERENCES catalogo_snapshot(version),
+    kit_codigo       varchar(40) NOT NULL,
+    nombre           text NOT NULL,
+    ruta             text,                               -- ruta a la que aplica (directo, indirecto sin convenio, con convenio...)
+    UNIQUE (snapshot_version, kit_codigo)
+);
+
+CREATE TABLE sap_kit_articulo (
+    kit_id       uuid NOT NULL REFERENCES sap_kit(id),
+    articulo_id  varchar(40) NOT NULL,
+    cantidad     numeric(18,4) NOT NULL DEFAULT 1,
+    PRIMARY KEY (kit_id, articulo_id)
+);
+
+-- Vinculo servicio del Satelite <-> articulo SAP (propuesta IA + confirmacion humana).
+CREATE TABLE servicio_articulo_sap (
+    tipo_servicio_id int NOT NULL REFERENCES tipo_servicio(tipo_servicio_id),
+    articulo_id      varchar(40) NOT NULL,
+    origen           text NOT NULL CHECK (origen IN ('IA_PROPUESTO','MANUAL')),
+    confirmado_por   text,
+    confirmado_en    timestamptz,
+    PRIMARY KEY (tipo_servicio_id, articulo_id)
+);
+
+-- Tipo de cambio diario que usa el motor (RN-022). Preferente: el mismo que usa SAP al emitir.
+CREATE TABLE tipo_cambio (
+    fecha        date NOT NULL,
+    moneda       char(3) NOT NULL CHECK (moneda IN ('USD','UF')),
+    valor        numeric(12,4) NOT NULL,
+    fuente       text NOT NULL,                          -- SAP | MANUAL
+    cargado_por  text NOT NULL,
+    PRIMARY KEY (fecha, moneda)
+);
+```
+
 ### 3.4 Tarifas de SAP (snapshot versionado, ADR-003)
 
 ```sql
 CREATE TABLE tarifa_snapshot (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    version          int NOT NULL,                       -- version del snapshot
+    version          int NOT NULL REFERENCES catalogo_snapshot(version), -- version del snapshot
     fecha            timestamptz NOT NULL DEFAULT now(),
     articulo_id      varchar(40) NOT NULL,               -- articulo SAP
     lista_precios_id varchar(30) NOT NULL,

@@ -81,6 +81,9 @@ Nota: F3 es el corazón de la Entrega 2 (factura con valores ajustados). El env�
 |----------|-----------|-------------|-----|
 | **T1 Trazabilidad** | Reconstruir la cadena de una operación | operación → OFA → factura (folio) → pago; memoria de cálculo (el "por qué" del monto) | `GET /operaciones/{id}`, `GET /ofa/{id}`, `GET /facturas` |
 | **T2 Panel de cuadraturas / alertas** | Monitoreo operativo | OFA sin folio (emitida-sin-confirmación), convenios por vencer, cola de Outbox, impagos | varios |
+| **T3 Catálogo SAP** (Fase A, ADR-017) | Consultar lo importado de SAP e importar | Kits y su composición, artículos y precios, vínculo servicio↔artículo (propuesta IA + confirmación), tipo de cambio, versión y fecha del catálogo | **por agregar a `openapi.yaml`** |
+
+Además, la OFA (F3) muestra el **kit SAP sugerido y la lista de precios**, y marca por línea si está en el kit o se agrega a mano.
 
 ---
 
