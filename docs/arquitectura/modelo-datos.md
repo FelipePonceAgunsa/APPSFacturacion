@@ -262,6 +262,7 @@ CREATE TABLE linea_ofa (
     ofa_id              uuid NOT NULL REFERENCES ofa(id),
     asignacion_cobro_id uuid REFERENCES asignacion_cobro(id),   -- a quien se cobra esta linea
     tipo_servicio_id    int  NOT NULL REFERENCES tipo_servicio(tipo_servicio_id),
+    articulo_sap_id     varchar(40),                       -- codigo SAP vigente al calcular (ADR-017); NULL = sin articulo, no enviable
     cantidad            numeric(18,4) NOT NULL,
     unidad              text NOT NULL,
     tarifa              numeric(18,4) NOT NULL,

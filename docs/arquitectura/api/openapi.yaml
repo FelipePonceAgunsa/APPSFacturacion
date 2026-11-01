@@ -176,7 +176,7 @@ paths:
     post:
       tags: [OFA]
       summary: Validar completitud de la OFA antes de enviarla a SAP (REQ-008)
-      description: Bloquea si falta destinatario, ítems sin tarifa, recargos/días sin resolver.
+      description: Bloquea si falta destinatario, ítems sin tarifa, líneas sin artículo SAP, recargos/días sin resolver.
       parameters:
         - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
@@ -429,6 +429,7 @@ components:
         lineaId: { type: string, format: uuid }
         asignacionId: { type: string, format: uuid, nullable: true }
         tipoServicioId: { type: integer }
+        articuloSap: { type: string, nullable: true, description: Código del artículo en SAP (ADR-017). Null = sin artículo SAP; la línea no pasa la validación. }
         cantidad: { type: number }
         unidad: { $ref: '#/components/schemas/UnidadCobro' }
         tarifa: { type: number }

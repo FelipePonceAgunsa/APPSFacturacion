@@ -107,7 +107,8 @@ public interface ISapOrdenVentaPort
       "destinatarioRut": "76.123.456-7",
       "rol": "CONSIGNATARIO",
       "lineas": [
-        { "tipoServicioId": 42, "cantidad": 2, "unidad": "CTR",
+        { "tipoServicioId": 42, "articuloSap": "SRV-REC-001",
+          "cantidad": 2, "unidad": "CTR",
           "tarifa": 15000.0000, "moneda": "CLP", "monto": 30000.0000 }
       ]
     }
@@ -119,6 +120,8 @@ public interface ISapOrdenVentaPort
   "folio": "F-00098765", "numeroInterno": "OV-2026-5543",
   "mensajeError": null }
 ```
+
+**Nota (ADR-017):** cada línea lleva `articuloSap`, el código del artículo en SAP, tomado del vínculo servicio↔artículo confirmado. Es obligatorio para crear la orden de venta. Una OFA con una línea sin artículo SAP no pasa la validación de completitud y no se encola. El monto lo calcula el Satélite; la integración debe poder fijar el precio de la línea sin que SAP lo recalcule con la lista de precios (a confirmar con el proveedor).
 
 **Flujo de consumo:**
 
