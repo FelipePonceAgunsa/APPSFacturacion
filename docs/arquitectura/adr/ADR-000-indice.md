@@ -1,6 +1,6 @@
 # Índice de ADRs — Satélite de Facturación AEXSA
 
-Última actualización: 2026-10-26
+Última actualización: 2026-11-04 (ADR-007 y ADR-012: extracción por IA como etapa opcional; ingreso por formulario manual)
 
 Cada ADR documenta una decisión de arquitectura relevante con sus alternativas, consecuencias y las reglas/requerimientos del levantamiento que la originan. Formato: contexto → decisión → alternativas consideradas → consecuencias → estado.
 

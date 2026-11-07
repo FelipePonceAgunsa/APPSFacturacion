@@ -6,7 +6,7 @@ Decide: Arquitecto de Solución
 Origen: Adenda del analista 2026-10-28 (handoff §A1); cierra PQ-006/BR-007 (única regla de monto de negocio que quedaba abierta). Reglas nuevas RN-078, RN-079; corrige RN-007.
 
 ## Contexto
-El diseño previo (motor de tarifas, basado en el AS-IS/BPMN) modelaba el contenedor **directo** con un "kit directo de SAP" que incluía recepción/despacho, y la regla STI/DPW como "mantener valor del kit / poner refacturación en cero" (RN-007, entonces sin criterio confirmado). La adenda del analista **corrige esto con criterio de negocio confirmado** (Francisco Thomson, 2026-10-28):
+El diseño previo (motor de tarifas, basado en el AS-IS/BPMN) modelaba el contenedor **directo** con un "kit directo de SAP" que incluía recepción/despacho, y la regla STI/DPW como "mantener valor del kit / poner refacturación en cero" (RN-007, entonces sin criterio confirmado). La adenda del analista **corrige esto con criterio de negocio confirmado** (jefatura de facturación, 2026-10-28):
 
 - En contenedor **DIRECTO** el contenedor **no entra a AEXSA** (el consignatario lo retira directo del puerto). Por tanto **NO se cobra recepción, ni despacho, ni movilización**.
 - Se cobran **exactamente 3 conceptos**:

@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Segoe UI, Calibri, Arial, sans-serif">
+  <defs>
+    <marker id="fl" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#1A1A1A"/>
+    </marker>
+    <marker id="flR" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#D9291C"/>
+    </marker>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1A1A1A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="#FFFFFF"/>
+
+  <!-- encabezado -->
+  <rect width="1920" height="94" fill="#1A1A1A"/>
+  <rect y="94" width="1920" height="6" fill="#D9291C"/>
+  <text x="60" y="36" fill="#BBBBBB" font-size="18" font-weight="700" letter-spacing="1">SATÉLITE DE FACTURACIÓN · EL CÁLCULO POR DENTRO</text>
+  <text x="58" y="76" fill="#FFFFFF" font-size="40" font-weight="700">Las reglas con que el Satélite calcula el monto</text>
+  <text x="1860" y="72" fill="#D9291C" font-size="40" font-weight="700" text-anchor="end">AGUNSA</text>
+
+  <!-- subtítulo -->
+  <text x="60" y="150" fill="#595959" font-size="22">Se aplican en este orden. Son reglas fijas, sin IA: el mismo dato siempre da el mismo monto.</text>
+
+  <!-- ====== REGLAS (2 columnas de 4 y 3) ====== -->
+  <!-- Columna izquierda -->
+  <g>
+    <!-- R1 -->
+    <g transform="translate(60,200)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">1</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Resolver la tarifa</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Si el servicio está en el convenio del cliente, manda el convenio.</text>
+      <text x="124" y="122" fill="#595959" font-size="19">Si no, usa la tarifa pública de SAP y la marca como excepción.</text>
+    </g>
+    <!-- R2 -->
+    <g transform="translate(60,360)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">2</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Contar la cantidad</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Cobra por contenedor, DUS, tonelada o día, según el servicio.</text>
+      <text x="124" y="122" fill="#595959" font-size="19">Cuando el cobro es por volumen o peso, paga el mayor de los dos.</text>
+    </g>
+    <!-- R3 -->
+    <g transform="translate(60,520)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">3</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Convertir a pesos</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Si la tarifa está en dólares, la pasa a pesos con el dólar del día,</text>
+      <text x="124" y="122" fill="#595959" font-size="19">pero nunca por debajo del piso de dólar pactado en el convenio.</text>
+    </g>
+    <!-- R4 -->
+    <g transform="translate(60,680)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">4</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Almacenaje</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Cobra solo los días que superan los días libres del convenio.</text>
+      <text x="124" y="122" fill="#595959" font-size="19">Los días con la carga bajo aforo no se cobran.</text>
+    </g>
+  </g>
+
+  <!-- Columna derecha -->
+  <g>
+    <!-- R5 -->
+    <g transform="translate(1000,200)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">5</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Recargos</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Suma los recargos que correspondan: 15% por refacturar a</text>
+      <text x="124" y="122" fill="#595959" font-size="19">terceros, falso flete, sobrepeso o atención fuera de horario.</text>
+    </g>
+    <!-- R6 -->
+    <g transform="translate(1000,360)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">6</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Reglas especiales</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Reglas no escritas que hoy sabe el facturador, cargadas como</text>
+      <text x="124" y="122" fill="#595959" font-size="19">parámetros versionados. Se agregan sin tocar el programa.</text>
+    </g>
+    <!-- R7 -->
+    <g transform="translate(1000,520)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <circle cx="68" cy="70" r="34" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+      <text x="68" y="81" fill="#D9291C" font-size="32" font-weight="700" text-anchor="middle">7</text>
+      <text x="124" y="58" fill="#1A1A1A" font-size="26" font-weight="700">Ajuste manual</text>
+      <text x="124" y="96" fill="#595959" font-size="19">Si hace falta corregir, lo decide una persona y queda registrado</text>
+      <text x="124" y="122" fill="#595959" font-size="19">con autor, fecha y motivo. La IA nunca fija el monto.</text>
+    </g>
+
+    <!-- RESULTADO -->
+    <g transform="translate(1000,680)">
+      <g filter="url(#sombra)"><rect width="860" height="140" rx="14" fill="#FDF2F1" stroke="#D9291C" stroke-width="3"/></g>
+      <rect width="10" height="140" rx="5" fill="#D9291C"/>
+      <text x="124" y="58" fill="#D9291C" font-size="26" font-weight="700">Prefactura valorizada (OFA)</text>
+      <text x="124" y="96" fill="#333" font-size="19">El monto queda listo, con su memoria: qué reglas se aplicaron,</text>
+      <text x="124" y="122" fill="#333" font-size="19">con qué versiones y qué dólar. Siempre se puede reconstruir.</text>
+    </g>
+  </g>
+
+  <!-- flechas entre reglas -->
+  <path d="M490,340 L490,360" fill="none" stroke="#1A1A1A" stroke-width="3" marker-end="url(#fl)"/>
+  <path d="M490,500 L490,520" fill="none" stroke="#1A1A1A" stroke-width="3" marker-end="url(#fl)"/>
+  <path d="M490,660 L490,680" fill="none" stroke="#1A1A1A" stroke-width="3" marker-end="url(#fl)"/>
+  <!-- puente columna izq -> der -->
+  <path d="M920,750 C960,750 960,270 1000,270" fill="none" stroke="#1A1A1A" stroke-width="3" marker-end="url(#fl)"/>
+  <path d="M1430,340 L1430,360" fill="none" stroke="#1A1A1A" stroke-width="3" marker-end="url(#fl)"/>
+  <path d="M1430,500 L1430,520" fill="none" stroke="#1A1A1A" stroke-width="3" marker-end="url(#fl)"/>
+  <path d="M1430,660 L1430,680" fill="none" stroke="#D9291C" stroke-width="4" marker-end="url(#flR)"/>
+
+  <!-- nota al pie -->
+  <text x="60" y="1000" fill="#888888" font-size="17">El orden importa: la tarifa antes que la cantidad; la moneda antes que los recargos; el ajuste manual, al final. El IVA y el documento los hace SAP.</text>
+</svg>

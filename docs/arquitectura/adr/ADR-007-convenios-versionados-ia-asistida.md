@@ -4,6 +4,8 @@ Estado: **Aceptado**
 Fecha: 2026-10-26
 Decide: Arquitecto de Solución
 
+> **Actualización 2026-11-04:** el ingreso por defecto es el **formulario manual** con confirmación humana (punto 3, última frase). El puerto `IExtraccionConvenioPort` y el adaptador de IA (punto 2) pasan a **etapa opcional**: no se construyen salvo que el negocio lo pida. El modelo versionado, la confirmación humana y las alertas de vigencia (puntos 1, 3 y 4) no cambian.
+
 ## Contexto
 Decisión de negocio cerrada (no reabrir): **el convenio vigente vive en el Satélite** como fuente autoritativa (RN-071, REQ-012), reemplazando SharePoint/correos/carpetas (BR-001, BR-019). El comercial lo ingresa por **lectura asistida por IA** desde PDF/Word (extrae servicios, tarifas, unidades, moneda, TC mínimo, días libres, vigencia) **o manual**, con **confirmación humana antes de quedar vigente** (RN-071). El convenio tiene validez 1 año, se ajusta por correo como complemento, y puede haber varias versiones; manda la vigente y se conserva el histórico (RN-021, RN-037, RN-043, REQ-004). La IA **nunca fija un monto** (principio): extrae y propone; un humano confirma.
 

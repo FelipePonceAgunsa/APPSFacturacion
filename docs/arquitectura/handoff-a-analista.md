@@ -37,7 +37,7 @@ Estas son de tu cancha (negocio); nuestra decisión de diseño las destapa pero 
 |------|-----------|------------|
 | **Migración de convenios de SharePoint** | Confirmar con comercial el **universo real** a migrar (cuántos convenios vigentes, de qué clientes) y quién valida cada carga inicial. Hoy la cifra es ~167 clientes / 539 archivos, pero no todos vigentes. | BR-001, BR-011 |
 | **Gestión del cambio del comercial** | El comercial deja de usar SharePoint y pasa a cargar en el Satélite. Confirmar con negocio el acompañamiento/capacitación y quién lidera el cambio. | ADR-012 (consecuencias) |
-| **STI vs DPW (abierta del levantamiento)** | Sigue siendo la única regla de **monto** de negocio sin confirmar. No depende de convenios, pero está pendiente contigo/ Francisco. | PQ-006 / BR-007 |
+| **STI vs DPW (abierta del levantamiento)** | Sigue siendo la única regla de **monto** de negocio sin confirmar. No depende de convenios, pero está pendiente con jefatura de facturación. | PQ-006 / BR-007 |
 | **Mecánica fina del DUS** | Confirmar cantidad de DUS por operación (relevante si expo entra en 1ª etapa). | BR-030 |
 
 ---

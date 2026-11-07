@@ -1,8 +1,11 @@
-# === Política del repositorio: SOLO ARQUITECTURA ===
-# Este repo versiona únicamente los artefactos de arquitectura del Satélite.
-# NO van: levantamiento, procesos, insumos de convenios (datos de clientes, BR-021),
-# presentaciones, requirements de negocio, ni configuración de agentes/steering.
-# Estrategia: ignorar todo por defecto y permitir explícitamente lo de arquitectura.
+# === Política del repositorio: LO NECESARIO PARA CONSTRUIR EL SOFTWARE ===
+# Este repo versiona los artefactos de arquitectura del Satélite y el material de arranque
+# para quien desarrolla (docs/desarrollo: guía, extractos de requerimientos y reglas SIN
+# nombres de personas ni de clientes, glosario, formato de archivos, diagramas).
+# NO van: levantamiento original, procesos, insumos de convenios (datos de clientes, BR-021),
+# presentaciones, requirements.md original de negocio, ni configuración de agentes.
+# Solo se versiona el steering de desarrollo (.kiro/steering/desarrollo-satelite.md).
+# Estrategia: ignorar todo por defecto y permitir explícitamente lo necesario.
 
 # 1) Ignorar todo
 /*
@@ -32,6 +35,10 @@ docs/arquitectura/*
 !docs/arquitectura/api/
 !docs/arquitectura/api/**
 
+# Material de arranque para el desarrollador (extractos sanitizados, sin datos de clientes)
+!docs/desarrollo/
+!docs/desarrollo/**
+
 # La carpeta docs/arquitectura/diagramas/ (gráficos de presentación: .drawio, .svg,
 # estándar de gráficos) NO va al repo: es material de presentación/gestión, no
 # entregable de construcción. Queda en disco, fuera del control de versiones.
@@ -50,6 +57,12 @@ docs/arquitectura/*
 .kiro/specs/satelite-facturacion/*
 !.kiro/specs/satelite-facturacion/design.md
 !.kiro/specs/satelite-facturacion/tasks.md
+
+# 5) Steering de desarrollo: las reglas que Kiro aplica a quien desarrolla.
+#    El resto del steering (levantamiento, contexto del analista) NO va.
+!.kiro/steering/
+.kiro/steering/*
+!.kiro/steering/desarrollo-satelite.md
 
 # === Exclusiones técnicas habituales (por si se agrega código a futuro) ===
 # Secretos — nunca (evita el antipatrón del legacy, BR-016)

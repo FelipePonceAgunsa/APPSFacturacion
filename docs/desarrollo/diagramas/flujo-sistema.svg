@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="Segoe UI, Calibri, Arial, sans-serif">
+  <defs>
+    <marker id="flecha" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#1A1A1A"/>
+    </marker>
+    <marker id="flechaR" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#D9291C"/>
+    </marker>
+    <marker id="flechaG" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#888888"/>
+    </marker>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1A1A1A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="#FFFFFF"/>
+
+  <!-- encabezado -->
+  <rect width="1920" height="94" fill="#1A1A1A"/>
+  <rect y="94" width="1920" height="6" fill="#D9291C"/>
+  <text x="60" y="36" fill="#BBBBBB" font-size="18" font-weight="700" letter-spacing="1">SATÉLITE DE FACTURACIÓN</text>
+  <text x="58" y="76" fill="#FFFFFF" font-size="40" font-weight="700">El flujo de la facturación, de punta a punta</text>
+  <text x="1860" y="72" fill="#D9291C" font-size="40" font-weight="700" text-anchor="end">AGUNSA</text>
+
+  <!-- ======================= ACTORES (fila superior) ======================= -->
+  <!-- AEXSA SYS: torre de servidor -->
+  <g transform="translate(240,320)">
+    <g filter="url(#sombra)">
+      <rect x="-70" y="-90" width="140" height="180" rx="14" fill="#EEF0F3" stroke="#D2D8DE" stroke-width="2"/>
+    </g>
+    <rect x="-52" y="-66" width="104" height="30" rx="6" fill="#FFFFFF" stroke="#C7CED5"/>
+    <rect x="-52" y="-24" width="104" height="30" rx="6" fill="#FFFFFF" stroke="#C7CED5"/>
+    <rect x="-52" y="18"  width="104" height="30" rx="6" fill="#FFFFFF" stroke="#C7CED5"/>
+    <circle cx="-34" cy="-51" r="5" fill="#1E8E3E"/>
+    <circle cx="-34" cy="-9"  r="5" fill="#1E8E3E"/>
+    <circle cx="-34" cy="33"  r="5" fill="#1E8E3E"/>
+    <rect x="-18" y="-55" width="60" height="8" rx="4" fill="#D7DEE4"/>
+    <rect x="-18" y="-13" width="60" height="8" rx="4" fill="#D7DEE4"/>
+    <rect x="-18" y="29"  width="60" height="8" rx="4" fill="#D7DEE4"/>
+    <text x="0" y="128" fill="#1A1A1A" font-size="26" font-weight="700" text-anchor="middle">AEXSA SYS</text>
+    <text x="0" y="158" fill="#595959" font-size="18" text-anchor="middle">Sistema operacional</text>
+  </g>
+
+  <!-- SATÉLITE: planeta con anillo -->
+  <g transform="translate(960,320)">
+    <g filter="url(#sombra)">
+      <circle cx="0" cy="0" r="92" fill="#D9291C"/>
+    </g>
+    <ellipse cx="0" cy="0" rx="150" ry="46" fill="none" stroke="#1A1A1A" stroke-width="7" transform="rotate(-20)"/>
+    <ellipse cx="0" cy="0" rx="150" ry="46" fill="none" stroke="#D9291C" stroke-width="3" transform="rotate(-20)" opacity="0.5"/>
+    <circle cx="-30" cy="-28" r="16" fill="#FFFFFF" opacity="0.25"/>
+    <circle cx="26" cy="14" r="24" fill="#FFFFFF" opacity="0.18"/>
+    <circle cx="18" cy="-34" r="10" fill="#FFFFFF" opacity="0.2"/>
+    <text x="0" y="148" fill="#D9291C" font-size="28" font-weight="700" text-anchor="middle">SATÉLITE</text>
+    <text x="0" y="178" fill="#595959" font-size="18" text-anchor="middle">calcula la prefactura</text>
+  </g>
+
+  <!-- SAP: cilindro de base de datos -->
+  <g transform="translate(1680,320)">
+    <g filter="url(#sombra)">
+      <path d="M-70,-78 a70,24 0 0,0 140,0 v150 a70,24 0 0,1 -140,0 Z" fill="#EEF0F3" stroke="#D2D8DE" stroke-width="2"/>
+    </g>
+    <ellipse cx="0" cy="-78" rx="70" ry="24" fill="#FFFFFF" stroke="#D2D8DE" stroke-width="2"/>
+    <ellipse cx="0" cy="-30" rx="70" ry="22" fill="none" stroke="#C7CED5" stroke-width="2"/>
+    <ellipse cx="0" cy="18"  rx="70" ry="22" fill="none" stroke="#C7CED5" stroke-width="2"/>
+    <text x="0" y="128" fill="#1A1A1A" font-size="26" font-weight="700" text-anchor="middle">SAP Business One</text>
+    <text x="0" y="158" fill="#595959" font-size="18" text-anchor="middle">emite el DTE</text>
+  </g>
+
+  <!-- flechas de ida (fila superior) -->
+  <path d="M345,305 C560,245 720,245 855,292" fill="none" stroke="#1A1A1A" stroke-width="4" marker-end="url(#flecha)"/>
+  <text x="600" y="232" fill="#1A1A1A" font-size="20" font-weight="700" text-anchor="middle">1 · envía el evento facturable</text>
+  <path d="M1065,292 C1200,245 1470,245 1610,300" fill="none" stroke="#1A1A1A" stroke-width="4" marker-end="url(#flecha)"/>
+  <text x="1340" y="232" fill="#1A1A1A" font-size="20" font-weight="700" text-anchor="middle">entrega la OFA valorizada</text>
+
+  <!-- ======================= PASOS DEL SATÉLITE (banda central) ======================= -->
+  <g transform="translate(960,500)" text-anchor="middle">
+    <text x="0" y="0" fill="#1A1A1A" font-size="22" font-weight="700">¿qué hace el Satélite?</text>
+    <line x1="-470" y1="22" x2="470" y2="22" stroke="#E2E2E2" stroke-width="2"/>
+    <text x="-350" y="62" fill="#1A1A1A" font-size="19" font-weight="700">① Convenio vigente</text>
+    <text x="-350" y="88" fill="#595959" font-size="15">qué tarifa rige hoy</text>
+    <text x="-118" y="62" fill="#1A1A1A" font-size="19" font-weight="700">② Cálculo</text>
+    <text x="-118" y="88" fill="#595959" font-size="15">tarifa, dólar, días, recargos</text>
+    <text x="118" y="62" fill="#D9291C" font-size="19" font-weight="700">③ Revisión del facturador</text>
+    <text x="118" y="88" fill="#595959" font-size="15">agrega lo que solo él sabe</text>
+    <text x="350" y="62" fill="#1A1A1A" font-size="19" font-weight="700">④ Prefactura</text>
+    <text x="350" y="88" fill="#595959" font-size="15">OFA lista y auditable</text>
+  </g>
+
+  <!-- ======================= TARJETAS DE DETALLE (misma fila, misma altura) ======================= -->
+  <!-- Evento (bajo AEXSA) -->
+  <g transform="translate(70,660)">
+    <rect x="0" y="0" width="420" height="150" rx="12" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+    <text x="210" y="36" fill="#D9291C" font-size="19" font-weight="700" text-anchor="middle">El evento que da el comienzo</text>
+    <text x="210" y="72"  fill="#333" font-size="16" text-anchor="middle">Visado aprobado en AEXSA. Trae:</text>
+    <text x="210" y="100" fill="#595959" font-size="16" text-anchor="middle">operación · ruta · convenio · puerto</text>
+    <text x="210" y="126" fill="#595959" font-size="16" text-anchor="middle">DIN/DUS · RUT · servicios prestados</text>
+  </g>
+  <path d="M240,432 L240,655" fill="none" stroke="#D9291C" stroke-width="3" marker-end="url(#flechaR)" stroke-dasharray="7 6"/>
+
+  <!-- Revisión del facturador (centro) -->
+  <g transform="translate(630,660)">
+    <rect x="0" y="0" width="660" height="150" rx="12" fill="#FDF2F1" stroke="#D9291C" stroke-width="2"/>
+    <text x="330" y="40" fill="#D9291C" font-size="20" font-weight="700" text-anchor="middle">Revisión de la persona que factura</text>
+    <text x="330" y="78"  fill="#333" font-size="16" text-anchor="middle">Agrega o corrige lo que el sistema no sabe: las reglas que</text>
+    <text x="330" y="104" fill="#333" font-size="16" text-anchor="middle">solo conoce el facturador. Queda registrado con autor y motivo.</text>
+    <text x="330" y="132" fill="#595959" font-size="15" text-anchor="middle" font-style="italic">La IA nunca fija el monto.</text>
+  </g>
+  <path d="M960,558 L960,655" fill="none" stroke="#D9291C" stroke-width="3" marker-end="url(#flechaR)"/>
+
+  <!-- Catálogo de SAP (bajo SAP) -->
+  <g transform="translate(1430,660)">
+    <rect x="0" y="0" width="420" height="150" rx="12" fill="#EEF0F3" stroke="#D2D8DE" stroke-width="2"/>
+    <text x="210" y="40" fill="#1A1A1A" font-size="19" font-weight="700" text-anchor="middle">Catálogo de SAP</text>
+    <text x="210" y="78"  fill="#595959" font-size="16" text-anchor="middle">artículos, precios de lista,</text>
+    <text x="210" y="104" fill="#595959" font-size="16" text-anchor="middle">kits y tipo de cambio</text>
+    <text x="210" y="134" fill="#888888" font-size="15" text-anchor="middle" font-style="italic">alimenta el cálculo</text>
+  </g>
+  <path d="M1640,655 C1640,470 1200,420 1052,375" fill="none" stroke="#888888" stroke-width="3" marker-end="url(#flechaG)" stroke-dasharray="7 6"/>
+
+  <!-- ======================= CIERRE DEL CICLO (fila inferior) ======================= -->
+  <!-- baja desde SAP por la derecha, rodeando la tarjeta del catálogo -->
+  <path d="M1750,398 C1890,398 1890,878 1692,878" fill="none" stroke="#D9291C" stroke-width="3" stroke-dasharray="7 6"/>
+  <g transform="translate(0,900)">
+    <circle cx="1680" cy="0" r="12" fill="#D9291C"/>
+    <circle cx="1180" cy="0" r="12" fill="#D9291C"/>
+    <circle cx="700" cy="0" r="12" fill="#D9291C"/>
+    <circle cx="240" cy="0" r="12" fill="#D9291C"/>
+    <text x="1680" y="-26" fill="#1A1A1A" font-size="19" font-weight="700" text-anchor="middle">folio / DTE</text>
+    <text x="1180" y="-26" fill="#1A1A1A" font-size="19" font-weight="700" text-anchor="middle">pago conciliado</text>
+    <text x="700"  y="-26" fill="#1A1A1A" font-size="19" font-weight="700" text-anchor="middle">retorno a AEXSA</text>
+    <text x="240"  y="-26" fill="#1A1A1A" font-size="19" font-weight="700" text-anchor="middle">libera la carga</text>
+    <path d="M1668,0 L1192,0" fill="none" stroke="#D9291C" stroke-width="4" marker-end="url(#flechaR)"/>
+    <path d="M1168,0 L712,0"  fill="none" stroke="#D9291C" stroke-width="4" marker-end="url(#flechaR)"/>
+    <path d="M688,0 L252,0"   fill="none" stroke="#D9291C" stroke-width="4" marker-end="url(#flechaR)"/>
+  </g>
+  <path d="M240,888 C70,888 70,320 155,320" fill="none" stroke="#D9291C" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#flechaR)"/>
+
+  <!-- nota al pie -->
+  <text x="60" y="1038" fill="#888888" font-size="17">La factura la emite SAP. El Satélite calcula a partir del evento de AEXSA; al final, el folio vuelve a AEXSA para liberar la carga.</text>
+</svg>

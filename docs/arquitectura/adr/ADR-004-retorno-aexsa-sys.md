@@ -25,7 +25,7 @@ El Satélite **cierra el lazo devolviendo a AEXSA SYS el folio y los datos de la
 ## Consecuencias
 - El lazo se cierra con el folio, sin depender del PDF ni de reescribir el legacy.
 - La cuadratura por folio es la columna vertebral de la trazabilidad (RNF-02) y de la detección de omisiones (ADR-009).
-- Dependencias abiertas: vía exacta de retorno (PA-004) y disponibilidad del XML/PDF (PA-008). ADR **Propuesto** hasta confirmarlas con Ricardo/TI-AEXSA.
+- Dependencias abiertas: vía exacta de retorno (PA-004) y disponibilidad del XML/PDF (PA-008). ADR **Propuesto** hasta confirmarlas con TI-AEXSA.
 
 ## Reglas / requerimientos relacionados
 REQ-009, RN-072, RN-074, RN-029, RN-062, RN-076, PQ-031, PQ-032, PA-004, PA-008.

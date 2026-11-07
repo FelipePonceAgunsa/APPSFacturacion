@@ -1,10 +1,12 @@
 # Diseño — Satélite de Facturación AEXSA
 
-Versión: 1.0
-Fecha: 2026-10-26
+Versión: 1.1
+Fecha: 2026-11-04
 Autor: Arquitecto de Solución (`arquitecto-satelite`)
-Entrada: `requirements.md` v1.1 (REQ-001…REQ-012), catálogos del levantamiento (RN, BR, PQ), `handoff-arquitecto.md`, principios de arquitectura (steering).
-Decisiones: ver ADRs en `docs/arquitectura/adr/` (ADR-001…ADR-011). Preguntas técnicas abiertas: `docs/arquitectura/preguntas-arquitectura.md` (PA-001…PA-008).
+Entrada: `requirements.md` v1.1 (REQ-001…REQ-012), catálogos del levantamiento (RN, BR, PQ), principios de arquitectura (steering). Para desarrollo: `docs/desarrollo/requerimientos.md` y `docs/desarrollo/reglas-negocio.md`.
+Decisiones: ver ADRs en `docs/arquitectura/adr/` (ADR-001…ADR-017). Las preguntas técnicas abiertas (PA-001…PA-009) se resumen en `docs/desarrollo/GUIA-DESARROLLADOR.md`.
+
+> **Cambios de la v1.1 (2026-10-28 al 2026-11-04):** (1) autenticación con Cognito federado a Entra ID (ADR-016); (2) catálogo de SAP por archivo en la Fase A, con kits y vínculo servicio↔artículo (ADR-017); (3) los convenios se ingresan por **formulario manual**, y la extracción por IA pasa a **etapa opcional** (ADR-007, ADR-012); (4) regla del directo STI/DP World cerrada (ADR-015); (5) entregas agrupadas en **Fase A** y **Fase B**; (6) la ingesta mínima del evento y las pantallas base pasan a la Fase A.
 
 > Este documento define el **CÓMO**. No reabre decisiones de negocio cerradas (handoff §2). Donde una pieza depende de un tercero (SAP, Agunsa Connect, AEXSA SYS, seguridad), se diseña detrás de un **puerto** para que el Satélite se construya y pruebe sin esperar a esa resolución, y la dependencia queda marcada como PA en estado *Propuesto*.
 
@@ -15,7 +17,7 @@ Decisiones: ver ADRs en `docs/arquitectura/adr/` (ADR-001…ADR-011). Preguntas 
 El Satélite es un sistema nuevo que centraliza los eventos facturables de AEXSA SYS, calcula los montos de forma **determinística y auditable**, arma una **OFA valorizada** (orden de venta de SAP), cierra el lazo devolviendo el folio a AEXSA SYS para liberar la carga, y da trazabilidad extremo a extremo para **detectar omisiones de cobro**.
 
 Dos principios gobiernan el diseño:
-1. **El monto nunca lo fija la IA.** El cálculo es un motor de reglas determinístico y versionado (ADR-006). La IA solo extrae, propone y alerta, con confirmación humana (ADR-007, ADR-008, ADR-009).
+1. **El monto nunca lo fija la IA.** El cálculo es un motor de reglas determinístico y versionado (ADR-006). La IA, **cuando se active como etapa opcional**, solo extrae, propone y alerta, con confirmación humana (ADR-007, ADR-008, ADR-009). El sistema funciona completo sin IA.
 2. **Manda el negocio sobre el legacy.** Repartido (RN-077) y cobro por DUS (RN-047) son capacidades nuevas a construir (ADR-011).
 
 El mayor riesgo técnico es la **escritura hacia SAP** (no existe canal, RN-076/BR-027/PQ-029) y su gobierno por **Agunsa Connect** (BR-028/PQ-030). El diseño lo aísla con el patrón Outbox + adaptadores (ADR-002) de modo que ese riesgo no bloquee la construcción del resto.
@@ -270,15 +272,15 @@ En cada tramo el Satélite cuadra y, ante desbalance, alerta:
 | REQ-001 Evento facturable | Puerto `IEventoFacturable` (pull por defecto, push si viable); valida DIN↔papeleta; clasifica momento por convenio | ADR-005 |
 | REQ-002 Clasificación de ruta | Regla de clasificación {carga}×{retiro}×{convenio} en el dominio; recalcula si directo→indirecto | ADR-006 |
 | REQ-003 Destinatario(s) | `AsignacionCobro` multi-destinatario; default consignatario DIN; registra origen de instrucción; RUT de la DIN | ADR-011 |
-| REQ-004 Convenio vigente | Convenio versionado como fuente; multi-convenio → más antiguo + override; alerta vencimiento | ADR-007 |
+| REQ-004 Convenio vigente | Convenio versionado como fuente (ingreso por formulario manual); multi-convenio → más antiguo + override; alerta vencimiento | ADR-007, ADR-012 |
 | REQ-005 Cálculo determinístico | Pipeline de reglas puras; USD→CLP con piso; días libres/aforo; recargos; mayor m³/ton; DUS/BL; guarda versiones | ADR-006, ADR-011 |
 | REQ-006 Capa configurable | 3 niveles (código/datos/ajuste manual) + promoción; ajuste auditable; IA propone | ADR-008 |
-| REQ-007 Detección de omisiones | Cruce determinístico prestado↔valorizado + IA que propone; alerta complementarias tardías | ADR-009 |
+| REQ-007 Detección de omisiones | Cruce determinístico prestado↔valorizado (núcleo); propuesta por IA como etapa opcional; alerta complementarias tardías | ADR-009 |
 | REQ-008 OFA hacia SAP | OFA valorizada + validación de completitud; bloquea si incompleta; entrega por Outbox | ADR-002, ADR-010 |
 | REQ-009 Emisión y folio | Outbox→Agunsa Connect→SAP; callback de folio; retorno a AEXSA; emitida-sin-confirmación + alerta | ADR-002, ADR-004 |
 | REQ-010 Pago y conciliación | Recibe estado de pago por folio; soporta pago agrupado multi-factura/multi-cliente | ADR-004, ADR-010 |
 | REQ-011 Histórico y auditoría | `MemoriaCalculo` + `EventoAuditoria` append-only; reconstrucción por versión | ADR-010 |
-| REQ-012 Convenio en el Satélite | Ingreso por extracción IA (propuesta + confirmación) o manual; versión y vigencia; histórico | ADR-007 |
+| REQ-012 Convenio en el Satélite | **Formulario manual** (por defecto) con confirmación humana; versión y vigencia; histórico. Extracción por IA: etapa opcional | ADR-007, ADR-012 |
 
 ---
 
@@ -289,18 +291,32 @@ Cada integración define disparador, contrato, idempotencia, reintentos, errores
 | Integración | Dirección | Puerto | Mecanismo | Idempotencia | Estado |
 |-------------|-----------|--------|-----------|--------------|--------|
 | Evento facturable | AEXSA → Satélite | `IEventoFacturable` | Pull a vista/API (push si hay webhook) | por `operacionId` | PA-006 |
-| Lectura tarifas | SAP → Satélite | `ISapCatalogo` | API consulta + snapshot versionado | sync idempotente | PA-003, PA-007 |
+| Catálogo SAP — **Fase A** | SAP → Satélite | `ISapCatalogoPort` (adaptador de archivo) | Excel/CSV exportado por SAP, validado y confirmado por una persona → snapshot versionado | por versión de snapshot | ADR-017 (sin API) |
+| Lectura tarifas — **Fase B** | SAP → Satélite | `ISapCatalogoPort` (adaptador de API) | API consulta + snapshot versionado; reemplaza al archivo | sync idempotente | PA-003, PA-007 |
 | Escritura OFA | Satélite → SAP | `ISapOrdenVenta` | Outbox → Agunsa Connect → SAP | por `OfaId`+versión | PA-001, PA-002 |
 | Folio/DTE | SAP → Satélite | (callback) | Callback / conciliación por folio | por folio | PA-002 |
 | Retorno AEXSA | Satélite → AEXSA | `IAexsaRetorno` | Reutiliza canal de conciliación por folio | por folio | PA-004, PA-008 |
-| Extracción convenio | IA | `IExtraccionConvenio` | Propuesta + confirmación humana | — | — |
+| Extracción convenio *(opcional)* | IA | `IExtraccionConvenio` | Propuesta + confirmación humana. Etapa opcional: el convenio se ingresa por formulario manual | — | — |
 
 Resiliencia (RNF-07): toda OFA enviada termina con **folio o error explícito**; reintentos con backoff; `EMITIDA_SIN_CONFIRMACION` + alerta al agotar; reproceso desde la interfaz sin tocar la BD; log de request/response/error por mensaje.
 
 ---
 
 ## 7. Seguridad y cumplimiento
+
+### 7.1 Autenticación y autorización (ADR-016)
+- **Entra ID** es el proveedor de identidad; **Cognito** es el intermediario que emite los tokens. Por ahora se usa el user pool existente de la empresa, con un **app client propio** del Satélite.
+- **Frontend Angular:** flujo Authorization Code con PKCE contra Cognito. No maneja contraseñas.
+- **API (.NET):** solo valida el JWT: firma (JWKS), emisor, audiencia o `client_id`, y expiración. No emite tokens ni guarda credenciales.
+- **Roles:** Comercial, Facturación, Recaudación y Administrador. Se aplican **en la API**, no solo en los menús. Las acciones sensibles exigen rol explícito (confirmar convenio, ajuste manual, promover regla, reenviar OFA, confirmar catálogo).
+- **Pool compartido:** un token válido no basta. La API rechaza tokens de otro app client y niega el acceso a usuarios del pool sin rol del Satélite.
+- **Auditoría:** la identidad del token (`sub` y correo) se registra como `usuario` en `evento_auditoria` y en cada ajuste manual.
+- **Callbacks de integración** (Agunsa Connect → Satélite) no usan este flujo: son máquina a máquina y dependen de PA-002.
+- Pendiente (PA-009): app client y grupos de roles, y si los roles salen de grupos o de app roles de Entra.
+
+### 7.2 Datos y secretos
 - Datos personales de clientes bajo la nueva ley; paso por ciberseguridad antes de implementar (BR-021, PA-005). Cifrado en reposo (RDS) y en tránsito; control de acceso por rol.
+- **Nunca datos reales de clientes en el repositorio, en las pruebas ni en los ejemplos.** Usar datos sintéticos.
 - No heredar el antipatrón de credenciales en claro del legacy (BR-016): secretos en AWS Secrets Manager.
 - Toda la comunicación con SAP/AEXSA pasa por Agunsa Connect y su gobierno (RNF-05).
 
@@ -311,12 +327,25 @@ Los bloqueantes son de terceros, no del desarrollo del Satélite (principio: sep
 - **PA-001/PA-002 (crítico):** vía de escritura en SAP y contrato de Agunsa Connect. Mitigado por Outbox + adaptador simulado: el Satélite se construye y prueba sin ello.
 - **PA-003/PA-007:** objeto exacto de lectura SAP y mapeo RUT→CardCode. Mitigado por snapshot + stub.
 - **PA-004/PA-006/PA-008:** vía de retorno a AEXSA, ingesta del evento, acceso al XML/PDF. Mitigado por puertos.
-- **Negocio (no bloquea):** STI vs DPW (PQ-006), mecánica fina del DUS (BR-030). Se absorben con la capa configurable (ADR-008) hasta confirmarse.
+- **Negocio (no bloquea):** STI vs DP World (PQ-006) quedó **cerrada** como regla fija por puerto (ADR-015). Sigue abierta la mecánica fina del DUS (BR-030): se absorbe con la capa configurable (ADR-008) y la captura manual de `CantidadDus` hasta confirmarse.
+- **Autenticación (PA-009):** falta el app client del Satélite y los grupos de roles en el pool de Cognito. Mitigado con autoridad y audiencia configurables y autenticación de prueba (tarea 0.4).
+- **Catálogo SAP en la Fase A (PQ-025):** depende de que el equipo de SAP entregue los archivos A1 a A4. Mitigado con archivos de ejemplo con el formato documentado (`docs/desarrollo/formato-archivos-catalogo-sap.md`).
 
 ---
 
 ## 9. Alcance de construcción
+
+### 9.1 Por etapa del negocio
 - **1ª etapa:** contenedor FULL con/sin convenio; los 7 pasos; OFA→SAP (con adaptador simulado hasta PA-001/PA-002); convenios en el Satélite; cálculo determinístico; capa configurable; detección de omisiones (cruce determinístico); repartido. DUS modelado, activación según alcance de expo.
 - **2ª etapa:** carga LCL/suelta (letras A–F), expo por DUS a volumen, licitaciones, gestión contable de notas de crédito/devoluciones (se registran, no se calculan).
 
-Ver el plan de implementación en `tasks.md`.
+### 9.2 Por fase de entrega dentro de la 1ª etapa
+| Fase | Qué incluye | Qué entrega al negocio | Terceros |
+|---|---|---|---|
+| **A** | Fundaciones y autenticación; convenios por formulario manual; catálogo SAP por archivo; motor de tarifas; reglas configurables y ajuste manual del facturador; OFA validada y "lista para digitar"; ingesta mínima del evento; detección de omisiones; pantallas base | Convenio único y vigente, prefactura valorizada que el facturador digita en SAP como hoy, y alerta de cobros omitidos | Archivos de catálogo de SAP y app client de Cognito |
+| **B** | Escritura automática en SAP (Outbox), folio y DTE, retorno a AEXSA SYS, conciliación de pagos, ingesta real, cuadraturas, seguridad | Fin de la digitación en SAP y trazabilidad de la operación al pago | SAP, Agunsa Connect, AEXSA SYS, ciberseguridad |
+
+### 9.3 Etapa opcional (se construye solo si el negocio la pide)
+Extracción de convenios desde PDF o Word con IA (ADR-007, ADR-012), vínculo servicio↔artículo propuesto por IA (ADR-017) y propuesta de omisiones por IA (ADR-009). El sistema funciona completo sin ellas.
+
+Ver el plan de implementación en `tasks.md` y la guía de arranque en `docs/desarrollo/GUIA-DESARROLLADOR.md`.

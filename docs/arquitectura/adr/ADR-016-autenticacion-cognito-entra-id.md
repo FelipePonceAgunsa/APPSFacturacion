@@ -3,7 +3,7 @@
 Estado: **Aceptado** (definición corporativa) · detalles de configuración en **Propuesto** (PA-009)
 Fecha: 2026-10-28
 Decide: Arquitecto de Solución
-Origen: definición de la empresa, confirmada por Felipe Ponce (TI): la identidad corporativa se resuelve con **Amazon Cognito y Microsoft Entra ID**.
+Origen: definición de la empresa, confirmada por TI: la identidad corporativa se resuelve con **Amazon Cognito y Microsoft Entra ID**.
 
 ## Contexto
 `api/openapi.yaml` ya declaraba un token Bearer JWT para el frontend, pero no decía quién lo emite. `restricciones-tecnicas.md` tenía la autenticación como `[POR CONFIRMAR]`. El F02 exige control de acceso por rol (Comercial, Facturación, Recaudación) y auditoría de quién hace cada ajuste o confirmación (REQ-006, REQ-011). El legacy guardaba credenciales en claro (BR-016), así que el Satélite no debe manejar contraseñas propias.

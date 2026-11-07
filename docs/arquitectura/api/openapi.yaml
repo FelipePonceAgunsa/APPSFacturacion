@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Satélite de Facturación AEXSA — API REST
-  version: 1.0.0
+  version: 1.1.0
   description: >
     Contrato de la API REST del Satélite de Facturación. Cubre lo que consume el
     frontend Angular (convenios, operaciones, OFA, facturas, pagos, ajustes) y los
@@ -20,7 +20,11 @@ servers:
 
 tags:
   - name: Convenios
-    description: Carga directa, versionado y vigencia de convenios (ADR-007/012)
+    description: >
+      Ingreso por formulario manual (por defecto), versionado y vigencia de convenios.
+      La carga de documento con extracción por IA es una etapa opcional (ADR-007/012).
+  - name: Catalogo
+    description: Catálogo de SAP importado por archivo en la Fase A; API en la Fase B (ADR-017)
   - name: Operaciones
     description: Evento facturable, clasificación de ruta y destinatarios (REQ-001/002/003)
   - name: OFA
@@ -53,27 +57,57 @@ paths:
                 items: { $ref: '#/components/schemas/ConvenioResumen' }
     post:
       tags: [Convenios]
-      summary: Cargar un convenio (carga directa, ADR-012). Dispara extracción IA (propuesta).
+      summary: Crear un convenio con su primera versión (formulario manual, ADR-012)
       description: >
-        El comercial sube el documento (PDF/Word). La IA extrae una propuesta en estado
-        BORRADOR; requiere confirmación humana para quedar VIGENTE. También admite ingreso manual.
+        Forma por defecto: el comercial completa el formulario (cliente y RUT, comercial, vigencia,
+        moneda, tipo de cambio mínimo, días libres y tabla de servicios). La versión nace en estado
+        BORRADOR y requiere confirmación humana para quedar VIGENTE.
+        Variante opcional (etapa de IA, ADR-007): multipart con el documento PDF/Word; el servicio de
+        extracción devuelve una propuesta en BORRADOR con score de confianza. No se construye hasta
+        que el negocio la pida.
       requestBody:
         required: true
         content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConvenioManualRequest' }
           multipart/form-data:
             schema:
               type: object
+              description: Etapa opcional de IA (ADR-007). No requerido en la Fase A.
               properties:
                 rut: { type: string }
                 comercial: { type: string }
                 documento: { type: string, format: binary }
       responses:
         '201':
-          description: Propuesta de convenio creada en estado BORRADOR
+          description: Convenio creado con su versión en estado BORRADOR
           content:
             application/json:
               schema: { $ref: '#/components/schemas/VersionConvenio' }
         '400': { $ref: '#/components/responses/Error400' }
+
+  /convenios/{convenioId}/versiones:
+    post:
+      tags: [Convenios]
+      summary: Crear una nueva versión de un convenio existente (ajuste, renovación o complemento por correo)
+      description: >
+        Nunca se edita una versión vigente: cada cambio genera una versión nueva en BORRADOR.
+        Al confirmarla, la anterior pasa a REEMPLAZADA y se conserva el histórico (RN-043, REQ-012).
+      parameters:
+        - { name: convenioId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuevaVersionConvenioRequest' }
+      responses:
+        '201':
+          description: Nueva versión creada en estado BORRADOR
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VersionConvenio' }
+        '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
 
   /convenios/{convenioId}/versiones/{versionId}/confirmar:
     post:
@@ -107,6 +141,32 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/OperacionResumen' }
+
+    post:
+      tags: [Operaciones]
+      summary: Registrar una operación a mano (puente de la Fase A hasta que exista la ingesta real)
+      description: >
+        [SUPUESTO] Mientras AEXSA SYS no entregue el evento por pull o push (PA-006, ADR-005), el
+        facturador puede registrar el evento facturable por esta vía. Usa el mismo esquema que la
+        ingesta automática y es idempotente por operacionIdAexsa. Cuando la ingesta real esté activa,
+        esta vía queda como respaldo manual.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventoFacturable' }
+      responses:
+        '201':
+          description: Operación registrada y clasificada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operacion' }
+        '200':
+          description: La operación ya existía (idempotente); se devuelve la existente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operacion' }
+        '400': { $ref: '#/components/responses/Error400' }
 
   /operaciones/{operacionId}:
     get:
@@ -258,6 +318,175 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Omision' }
 
+  # --------------------------------------------------------------- Catálogo SAP (ADR-017)
+  /catalogo:
+    get:
+      tags: [Catalogo]
+      summary: Resumen del catálogo SAP vigente (versión, fecha y conteos)
+      description: Pantalla T3. Solo lectura. Muestra qué versión del catálogo usará el cálculo.
+      responses:
+        '200':
+          description: Catálogo vigente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogoResumen' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  /catalogo/articulos:
+    get:
+      tags: [Catalogo]
+      summary: Artículos de servicio del catálogo vigente (archivo A1)
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Búsqueda por código o descripción }
+      responses:
+        '200':
+          description: Lista de artículos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ArticuloSap' }
+
+  /catalogo/listas-precios/{codigoLista}/precios:
+    get:
+      tags: [Catalogo]
+      summary: Precios de una lista de precios del catálogo vigente (archivo A2)
+      parameters:
+        - { name: codigoLista, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Precios de la lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PrecioLista' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  /catalogo/kits:
+    get:
+      tags: [Catalogo]
+      summary: Kits con su composición (archivo A3). Referencia, no entrada del cálculo (ADR-017)
+      parameters:
+        - { name: ruta, in: query, schema: { type: string }, description: Filtra por ruta clasificada }
+      responses:
+        '200':
+          description: Lista de kits
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/KitSap' }
+
+  /catalogo/tipo-cambio:
+    get:
+      tags: [Catalogo]
+      summary: Tipo de cambio diario (archivo A4)
+      parameters:
+        - { name: desde, in: query, schema: { type: string, format: date } }
+        - { name: moneda, in: query, schema: { type: string, enum: [USD, UF] } }
+      responses:
+        '200':
+          description: Serie de tipo de cambio
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TipoCambio' }
+    post:
+      tags: [Catalogo]
+      summary: Ingresar el tipo de cambio de un día (alternativa al archivo A4)
+      description: Lo ingresa facturación cuando no viene en la importación. Queda auditado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TipoCambio' }
+      responses:
+        '201': { description: Tipo de cambio registrado }
+        '400': { $ref: '#/components/responses/Error400' }
+
+  /catalogo/importaciones:
+    post:
+      tags: [Catalogo]
+      summary: Subir un archivo del catálogo (A1 a A4). Valida y deja la importación pendiente de confirmar.
+      description: >
+        Formato de columnas en docs/desarrollo/formato-archivos-catalogo-sap.md. La importación no
+        se activa sola: devuelve el resultado de la validación (formato, duplicados, artículos
+        inactivos) y una persona la confirma.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [tipo, archivo]
+              properties:
+                tipo: { type: string, enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO] }
+                archivo: { type: string, format: binary, description: CSV UTF-8 separado por punto y coma }
+      responses:
+        '201':
+          description: Archivo validado; pendiente de confirmación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoImportacion' }
+        '400': { $ref: '#/components/responses/Error400' }
+
+  /catalogo/importaciones/{importacionId}/confirmar:
+    post:
+      tags: [Catalogo]
+      summary: Confirmar una importación (humano) → crea una nueva versión del catálogo
+      parameters:
+        - { name: importacionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Nueva versión de catálogo activa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogoResumen' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  /catalogo/vinculos:
+    get:
+      tags: [Catalogo]
+      summary: Vínculo servicio del Satélite ↔ artículo SAP
+      parameters:
+        - { name: estado, in: query, schema: { type: string, enum: [PROPUESTO, CONFIRMADO, SIN_VINCULO] } }
+      responses:
+        '200':
+          description: Vínculos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/VinculoServicioArticulo' }
+
+  /catalogo/vinculos/{tipoServicioId}:
+    put:
+      tags: [Catalogo]
+      summary: Confirmar o cambiar el artículo SAP de un servicio
+      description: >
+        Una persona fija el vínculo. La sugerencia automática, si existe, solo propone. Una línea sin
+        vínculo confirmado sale en la OFA como "sin artículo SAP" y no pasa la validación.
+      parameters:
+        - { name: tipoServicioId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [articuloSap]
+              properties:
+                articuloSap: { type: string }
+      responses:
+        '200':
+          description: Vínculo confirmado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VinculoServicioArticulo' }
+        '400': { $ref: '#/components/responses/Error400' }
+
   # --------------------------------------------------------------- Callbacks
   /sap/callbacks/folio:
     post:
@@ -369,6 +598,113 @@ components:
         tarifa: { type: number }
         moneda: { $ref: '#/components/schemas/Moneda' }
         unidad: { $ref: '#/components/schemas/UnidadCobro' }
+
+    ConvenioManualRequest:
+      type: object
+      description: Formulario manual de convenio (por defecto, ADR-012).
+      required: [rut, comercial, vigenciaDesde, servicios]
+      properties:
+        rut: { type: string, description: RUT del cliente (identidad del convenio) }
+        razonSocial: { type: string, nullable: true }
+        comercial: { type: string }
+        vigenciaDesde: { type: string, format: date }
+        vigenciaHasta: { type: string, format: date, nullable: true }
+        tcMinimo: { type: number, nullable: true, description: Piso de dólar en CLP (RN-022) }
+        diasLibres: { type: integer, nullable: true, description: Días libres de almacenaje (RN-023) }
+        servicios:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/ServicioConvenio' }
+    NuevaVersionConvenioRequest:
+      type: object
+      required: [vigenciaDesde, servicios, origen]
+      properties:
+        vigenciaDesde: { type: string, format: date }
+        vigenciaHasta: { type: string, format: date, nullable: true }
+        tcMinimo: { type: number, nullable: true }
+        diasLibres: { type: integer, nullable: true }
+        origen: { type: string, enum: [MANUAL, COMPLEMENTO_CORREO] }
+        motivo: { type: string, nullable: true }
+        servicios:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/ServicioConvenio' }
+
+    # ----- catálogo SAP
+    CatalogoResumen:
+      type: object
+      properties:
+        version: { type: integer }
+        fecha: { type: string, format: date-time }
+        origen: { type: string, enum: [ARCHIVO, API] }
+        articulos: { type: integer }
+        listasPrecios: { type: integer }
+        kits: { type: integer }
+        tipoCambioAl: { type: string, format: date, nullable: true }
+    ArticuloSap:
+      type: object
+      properties:
+        codigoArticulo: { type: string }
+        descripcion: { type: string }
+        unidadMedida: { type: string }
+        activo: { type: boolean }
+        grupoArticulo: { type: string, nullable: true }
+    PrecioLista:
+      type: object
+      properties:
+        codigoLista: { type: string }
+        nombreLista: { type: string }
+        codigoArticulo: { type: string }
+        precio: { type: number }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        vigenteDesde: { type: string, format: date }
+        vigenteHasta: { type: string, format: date, nullable: true }
+    KitSap:
+      type: object
+      properties:
+        codigoKit: { type: string }
+        nombre: { type: string }
+        ruta: { type: string, nullable: true }
+        activo: { type: boolean }
+        articulos:
+          type: array
+          items:
+            type: object
+            properties:
+              codigoArticulo: { type: string }
+              cantidad: { type: number }
+    TipoCambio:
+      type: object
+      required: [fecha, moneda, valor]
+      properties:
+        fecha: { type: string, format: date }
+        moneda: { type: string, enum: [USD, UF] }
+        valor: { type: number }
+    VinculoServicioArticulo:
+      type: object
+      properties:
+        tipoServicioId: { type: integer }
+        descripcionServicio: { type: string }
+        articuloSap: { type: string, nullable: true }
+        estado: { type: string, enum: [PROPUESTO, CONFIRMADO, SIN_VINCULO] }
+        origen: { type: string, enum: [SUGERENCIA, MANUAL], nullable: true }
+        confirmadoPor: { type: string, nullable: true }
+    ResultadoImportacion:
+      type: object
+      properties:
+        importacionId: { type: string, format: uuid }
+        tipo: { type: string, enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO] }
+        filasLeidas: { type: integer }
+        filasValidas: { type: integer }
+        errores:
+          type: array
+          items:
+            type: object
+            properties:
+              fila: { type: integer }
+              columna: { type: string }
+              mensaje: { type: string }
+        estado: { type: string, enum: [PENDIENTE_CONFIRMACION, RECHAZADA, CONFIRMADA] }
 
     # ----- operaciones
     OperacionResumen:
