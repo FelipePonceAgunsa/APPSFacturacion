@@ -61,9 +61,11 @@ paths:
       tags: [Convenios]
       summary: Crear un convenio con su primera versión (formulario manual, ADR-012)
       description: >
-        Forma por defecto: el comercial completa el formulario (cliente y RUT, comercial, vigencia,
-        moneda, tipo de cambio mínimo, días libres y tabla de servicios). La versión nace en estado
-        BORRADOR y requiere confirmación humana para quedar VIGENTE.
+        Forma por defecto: formulario simple con RUT del cliente, vigencia, tipo de cambio mínimo
+        (solo si hay tarifas en USD), días libres de almacenaje (solo si el convenio los tiene) y la
+        tabla de servicios (servicio del catálogo, tarifa y moneda CLP o USD). La unidad de cobro no se
+        digita: sale del catálogo. El comercial es opcional. La versión nace en estado BORRADOR y
+        requiere confirmación humana para quedar VIGENTE.
         Variante opcional (etapa de IA, ADR-007): multipart con el documento PDF/Word; el servicio de
         extracción devuelve una propuesta en BORRADOR con score de confianza. No se construye hasta
         que el negocio la pida.
@@ -192,6 +194,11 @@ paths:
         exige motivo y queda en la auditoría con usuario, fecha, valor anterior y valor nuevo. Un dato
         completado a mano no se pisa con una versión posterior del evento salvo que AEXSA envíe un valor
         distinto de vacío; en ese caso se registra el conflicto y se pide decidir.
+        También sirve para **corregir un dato que ya venía informado y estaba mal**, por ejemplo el
+        tipo de retiro (DIRECTO o INDIRECTO). Si la operación ya tenía una OFA en BORRADOR o VALIDADA,
+        se recalcula como una nueva versión de cálculo: la anterior se conserva en el histórico, los
+        servicios agregados a mano se mantienen y los ajustes de monto se deben repetir. Una OFA ya
+        ENVIADA o posterior no se recalcula: responde 409.
       parameters:
         - { name: operacionId, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
@@ -294,6 +301,31 @@ paths:
               schema: { $ref: '#/components/schemas/LineaOfa' }
         '400': { $ref: '#/components/responses/Error400' }
 
+  /ofa/{ofaId}/lineas:
+    post:
+      tags: [OFA]
+      summary: Agregar a mano un servicio que el cálculo no incluyó (REQ-006, nivel 3)
+      description: >
+        Para lo que la persona de facturación sabe y el sistema no. El servicio sale del catálogo; la
+        cantidad la fija la persona; la tarifa es la del convenio o la pública si no se informa. La
+        línea queda marcada como agregada a mano, con usuario, fecha y motivo (obligatorio) en su
+        memoria de cálculo. La IA no fija el monto.
+      parameters:
+        - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgregarLineaRequest' }
+      responses:
+        '201':
+          description: Línea agregada con su memoria de cálculo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LineaOfa' }
+        '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
+
   /ofa/{ofaId}/validar:
     post:
       tags: [OFA]
@@ -312,7 +344,11 @@ paths:
     post:
       tags: [OFA]
       summary: Encolar la OFA hacia SAP (Outbox asíncrono, ADR-002)
-      description: No llama a SAP en línea; escribe en el Outbox. El worker la envía por Agunsa Connect.
+      description: >
+        No llama a SAP en línea; escribe en el Outbox. El worker la envía por Agunsa Connect.
+        La pantalla tiene el botón "Enviar a SAP" desde la Fase A, pero queda desactivado por
+        configuración (`EnvioSapHabilitado = false`) hasta que exista la integración real (Fase B). Con la
+        opción apagada este endpoint responde 409 con código `ENVIO_SAP_DESHABILITADO`.
       parameters:
         - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
@@ -658,17 +694,21 @@ components:
       properties:
         tipoServicioId: { type: integer }
         tarifa: { type: number }
-        moneda: { $ref: '#/components/schemas/Moneda' }
-        unidad: { $ref: '#/components/schemas/UnidadCobro' }
+        moneda: { type: string, enum: [CLP, USD], description: 'Los convenios se cobran en CLP o USD; UF no aplica' }
+        unidad:
+          allOf:
+            - $ref: '#/components/schemas/UnidadCobro'
+          readOnly: true
+          description: Sale del catálogo según el servicio; no se digita
 
     ConvenioManualRequest:
       type: object
-      description: Formulario manual de convenio (por defecto, ADR-012).
-      required: [rut, comercial, vigenciaDesde, servicios]
+      description: Formulario manual de convenio (por defecto, ADR-012). Simple a propósito.
+      required: [rut, vigenciaDesde, servicios]
       properties:
         rut: { type: string, description: RUT del cliente (identidad del convenio) }
         razonSocial: { type: string, nullable: true }
-        comercial: { type: string }
+        comercial: { type: string, nullable: true, description: Opcional; no afecta el cálculo }
         vigenciaDesde: { type: string, format: date }
         vigenciaHasta: { type: string, format: date, nullable: true }
         tcMinimo: { type: number, nullable: true, description: Piso de dólar en CLP (RN-022) }
@@ -893,6 +933,14 @@ components:
       properties:
         nuevoMonto: { type: number }
         motivo: { type: string }
+    AgregarLineaRequest:
+      type: object
+      required: [tipoServicioId, cantidad, motivo]
+      properties:
+        tipoServicioId: { type: integer, description: Servicio del catálogo }
+        cantidad: { type: number, exclusiveMinimum: 0 }
+        tarifa: { type: number, nullable: true, description: 'Opcional. Si no viene, se usa la del convenio o la pública' }
+        motivo: { type: string, minLength: 1 }
     AjusteManual:
       type: object
       nullable: true

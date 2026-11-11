@@ -86,7 +86,8 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
   - Para desarrollar sin los archivos reales: generar archivos de ejemplo con el formato documentado.
 - [ ] **1.2 Convenios versionados** (modelo + CRUD + formulario manual) — *ajustada*
   - Modelo `Convenio/VersionConvenio/ServicioConvenio`; estados `BORRADOR|VIGENTE|VENCIDA|REEMPLAZADA`; multi-versión con histórico; vigente = más reciente (RN-043); alerta de vencimiento al año (RN-021); multi-convenio → más antiguo + override registrado (RN-018).
-  - **Ingreso por formulario manual** (`POST /convenios`, `POST /convenios/{id}/versiones`): cliente y RUT, comercial, vigencia, moneda, tipo de cambio mínimo, días libres y tabla de servicios (tarifa, unidad, moneda).
+  - **Ingreso por formulario manual, simple** (`POST /convenios`, `POST /convenios/{id}/versiones`). Solo lo que el motor necesita: RUT del cliente; vigencia desde/hasta; tipo de cambio mínimo (solo si hay tarifas en USD); días libres de almacenaje (solo si el convenio los tiene); tabla de servicios con servicio del catálogo, tarifa y moneda (**CLP o USD; UF no aplica**). La unidad de cobro sale del catálogo y no se digita. El comercial es opcional.
+  - Sin importación por planilla: el volumen no lo justifica. Los servicios que no están en el convenio no se ingresan: el motor usa la tarifa pública y los marca como excepción (RN-006).
   - Una versión nace en BORRADOR; una persona con rol la confirma y pasa a VIGENTE. Nunca se edita una versión vigente: cada cambio es una versión nueva. Los ajustes por correo se registran como complemento versionado (RN-037).
   - Cubre: REQ-004, REQ-012, RN-015/018/021/037/043. ADR-007, ADR-012.
   - Verificación: pruebas de vigencia, reemplazo de versión, alerta de vencimiento y override.
@@ -112,6 +113,9 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 - [ ] **2.2 Ajuste manual asistido (nivel 3) + promoción**
   - Ajuste de concepto/monto/excepción con usuario/fecha/motivo/valor ant.-nuevo; detección de recurrencia; promoción a regla configurable.
   - Es el paso de **revisión del facturador**: agrega lo que el sistema no sabe (reglas que solo conoce la persona). Motivo obligatorio. La IA nunca fija el monto.
+  - **Corregir el tipo de retiro** (directo/indirecto) cuando está mal: `PATCH /operaciones/{id}` con motivo. Recalcula la OFA como versión nueva, conserva la anterior, mantiene los servicios agregados a mano y no recalcula una OFA ya enviada (409). Prueba: cambiar DIRECTO↔INDIRECTO en una operación sin convenio cambia los conceptos cobrados (T10c) y deja auditoría con valor anterior y nuevo.
+  - **Botón "Enviar a SAP" visible desde la Fase A, pero desactivado** por la configuración `EnvioSapHabilitado=false`; `POST /ofa/{id}/enviar` responde 409 `ENVIO_SAP_DESHABILITADO`. Se activa en la Fase B (3.3) sin cambiar la pantalla.
+  - **Agregar un servicio a mano** (`POST /ofa/{id}/lineas`): servicio del catálogo, cantidad, tarifa opcional (convenio o pública) y motivo. La línea queda marcada `AGREGADO_MANUAL` en su memoria de cálculo, con usuario, fecha y motivo. Si el mismo agregado se repite, se propone promoverlo a regla configurable. Prueba: línea agregada suma al total y la memoria reconstruye el monto.
   - Cubre: REQ-006, RN-070, BR-023. ADR-008.
 - [ ] **2.3 Armado y validación de la OFA**
   - Cabecera + `LineaOfa`; validación de completitud (destinatario, ítems con tarifa o marcados, artículo SAP vinculado, recargos/días resueltos); bloqueo si incompleta.

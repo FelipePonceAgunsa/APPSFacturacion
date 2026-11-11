@@ -111,8 +111,8 @@ CREATE TABLE servicio_convenio (
     version_convenio_id uuid NOT NULL REFERENCES version_convenio(id),
     tipo_servicio_id    int  NOT NULL REFERENCES tipo_servicio(tipo_servicio_id),
     tarifa              numeric(18,4) NOT NULL,
-    moneda              char(3) NOT NULL CHECK (moneda IN ('CLP','USD','UF')), -- RN-022/036
-    unidad              text NOT NULL                    -- RN-036
+    moneda              char(3) NOT NULL CHECK (moneda IN ('CLP','USD')), -- RN-022/036; UF no se cobra en convenios
+    unidad              text NOT NULL                    -- RN-036; copiada del catalogo (tipo_servicio), no se digita
 );
 ```
 
