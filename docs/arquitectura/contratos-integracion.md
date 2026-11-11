@@ -103,6 +103,8 @@ public interface IEventoFacturablePort
 
 **Cuándo se envía:** al aprobarse el visado (`VISADO_APROBADO`) y cada vez que cambie algo que afecte el cobro antes de facturar (`OPERACION_ACTUALIZADA`): fecha de despacho o retiro, servicios nuevos, reclasificación directo→indirecto (RN-044), cliente facturador asignado. Si el visado se devuelve o se anula después de enviado, se envía una actualización con `estadoOperacion = ANULADA`.
 
+**Disparador en pantalla:** el botón **"Aprueba"** de "Respuesta pre-visado" (Visado Virtual → Panel Visador → acciones de la solicitud). El visador lo presiona después de revisar que los documentos están correctos y de responder el cuadro "¿el cliente tiene convenio?".
+
 ### Notas de la revisión del código de AEXSA SYS (2026-11)
 
 Fuente: documento de diseño `AEXSA-SAT-API` (revisión de código y de la base de desarrollo, con datos hasta 2026-06-22). Es un ambiente de desarrollo: las cifras de completitud hay que validarlas en producción.

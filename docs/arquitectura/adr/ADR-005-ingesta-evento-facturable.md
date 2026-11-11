@@ -6,7 +6,7 @@ Decide: Arquitecto de Solución
 
 > **Actualización 2026-11 (tras la revisión del código de AEXSA SYS):**
 > 1. **Mecanismo.** Se adopta un esquema mixto: AEXSA escribe el evento en una **tabla de salida en la misma transacción** que la aprobación del visado; un proceso lo envía por **push** (`POST /aexsa/eventos`) con reintentos; y expone un `GET` de solo lectura sobre esa tabla para que el Satélite **concilie**. Ya no es "pull por defecto". El trigger en la base sigue descartado.
-> 2. **Señal.** El evento se emite también en `PREAPROBADO_CONVENIO`: las operaciones con convenio no pasan por la fase Facturación de AEXSA y esa es la única señal que dan.
+> 2. **Señal.** El disparador es el botón **"Aprueba"** de "Respuesta pre-visado": el visador lo presiona tras revisar los documentos. El evento se emite también en `PREAPROBADO_CONVENIO`: las operaciones con convenio no pasan por la fase Facturación de AEXSA y esa es la única señal que dan.
 > 3. **Dónde vive la selección de "qué facturar".** En el Satélite: la bandeja de operaciones es la lista de pendientes de facturar. AEXSA no tiene hoy esa lista; su pantalla "Facturas por cobrar" muestra facturas ya emitidas pendientes de cobro, y el estado `PENDIENTE_FACTURA` no tiene filas. La fuente es una entidad explícita (el evento y la operación del Satélite), no el estado del visado.
 > 4. **Ticket 1811 (facturación pendiente que bloquea retiros).** Queda separado: es control de retiros. En la Fase B podría consumir el estado de la operación del Satélite.
 > 5. **Identidad.** El 1,9 % de los documentos tiene más de una solicitud de visado; el evento incluye `documentoCargaId` y el Satélite no valida una OFA si hay otra solicitud activa del mismo documento.
