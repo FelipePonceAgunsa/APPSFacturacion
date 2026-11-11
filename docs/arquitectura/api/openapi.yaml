@@ -721,11 +721,27 @@ components:
         - type: object
           properties:
             tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
+            sentido: { type: string, enum: [IMPORTACION, EXPORTACION] }
             tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO] }
-            puerto: { type: string }
+            terminal: { type: string, enum: [STI, DP_WORLD, OTRO] }
             din: { type: string, nullable: true }
-            dus: { type: string, nullable: true }
+            dus:
+              type: array
+              items: { type: string }
             cantidadDus: { type: integer, nullable: true }
+            bls:
+              type: array
+              items: { type: string }
+            consignatario: { $ref: '#/components/schemas/ParteFactura' }
+            clienteFacturador:
+              nullable: true
+              description: Quien indicó AEXSA. Si es null, la OFA usa al consignatario por defecto (RN-077).
+              allOf:
+                - $ref: '#/components/schemas/ParteFactura'
+            contenedores:
+              type: array
+              items: { $ref: '#/components/schemas/ContenedorOperacion' }
+            versionEvento: { type: integer, description: Última versión del evento recibido de AEXSA }
             rutaClasificada: { type: string }
             momentoFacturacion: { type: string, enum: [EN_VISACION, POST_DESPACHO] }
             servicios:
@@ -733,10 +749,14 @@ components:
               items: { $ref: '#/components/schemas/ServicioPrestado' }
     ServicioPrestado:
       type: object
+      required: [tipoServicioId, cantidad, unidad]
       properties:
         tipoServicioId: { type: integer }
         cantidad: { type: number }
         unidad: { $ref: '#/components/schemas/UnidadCobro' }
+        contenedor: { type: string, nullable: true }
+        finalizadoEn: { type: string, format: date-time, nullable: true }
+        origen: { type: string, enum: [AEXSA, LIQUIDACION_PUERTO], nullable: true }
 
     # ----- OFA
     Ofa:
@@ -858,20 +878,78 @@ components:
         emitidoEn: { type: string, format: date-time }
     EventoFacturable:
       type: object
-      required: [operacionIdAexsa]
+      description: >
+        Mensaje que AEXSA SYS envía al Satélite (v2). Detalle de prioridades (A, B, C) y origen de cada
+        campo en contratos-integracion.md §2.
+      required: [tipoEvento, version, operacionIdAexsa, visadoAprobadoEn, tipoCarga, sentido, tipoRetiro, conConvenio, terminal, consignatario, servicios]
       properties:
+        tipoEvento: { type: string, enum: [VISADO_APROBADO, OPERACION_ACTUALIZADA] }
+        version: { type: integer, minimum: 1, description: Sube con cada actualización; el Satélite actualiza, no duplica }
         operacionIdAexsa: { type: string }
+        visadoAprobadoEn: { type: string, format: date-time }
         tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
+        sentido: { type: string, enum: [IMPORTACION, EXPORTACION] }
         tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO] }
         conConvenio: { type: boolean }
-        puerto: { type: string }
+        terminal: { type: string, enum: [STI, DP_WORLD, OTRO] }
         din: { type: string, nullable: true }
-        dus: { type: string, nullable: true }
-        cantidadDus: { type: integer, nullable: true }
-        consignatarioRut: { type: string }
+        dus:
+          type: array
+          items: { type: string }
+        cantidadDus: { type: integer, nullable: true, description: Captura manual en AEXSA (RN-047) }
+        bls:
+          type: array
+          items: { type: string }
+        papeleta:
+          type: object
+          nullable: true
+          properties:
+            numero: { type: string }
+            rut: { type: string }
+        consignatario: { $ref: '#/components/schemas/ParteFactura' }
+        clienteFacturador:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ParteFactura'
+            - type: object
+              properties:
+                tipo: { type: string, enum: [EMISOR_BL, CLIENTE, GENERADOR_NEGOCIO, CONSIGNATARIO] }
+                asignadoPor: { type: string, nullable: true }
+                asignadoEn: { type: string, format: date-time, nullable: true }
+        contenedores:
+          type: array
+          items: { $ref: '#/components/schemas/ContenedorOperacion' }
         servicios:
           type: array
           items: { $ref: '#/components/schemas/ServicioPrestado' }
+    ParteFactura:
+      type: object
+      required: [rut]
+      properties:
+        rut: { type: string }
+        razonSocial: { type: string, nullable: true }
+    ContenedorOperacion:
+      type: object
+      properties:
+        numero: { type: string }
+        fechaRecepcion: { type: string, format: date-time, nullable: true }
+        fechaRetiro: { type: string, format: date-time, nullable: true }
+        fechaDespacho: { type: string, format: date-time, nullable: true }
+        diasAlmacenaje: { type: integer, nullable: true, description: Calculado por AEXSA (RN-033), sin descontar días libres }
+        bajoAforo:
+          type: object
+          nullable: true
+          properties:
+            dias: { type: integer }
+            finalizadoEn: { type: string, format: date-time, nullable: true }
+        esReefer: { type: boolean }
+        inspecciones:
+          type: array
+          items:
+            type: object
+            properties:
+              tipo: { type: string }
+              finalizadaEn: { type: string, format: date-time, nullable: true }
 
     # ----- error comun
     Error:

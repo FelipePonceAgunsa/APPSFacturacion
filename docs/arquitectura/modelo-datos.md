@@ -124,19 +124,47 @@ CREATE TABLE operacion (
     operacion_id_aexsa  varchar(40) NOT NULL UNIQUE,     -- idempotencia de ingesta
     cliente_id          uuid REFERENCES cliente(id),
     tipo_carga          text CHECK (tipo_carga IN ('CONTENEDOR','BULTO')),       -- RN-027
+    sentido             text CHECK (sentido IN ('IMPORTACION','EXPORTACION')),   -- impo usa DIN, expo usa DUS (RN-047)
     tipo_retiro         text CHECK (tipo_retiro IN ('DIRECTO','INDIRECTO')),     -- RN-026
     con_convenio        boolean NOT NULL DEFAULT false,
-    puerto              text,
+    puerto              text,                            -- heredado; usar terminal
     din                 varchar(40),                     -- declaracion import
-    dus                 varchar(40),                     -- declaracion export (ref); BL<->DUS 1:N
+    dus                 text[],                          -- declaraciones de salida (expo); BL<->DUS 1:N
+    bls                 text[],                          -- una factura puede agrupar varios BL (RN-055)
     cantidad_dus        int,                             -- driver de cobro expo; CAPTURA MANUAL (RN-047, adenda A2)
     terminal            text CHECK (terminal IN ('STI','DP_WORLD','OTRO')), -- terminal de retiro; gobierna refacturacion del directo (RN-079, ADR-015)
+    papeleta_numero     varchar(40),                     -- para contrastar con la DIN (RN-001)
+    papeleta_rut        varchar(12),
+    consignatario_id    uuid REFERENCES cliente(id),     -- RUT de la declaracion (RN-057)
+    cliente_facturador_id uuid REFERENCES cliente(id),   -- quien indico AEXSA; null = usar consignatario (RN-077)
+    tipo_cliente_facturador text CHECK (tipo_cliente_facturador IN ('EMISOR_BL','CLIENTE','GENERADOR_NEGOCIO','CONSIGNATARIO')),
+    facturador_asignado_por varchar(80),
+    facturador_asignado_en  timestamptz,
     ruta_clasificada    text,                            -- {carga}x{retiro}x{convenio} (REQ-002)
     momento_facturacion text CHECK (momento_facturacion IN ('EN_VISACION','POST_DESPACHO')), -- RN-046
     facturable          boolean NOT NULL DEFAULT true,   -- false si DIN<>papeleta (RN-001)
-    ingerido_en         timestamptz NOT NULL DEFAULT now()
+    visado_aprobado_en  timestamptz,                     -- del evento de AEXSA
+    version_evento      int NOT NULL DEFAULT 1,          -- ultima version recibida; actualiza, no duplica
+    ingerido_en         timestamptz NOT NULL DEFAULT now(),
+    actualizado_en      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_operacion_cliente ON operacion (cliente_id);
+
+-- Contenedores de la operacion: almacenaje, despacho, aforo e inspecciones (RN-033/046/052/058).
+CREATE TABLE contenedor_operacion (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    operacion_id      uuid NOT NULL REFERENCES operacion(id),
+    numero            varchar(15) NOT NULL,
+    fecha_recepcion   timestamptz,
+    fecha_retiro      timestamptz,
+    fecha_despacho    timestamptz,                       -- con convenio se factura tras el despacho, tope 7 dias (RN-046)
+    dias_almacenaje   int,                               -- lo calcula AEXSA (RN-033); no descuenta dias libres
+    dias_bajo_aforo   int,                               -- no se cobra almacenaje bajo aforo (RN-052)
+    aforo_finalizado_en timestamptz,
+    es_reefer         boolean NOT NULL DEFAULT false,
+    inspecciones      jsonb,                             -- [{tipo, finalizadaEn}] (RN-054/058)
+    UNIQUE (operacion_id, numero)
+);
 
 CREATE TABLE servicio_prestado (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -144,9 +172,24 @@ CREATE TABLE servicio_prestado (
     tipo_servicio_id int  NOT NULL REFERENCES tipo_servicio(tipo_servicio_id),
     cantidad         numeric(18,4) NOT NULL,
     unidad           text NOT NULL,
-    origen_dato      text                                -- reefer/inspeccion/almacenaje/complementario
+    contenedor       varchar(15),                        -- contenedor al que corresponde, si aplica
+    finalizado_en    timestamptz,
+    origen_dato      text CHECK (origen_dato IN ('AEXSA','LIQUIDACION_PUERTO'))  -- cargos de puerto tardios (RN-056)
 );
 CREATE INDEX ix_servicio_prestado_op ON servicio_prestado (operacion_id);
+
+-- Registro de cada mensaje recibido de AEXSA SYS (auditoria y reproceso; ADR-005). Append-only.
+CREATE TABLE evento_aexsa (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    operacion_id_aexsa  varchar(40) NOT NULL,
+    version             int NOT NULL,
+    tipo_evento         text NOT NULL CHECK (tipo_evento IN ('VISADO_APROBADO','OPERACION_ACTUALIZADA')),
+    recibido_en         timestamptz NOT NULL DEFAULT now(),
+    carga               jsonb NOT NULL,                  -- el mensaje tal como llego
+    resultado           text NOT NULL CHECK (resultado IN ('APLICADO','DUPLICADO','RECHAZADO')),
+    detalle_error       text,
+    UNIQUE (operacion_id_aexsa, version)
+);
 ```
 
 ### 3.3b Catálogo SAP importado (ADR-017)

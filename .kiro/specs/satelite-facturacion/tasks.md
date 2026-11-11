@@ -123,9 +123,15 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 
 ## Fase 3 — Integraciones (puerto + stub primero, adaptador real al confirmar PA)
 
-- [ ] **3.1a Ingesta mínima del evento facturable** (Fase A) — *nueva*
-  - Puerto `IEventoFacturablePort` con **adaptador simulado**. Entrada: `POST /aexsa/eventos` (push, idempotente por `operacionIdAexsa`) y `POST /operaciones` (alta manual por el facturador, **puente** hasta que exista la ingesta real).
-  - Validación DIN↔papeleta (RN-001), clasificación de ruta {carga}×{retiro}×{convenio} (REQ-002, RN-003), momento de facturación (RN-046), destinatario por defecto (REQ-003).
+- [ ] **3.1a Ingesta mínima del evento facturable** (Fase A) — *nueva, ampliada el 2026-11-04*
+  - **Contrato del mensaje:** `docs/arquitectura/contratos-integracion.md` §2 (campos con prioridad A, B y C y su origen) y esquema `EventoFacturable` del `openapi.yaml`. Es lo que AEXSA SYS enviará; construye contra ese formato.
+  - Puerto `IEventoFacturablePort` con **adaptador simulado**. Entrada: `POST /aexsa/eventos` (push) y `POST /operaciones` (alta manual por el facturador, **puente** hasta que exista la ingesta real). Ambos usan el mismo esquema.
+  - **Idempotencia y versiones:** la clave es `operacionIdAexsa` + `version`. Una versión nueva **actualiza** la operación; una repetida se registra como `DUPLICADO` y no hace nada. Una versión menor que la ya aplicada se rechaza.
+  - **Registro de cada mensaje** en `evento_aexsa` (append-only), con el resultado `APLICADO`, `DUPLICADO` o `RECHAZADO` y el detalle del error. Permite auditar y reprocesar.
+  - **Persistencia:** `operacion`, `contenedor_operacion` y `servicio_prestado` (ver `modelo-datos.md` §3.3). Los clientes se crean o se buscan por RUT (consignatario y cliente facturador).
+  - **Reglas al ingresar:** validación DIN↔papeleta (RN-001); clasificación de ruta {carga}×{retiro}×{convenio} (REQ-002, RN-003); momento de facturación (RN-046: con convenio, retener hasta la fecha de despacho, tope 7 días); destinatario por defecto: el consignatario, salvo que AEXSA indique otro (RN-077); una operación `BULTO` se guarda marcada como fuera de alcance (2ª etapa).
+  - **Campos que pueden venir vacíos:** todos los de prioridad B y C. El Satélite no falla: la página del facturador muestra qué falta y permite completarlo a mano (por ejemplo `cantidadDus`), con registro de quién.
+  - **Pruebas:** mensaje válido; mensaje repetido; versión nueva que actualiza; versión vieja que se rechaza; DIN distinta de papeleta; directo en STI y en DP World; operación de carga suelta; mensaje con campos B vacíos. Usa datos inventados.
   - `[SUPUESTO]` El puente manual cubre la Fase A mientras AEXSA SYS no entregue el evento. Confirmar con negocio y con TI.
   - Cubre: REQ-001, REQ-002, REQ-003. ADR-005.
 - [ ] **3.1b Adaptador real de ingesta desde AEXSA SYS** (Fase B)

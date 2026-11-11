@@ -132,7 +132,7 @@ Ninguno de estos puntos te bloquea. Todos tienen una forma de avanzar.
 |---|---|---|
 | **Escritura en SAP y contrato de Agunsa Connect** (PA-001, PA-002) | Abierto. Es el bloqueante técnico de la Fase B | Simulador `AgunsaConnectSapAdapter`. El contrato está en `contratos-integracion.md` |
 | **Lectura de SAP por API** (PA-003) | Abierto | En la Fase A el catálogo entra por archivo (ADR-017) |
-| **Cómo llega el evento desde AEXSA SYS** (PA-006) | Abierto | Tarea 3.1a: simulador, `POST /aexsa/eventos` y alta manual de operación como puente |
+| **Cómo llega el evento desde AEXSA SYS** (PA-006) | Abierto. El **contenido** del mensaje ya está definido en `docs/arquitectura/contratos-integracion.md` §2; lo que falta es la vía (consulta o aviso) y la fecha de AEXSA | Tarea 3.1a: simulador con ese formato, `POST /aexsa/eventos` y alta manual de operación como puente |
 | **Retorno a AEXSA SYS** (PA-004, PA-008) | Abierto | Simulador. Es Fase B |
 | **Ciberseguridad y datos personales** (PA-005) | Abierto | Respeta las reglas de seguridad de la sección 5 |
 | **App client y roles de Cognito** (PA-009) | Abierto | Autoridad y audiencia configurables. En pruebas, autenticación de prueba con usuarios y roles |

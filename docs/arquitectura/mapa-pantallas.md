@@ -59,7 +59,7 @@ Nota: toda versión nace en BORRADOR y solo una persona con rol la deja VIGENTE.
 | Pantalla | Propósito | Qué muestra | API |
 |----------|-----------|-------------|-----|
 | **F1 Bandeja de operaciones** | Ver operaciones a facturar | Estado, cliente, ruta, pendientes/no facturables | `GET /operaciones` |
-| **F2 Detalle de operación** | Revisar la operación y sus servicios | Ruta clasificada, DIN/DUS, destinatario(s), servicios prestados | `GET /operaciones/{id}` |
+| **F2 Detalle de operación** | Revisar la operación y sus servicios antes de armar la OFA | Ruta clasificada, terminal (STI o DP World), sentido, DIN/DUS y BL, consignatario y cliente facturador indicado por AEXSA, **contenedores con fechas de recepción, retiro y despacho, días de almacenaje y aforo**, servicios prestados con su contenedor, última versión recibida de AEXSA | `GET /operaciones/{id}` |
 | **F3 OFA — cálculo y líneas** | Ver la prefactura valorizada (motor determinístico) | Líneas con cantidad/tarifa/moneda/monto, excepciones, destinatarios (repartido), memoria de cálculo | `POST /operaciones/{id}/ofa`, `GET /ofa/{id}` |
 | **F4 Ajuste manual** | Ajustar un concepto no automatizado (auditable) | Form: nuevo monto + motivo obligatorio; registra autor/fecha/valor anterior | `POST /ofa/{id}/lineas/{l}/ajuste` |
 | **F5 Omisiones detectadas** | Ver faltantes (prestado vs. valorizado) | Lista de posibles omisiones (cruce determinístico; propuesta por IA como etapa opcional); decidir incluir/descartar | `GET /operaciones/{id}/omisiones` |

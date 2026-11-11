@@ -38,23 +38,66 @@ public interface IEventoFacturablePort
 ```
 
 ```jsonc
-// EventoFacturableDto
+// EventoFacturableDto  (v2, 2026-11-04). Prioridad: A = obligatorio, B = necesario en casos concretos, C = deseable.
 {
-  "operacionIdAexsa": "OP-2026-000123",   // clave de idempotencia
-  "tipoCarga": "CONTENEDOR",              // CONTENEDOR | BULTO (RN-027)
-  "tipoRetiro": "DIRECTO",                // DIRECTO | INDIRECTO (RN-026)
-  "conConvenio": true,
-  "puerto": "STI",
-  "din": "2026-6-123456",                 // declaracion import
-  "dus": null,                            // declaracion export
-  "cantidadDus": null,                    // driver de cobro expo (RN-047)
-  "consignatarioRut": "76.123.456-7",
-  "servicios": [                          // servicios prestados (base de REQ-007)
-    { "tipoServicioId": 42, "cantidad": 2, "unidad": "CTR" }
+  // --- Control del mensaje
+  "tipoEvento": "VISADO_APROBADO",        // A · VISADO_APROBADO | OPERACION_ACTUALIZADA
+  "version": 1,                           // A · sube con cada actualización; el Satélite actualiza, no duplica
+  "operacionIdAexsa": "OP-2026-000123",   // A · clave de idempotencia
+  "visadoAprobadoEn": "2026-10-26T14:30:00Z", // A
+
+  // --- Clasificación de la ruta (REQ-002)
+  "tipoCarga": "CONTENEDOR",              // A · CONTENEDOR | BULTO (RN-027). BULTO es 2ª etapa: se recibe y se marca fuera de alcance
+  "sentido": "IMPORTACION",               // A · IMPORTACION | EXPORTACION (impo usa DIN, expo usa DUS)
+  "tipoRetiro": "DIRECTO",                // A · DIRECTO | INDIRECTO (RN-026)
+  "conConvenio": true,                    // A · derivado del estado PREAPROBADO_CONVENIO / SIN_CONVENIO (RN-028)
+  "terminal": "STI",                      // A · STI | DP_WORLD | OTRO (RN-079). Define la refacturación del directo
+
+  // --- Documentos
+  "din": "2026-6-123456",                 // A en impo
+  "dus": [],                              // A en expo (lista)
+  "cantidadDus": null,                    // B · captura manual en AEXSA (RN-047); si no existe, la completa el facturador
+  "bls": ["BL-0001"],                     // B · una factura puede agrupar varios BL (RN-055)
+  "papeleta": { "numero": "P-123", "rut": "76.123.456-7" }, // B · para contrastar con la DIN (RN-001)
+
+  // --- Partes
+  "consignatario": { "rut": "76.123.456-7", "razonSocial": "Cliente de ejemplo" }, // A · RUT de la DIN (RN-057)
+  "clienteFacturador": {                  // B · null si nadie lo asignó; el Satélite usa el consignatario por defecto (RN-077)
+    "rut": "77.888.999-0", "razonSocial": "Forwarder de ejemplo",
+    "tipo": "EMISOR_BL",                  // EMISOR_BL | CLIENTE | GENERADOR_NEGOCIO | CONSIGNATARIO
+    "asignadoPor": "usuario", "asignadoEn": "2026-10-26T14:10:00Z"
+  },
+
+  // --- Contenedores (almacenaje, despacho, aforo)
+  "contenedores": [                       // B · obligatorio si hay almacenaje, aforo o facturación post-despacho
+    {
+      "numero": "ABCD1234567",
+      "fechaRecepcion": "2026-10-20T08:00:00Z",
+      "fechaRetiro": null,
+      "fechaDespacho": null,              // B · con convenio se factura tras el despacho, tope 7 días (RN-046)
+      "diasAlmacenaje": 12,               // B · el que AEXSA ya calcula en SQL (RN-033), sin descontar días libres
+      "bajoAforo": { "dias": 0, "finalizadoEn": null }, // B · RN-052 / RN-058
+      "esReefer": false,                  // C
+      "inspecciones": [ { "tipo": "SAG", "finalizadaEn": null } ] // B · RN-054 / RN-058
+    }
   ],
-  "visadoAprobadoEn": "2026-10-26T14:30:00Z"
+
+  // --- Servicios prestados (base del cálculo y de la detección de omisiones, REQ-007)
+  "servicios": [                          // A
+    {
+      "tipoServicioId": 42,               // A · MasterData.TipoServicio (RN-032)
+      "cantidad": 2, "unidad": "CTR",     // A
+      "contenedor": "ABCD1234567",        // B
+      "finalizadoEn": "2026-10-24T10:00:00Z", // B
+      "origen": "AEXSA"                   // C · AEXSA | LIQUIDACION_PUERTO (cargos de puerto, RN-056)
+    }
+  ]
 }
 ```
+
+**No debe viajar:** los montos tecleados a mano en AEXSA (`MontoFacturaCosto`, `MontoFacturaVenta`), porque el cálculo es del Satélite (RN-025); credenciales; ni datos personales que no estén en la lista.
+
+**Cuándo se envía:** al aprobarse el visado (`VISADO_APROBADO`) y cada vez que cambie algo que afecte el cobro antes de facturar (`OPERACION_ACTUALIZADA`): fecha de despacho o retiro, servicios nuevos, reclasificación directo→indirecto (RN-044), cliente facturador asignado, cargos de puerto tardíos.
 
 **Validaciones al consumir:** contrastar DIN↔papeleta; si discrepan → `facturable = false` y devolver a corrección (RN-001). Clasificar momento de facturación por convenio (RN-046).
 
