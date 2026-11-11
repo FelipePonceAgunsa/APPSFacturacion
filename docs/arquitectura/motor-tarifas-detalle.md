@@ -42,7 +42,7 @@ public sealed record ContextoCalculo(
     bool EsExportacion,                  // expo -> DUS (RN-047)
     int? CantidadDus,                    // driver de cobro expo; CAPTURA MANUAL (RN-047, adenda A2); BL<->DUS 1:N
     TipoRetiro Retiro,                   // DIRECTO | INDIRECTO (RN-026)
-    Terminal Terminal,                   // STI | DP_WORLD | OTRO — del itinerario (RN-079, ADR-015)
+    Terminal Terminal,                   // STI | DP_WORLD | OTRO — grupo resuelto con terminal_mapa a partir del terminal de AEXSA (RN-079, ADR-015). Si el terminal está SIN_MAPEAR, la capa de aplicación NO invoca el cálculo del directo sin convenio: deja la operación pendiente
     VersionConvenioSnapshot? Convenio,   // version fijada (null si sin convenio)
     TarifaPublicaSnapshot TarifaPublica, // kit spot SAP, version fijada (RN-014)
     decimal TipoCambioDia,               // USD observado del dia

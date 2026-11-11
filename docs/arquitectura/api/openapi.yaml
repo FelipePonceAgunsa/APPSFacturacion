@@ -25,6 +25,8 @@ tags:
       La carga de documento con extracción por IA es una etapa opcional (ADR-007/012).
   - name: Catalogo
     description: Catálogo de SAP importado por archivo en la Fase A; API en la Fase B (ADR-017)
+  - name: Configuracion
+    description: Parámetros mantenidos por el Administrador (mapeo de terminales)
   - name: Operaciones
     description: Evento facturable, clasificación de ruta y destinatarios (REQ-001/002/003)
   - name: OFA
@@ -181,6 +183,66 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Operacion' }
         '404': { $ref: '#/components/responses/Error404' }
+
+    patch:
+      tags: [Operaciones]
+      summary: Completar a mano los datos pendientes de una operación (auditable)
+      description: >
+        Los campos que AEXSA SYS no entrega (o entrega vacíos) los completa el facturador. Cada cambio
+        exige motivo y queda en la auditoría con usuario, fecha, valor anterior y valor nuevo. Un dato
+        completado a mano no se pisa con una versión posterior del evento salvo que AEXSA envíe un valor
+        distinto de vacío; en ese caso se registra el conflicto y se pide decidir.
+      parameters:
+        - { name: operacionId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CompletarOperacionRequest' }
+      responses:
+        '200':
+          description: Operación actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Operacion' }
+        '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  # --------------------------------------------------------------- Configuración
+  /configuracion/terminales:
+    get:
+      tags: [Configuracion]
+      summary: Mapeo de terminales de AEXSA a STI, DP World u otro (RN-079)
+      responses:
+        '200':
+          description: Mapeo vigente y terminales vistos sin mapear
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TerminalMapa' }
+  /configuracion/terminales/{terminalId}:
+    put:
+      tags: [Configuracion]
+      summary: Asignar el grupo de un terminal (solo rol Administrador)
+      parameters:
+        - { name: terminalId, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grupo]
+              properties:
+                grupo: { type: string, enum: [STI, DP_WORLD, OTRO] }
+      responses:
+        '200':
+          description: Mapeo actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TerminalMapa' }
+        '400': { $ref: '#/components/responses/Error400' }
 
   # --------------------------------------------------------------------- OFA
   /operaciones/{operacionId}/ofa:
@@ -721,9 +783,20 @@ components:
         - type: object
           properties:
             tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
-            sentido: { type: string, enum: [IMPORTACION, EXPORTACION] }
-            tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO] }
-            terminal: { type: string, enum: [STI, DP_WORLD, OTRO] }
+            sentido: { type: string, enum: [IMPORTACION, EXPORTACION], nullable: true }
+            tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO], nullable: true }
+            estadoOperacion: { type: string, enum: [ACTIVA, ANULADA] }
+            terminal: { $ref: '#/components/schemas/TerminalAexsa' }
+            grupoTerminal:
+              type: string
+              enum: [STI, DP_WORLD, OTRO, SIN_MAPEAR]
+              description: Resuelto por el Satélite con terminal_mapa. SIN_MAPEAR bloquea la decisión de refacturación del directo (RN-079).
+            pendientes:
+              type: array
+              description: Datos que faltan y que el facturador debe completar antes de validar la OFA.
+              items:
+                type: string
+                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO]
             din: { type: string, nullable: true }
             dus:
               type: array
@@ -749,10 +822,11 @@ components:
               items: { $ref: '#/components/schemas/ServicioPrestado' }
     ServicioPrestado:
       type: object
-      required: [tipoServicioId, cantidad, unidad]
+      description: Servicio de la operación ya normalizado por el Satélite (la unidad sale del catálogo, no del texto de AEXSA).
+      required: [tipoServicioId, unidad]
       properties:
         tipoServicioId: { type: integer }
-        cantidad: { type: number }
+        cantidad: { type: number, nullable: true, description: null = pendiente de completar por el facturador }
         unidad: { $ref: '#/components/schemas/UnidadCobro' }
         contenedor: { type: string, nullable: true }
         finalizadoEn: { type: string, format: date-time, nullable: true }
@@ -881,17 +955,22 @@ components:
       description: >
         Mensaje que AEXSA SYS envía al Satélite (v2). Detalle de prioridades (A, B, C) y origen de cada
         campo en contratos-integracion.md §2.
-      required: [tipoEvento, version, operacionIdAexsa, visadoAprobadoEn, tipoCarga, sentido, tipoRetiro, conConvenio, terminal, consignatario, servicios]
+      required: [tipoEvento, version, operacionIdAexsa, visadoAprobadoEn, estadoOperacion, tipoCarga, conConvenio, terminal, consignatario, servicios]
       properties:
         tipoEvento: { type: string, enum: [VISADO_APROBADO, OPERACION_ACTUALIZADA] }
         version: { type: integer, minimum: 1, description: Sube con cada actualización; el Satélite actualiza, no duplica }
         operacionIdAexsa: { type: string }
         visadoAprobadoEn: { type: string, format: date-time }
+        estadoOperacion: { type: string, enum: [ACTIVA, ANULADA], description: ANULADA si el visado se devolvió o anuló después de enviado }
         tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
-        sentido: { type: string, enum: [IMPORTACION, EXPORTACION] }
-        tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO] }
+        sentido: { type: string, enum: [IMPORTACION, EXPORTACION], nullable: true, description: Puede venir vacío en AEXSA }
+        tipoRetiro:
+          type: string
+          enum: [DIRECTO, INDIRECTO]
+          nullable: true
+          description: Vacío en el 95,6 % de los contenedores del ambiente revisado. Si es null, el Satélite no clasifica la ruta y queda pendiente.
         conConvenio: { type: boolean }
-        terminal: { type: string, enum: [STI, DP_WORLD, OTRO] }
+        terminal: { $ref: '#/components/schemas/TerminalAexsa' }
         din: { type: string, nullable: true }
         dus:
           type: array
@@ -921,7 +1000,50 @@ components:
           items: { $ref: '#/components/schemas/ContenedorOperacion' }
         servicios:
           type: array
-          items: { $ref: '#/components/schemas/ServicioPrestado' }
+          items: { $ref: '#/components/schemas/ServicioEvento' }
+    TerminalAexsa:
+      type: object
+      description: Terminal de retiro tal como está en el catálogo de AEXSA (hay 7). El Satélite lo asocia a un grupo con la tabla terminal_mapa.
+      required: [id, nombre]
+      properties:
+        id: { type: integer }
+        nombre: { type: string }
+    ServicioEvento:
+      type: object
+      required: [tipoServicioId]
+      properties:
+        tipoServicioId: { type: integer }
+        cantidad: { type: number, nullable: true, description: Puede venir vacía en AEXSA. Sin cantidad el servicio no se valoriza hasta que el facturador la complete. }
+        unidad: { type: string, nullable: true, description: Texto tal como está en AEXSA (sin normalizar). Solo informativo; el Satélite normaliza por tipoServicioId. }
+        contenedor: { type: string, nullable: true, description: AEXSA no lo guarda por servicio; llega vacío }
+        finalizadoEn: { type: string, format: date-time, nullable: true }
+        origen: { type: string, enum: [AEXSA, LIQUIDACION_PUERTO], nullable: true }
+    TerminalMapa:
+      type: object
+      properties:
+        terminalId: { type: integer }
+        nombre: { type: string }
+        grupo: { type: string, enum: [STI, DP_WORLD, OTRO, SIN_MAPEAR] }
+        operacionesPendientes: { type: integer, description: Operaciones que esperan este mapeo }
+    CompletarOperacionRequest:
+      type: object
+      required: [motivo]
+      properties:
+        motivo: { type: string }
+        tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO], nullable: true }
+        sentido: { type: string, enum: [IMPORTACION, EXPORTACION], nullable: true }
+        cantidadDus: { type: integer, nullable: true }
+        fechaDespacho: { type: string, format: date-time, nullable: true, description: Por contenedor si se indica `contenedor` }
+        contenedor: { type: string, nullable: true }
+        diasAforo: { type: integer, nullable: true }
+        cantidadesServicio:
+          type: array
+          items:
+            type: object
+            required: [tipoServicioId, cantidad]
+            properties:
+              tipoServicioId: { type: integer }
+              cantidad: { type: number }
     ParteFactura:
       type: object
       required: [rut]
@@ -939,9 +1061,11 @@ components:
         bajoAforo:
           type: object
           nullable: true
+          description: AEXSA solo guarda cuándo se asignó el aforo. El término y los días pueden venir vacíos.
           properties:
-            dias: { type: integer }
+            asignadoEn: { type: string, format: date-time, nullable: true }
             finalizadoEn: { type: string, format: date-time, nullable: true }
+            dias: { type: integer, nullable: true }
         esReefer: { type: boolean }
         inspecciones:
           type: array
@@ -949,6 +1073,7 @@ components:
             type: object
             properties:
               tipo: { type: string }
+              asignadaEn: { type: string, format: date-time, nullable: true }
               finalizadaEn: { type: string, format: date-time, nullable: true }
 
     # ----- error comun

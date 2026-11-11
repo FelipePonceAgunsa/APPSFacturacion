@@ -132,7 +132,10 @@ CREATE TABLE operacion (
     dus                 text[],                          -- declaraciones de salida (expo); BL<->DUS 1:N
     bls                 text[],                          -- una factura puede agrupar varios BL (RN-055)
     cantidad_dus        int,                             -- driver de cobro expo; CAPTURA MANUAL (RN-047, adenda A2)
-    terminal            text CHECK (terminal IN ('STI','DP_WORLD','OTRO')), -- terminal de retiro; gobierna refacturacion del directo (RN-079, ADR-015)
+    terminal_aexsa_id   int,                             -- id en MasterData.TerminalRetiro de AEXSA (hay 7)
+    terminal_aexsa_nombre text,
+    terminal_grupo      text CHECK (terminal_grupo IN ('STI','DP_WORLD','OTRO','SIN_MAPEAR')), -- resuelto con terminal_mapa; gobierna la refacturacion del directo (RN-079, ADR-015)
+    estado_operacion    text NOT NULL DEFAULT 'ACTIVA' CHECK (estado_operacion IN ('ACTIVA','ANULADA')),
     papeleta_numero     varchar(40),                     -- para contrastar con la DIN (RN-001)
     papeleta_rut        varchar(12),
     consignatario_id    uuid REFERENCES cliente(id),     -- RUT de la declaracion (RN-057)
@@ -159,7 +162,8 @@ CREATE TABLE contenedor_operacion (
     fecha_retiro      timestamptz,
     fecha_despacho    timestamptz,                       -- con convenio se factura tras el despacho, tope 7 dias (RN-046)
     dias_almacenaje   int,                               -- lo calcula AEXSA (RN-033); no descuenta dias libres
-    dias_bajo_aforo   int,                               -- no se cobra almacenaje bajo aforo (RN-052)
+    aforo_asignado_en timestamptz,                       -- AEXSA solo guarda cuando se asigno el aforo
+    dias_bajo_aforo   int,                               -- puede venir vacio; lo completa el facturador (auditable) (RN-052)
     aforo_finalizado_en timestamptz,
     es_reefer         boolean NOT NULL DEFAULT false,
     inspecciones      jsonb,                             -- [{tipo, finalizadaEn}] (RN-054/058)
@@ -170,8 +174,8 @@ CREATE TABLE servicio_prestado (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     operacion_id     uuid NOT NULL REFERENCES operacion(id),
     tipo_servicio_id int  NOT NULL REFERENCES tipo_servicio(tipo_servicio_id),
-    cantidad         numeric(18,4) NOT NULL,
-    unidad           text NOT NULL,
+    cantidad         numeric(18,4),                      -- NULL = pendiente: AEXSA puede enviarla vacia; sin cantidad no se valoriza
+    unidad           text NOT NULL,                      -- normalizada por el Satelite desde tipo_servicio (no el texto de AEXSA)
     contenedor       varchar(15),                        -- contenedor al que corresponde, si aplica
     finalizado_en    timestamptz,
     origen_dato      text CHECK (origen_dato IN ('AEXSA','LIQUIDACION_PUERTO'))  -- cargos de puerto tardios (RN-056)
@@ -189,6 +193,15 @@ CREATE TABLE evento_aexsa (
     resultado           text NOT NULL CHECK (resultado IN ('APLICADO','DUPLICADO','RECHAZADO')),
     detalle_error       text,
     UNIQUE (operacion_id_aexsa, version)
+);
+
+-- Mapeo de terminales de AEXSA (7) a los grupos que usa la regla del directo (RN-079). Lo mantiene el Administrador.
+CREATE TABLE terminal_mapa (
+    terminal_aexsa_id int PRIMARY KEY,
+    nombre            text NOT NULL,
+    grupo             text NOT NULL DEFAULT 'SIN_MAPEAR' CHECK (grupo IN ('STI','DP_WORLD','OTRO','SIN_MAPEAR')),
+    actualizado_por   varchar(80),
+    actualizado_en    timestamptz NOT NULL DEFAULT now()
 );
 ```
 
