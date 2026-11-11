@@ -1,4 +1,4 @@
-# Mapa de pantallas del frontend — Satélite de Facturación AEXSA
+# Mapa de pantallas del frontend — ZARPE - FACTURACIÓN
 
 Versión: 1.0
 Fecha: 2026-10-26

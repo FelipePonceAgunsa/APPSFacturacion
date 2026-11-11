@@ -1,4 +1,4 @@
-# Índice de ADRs — Satélite de Facturación AEXSA
+# Índice de ADRs — ZARPE - FACTURACIÓN
 
 Última actualización: 2026-11-04 (ADR-007 y ADR-012: extracción por IA como etapa opcional; ingreso por formulario manual)
 

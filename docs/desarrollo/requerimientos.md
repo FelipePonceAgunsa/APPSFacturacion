@@ -1,4 +1,4 @@
-# Requerimientos — Satélite de Facturación AEXSA (extracto para desarrollo)
+# Requerimientos — ZARPE - FACTURACIÓN (extracto para desarrollo)
 
 Versión: 1.1 (borrador para el Arquitecto)
 Fecha: 2026-10-23

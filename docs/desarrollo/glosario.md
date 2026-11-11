@@ -7,7 +7,7 @@ Los términos que verás en el código, los ADR y las reglas de negocio. Escrito
 | Término | Qué es |
 |---|---|
 | **AEXSA SYS** | Sistema operacional actual (.NET 4.6/4.8 y SQL Server). Origen de los eventos facturables. Se integra, no se reemplaza |
-| **Satélite** | Lo que vas a construir. Calcula la prefactura, guarda los convenios y da trazabilidad |
+| **ZARPE - FACTURACIÓN** (el "Satélite") | Lo que vas a construir. Es el nombre del producto; "Satélite" es el nombre de trabajo anterior y se sigue usando en los documentos técnicos y en el código (`Satelite.*`). Calcula la prefactura, guarda los convenios y da trazabilidad |
 | **SAP B1** (SAP Business One) | ERP donde se emite la factura electrónica y se concilia el pago |
 | **Agunsa Connect** | Middleware corporativo por donde debe pasar toda integración con SAP. Su contrato técnico está abierto (PA-002) |
 | **Stub / simulador** | Adaptador falso de un tercero (SAP, AEXSA, Agunsa Connect) para construir y probar sin esperarlo |

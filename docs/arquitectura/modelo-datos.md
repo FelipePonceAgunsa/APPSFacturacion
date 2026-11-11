@@ -1,4 +1,4 @@
-# Modelo de datos — Satélite de Facturación AEXSA
+# Modelo de datos — ZARPE - FACTURACIÓN
 
 Versión: 1.0
 Fecha: 2026-10-26

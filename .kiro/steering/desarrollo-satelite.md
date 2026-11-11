@@ -1,4 +1,6 @@
-# Satélite de Facturación AEXSA — reglas para quien desarrolla
+# ZARPE - FACTURACIÓN — reglas para quien desarrolla
+
+El producto se llama **ZARPE - FACTURACIÓN**; "el Satélite" es su nombre de trabajo anterior y se mantiene en los documentos técnicos y en los proyectos de código (`Satelite.*`). Usa "ZARPE - FACTURACIÓN" en textos visibles para el usuario (pantallas, títulos, mensajes).
 
 Estas reglas se aplican en todo el trabajo de desarrollo. La guía completa está en `docs/desarrollo/GUIA-DESARROLLADOR.md`.
 

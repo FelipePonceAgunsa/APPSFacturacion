@@ -1,4 +1,6 @@
-# Satélite de Facturación AEXSA
+# ZARPE - FACTURACIÓN
+
+**ZARPE - FACTURACIÓN** es el nombre del proyecto. En los documentos técnicos, "el Satélite" es el mismo sistema (nombre de trabajo anterior). Los proyectos de código siguen llamándose `Satelite.*`.
 
 Sistema nuevo que recibe el evento facturable de AEXSA SYS, resuelve el convenio vigente, calcula el monto con reglas determinísticas y arma la prefactura (OFA) para SAP Business One. La IA nunca fija un monto.
 

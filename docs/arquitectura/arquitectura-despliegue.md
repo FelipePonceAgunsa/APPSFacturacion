@@ -1,4 +1,4 @@
-# Arquitectura de despliegue — Satélite de Facturación AEXSA
+# Arquitectura de despliegue — ZARPE - FACTURACIÓN
 
 Versión: 1.0
 Fecha: 2026-10-26

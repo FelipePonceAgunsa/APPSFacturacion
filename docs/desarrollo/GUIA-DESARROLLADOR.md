@@ -1,7 +1,7 @@
-# Guía del desarrollador — Satélite de Facturación AEXSA
+# Guía del desarrollador — ZARPE - FACTURACIÓN
 
 Versión: 1.0 · Fecha: 2026-11-04
-Para: la persona que construirá el Satélite con Kiro.
+Para: la persona que construirá ZARPE - FACTURACIÓN con Kiro. En los documentos técnicos lo verás también como "el Satélite" (nombre de trabajo anterior); es lo mismo.
 Léela completa una vez (unos 20 minutos). Después úsala como mapa.
 
 ---
@@ -10,7 +10,7 @@ Léela completa una vez (unos 20 minutos). Después úsala como mapa.
 
 Hoy AEXSA factura a mano. El sistema operacional (AEXSA SYS) no alimenta a SAP, el convenio de cada cliente vive disperso en correos y carpetas, y el monto se calcula caso a caso. Eso produce errores, notas de crédito y cobros que se pierden.
 
-El **Satélite** es un sistema nuevo que:
+**ZARPE - FACTURACIÓN** (el Satélite) es un sistema nuevo que:
 1. Recibe el **evento facturable** que AEXSA SYS envía al aprobarse un visado.
 2. Resuelve el **convenio vigente** del cliente (guardado en el Satélite, versionado).
 3. **Calcula el monto** con reglas fijas, en un orden fijo, sin IA.

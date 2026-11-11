@@ -1,4 +1,4 @@
-# Diseño — Satélite de Facturación AEXSA
+# Diseño — ZARPE - FACTURACIÓN
 
 Versión: 1.1
 Fecha: 2026-11-04

@@ -1,4 +1,4 @@
-# Contratos de integración — Satélite de Facturación AEXSA
+# Contratos de integración — ZARPE - FACTURACIÓN
 
 Versión: 1.0
 Fecha: 2026-10-26

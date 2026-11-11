@@ -1,4 +1,4 @@
-# Plan de implementación — Satélite de Facturación AEXSA
+# Plan de implementación — ZARPE - FACTURACIÓN
 
 Versión: 1.1
 Fecha: 2026-11-04

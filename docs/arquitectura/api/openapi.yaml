@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Satélite de Facturación AEXSA — API REST
+  title: ZARPE - FACTURACIÓN — API REST
   version: 1.1.0
   description: >
-    Contrato de la API REST del Satélite de Facturación. Cubre lo que consume el
+    Contrato de la API REST de ZARPE - FACTURACIÓN (el Satélite). Cubre lo que consume el
     frontend Angular (convenios, operaciones, OFA, facturas, pagos, ajustes) y los
     callbacks de integración que entran por Agunsa Connect (folio/DTE desde SAP).
     Alineado con modelo-datos.md (ADR-010), contratos-integracion.md (ADR-002/003/004/005),

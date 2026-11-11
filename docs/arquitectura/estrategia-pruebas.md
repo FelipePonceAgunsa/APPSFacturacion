@@ -1,4 +1,4 @@
-# Estrategia de pruebas — Satélite de Facturación AEXSA
+# Estrategia de pruebas — ZARPE - FACTURACIÓN
 
 Versión: 1.0
 Fecha: 2026-10-28
