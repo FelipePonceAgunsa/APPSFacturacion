@@ -786,7 +786,11 @@ components:
             sentido: { type: string, enum: [IMPORTACION, EXPORTACION], nullable: true }
             tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO], nullable: true }
             estadoOperacion: { type: string, enum: [ACTIVA, ANULADA] }
-            terminal: { $ref: '#/components/schemas/TerminalAexsa' }
+            documentoCargaId: { type: string }
+            terminal:
+              nullable: true
+              allOf:
+                - $ref: '#/components/schemas/TerminalAexsa'
             grupoTerminal:
               type: string
               enum: [STI, DP_WORLD, OTRO, SIN_MAPEAR]
@@ -796,7 +800,7 @@ components:
               description: Datos que faltan y que el facturador debe completar antes de validar la OFA.
               items:
                 type: string
-                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO]
+                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, CONVENIO_DISCREPANTE, DOCUMENTO_CON_VARIAS_SOLICITUDES]
             din: { type: string, nullable: true }
             dus:
               type: array
@@ -955,11 +959,12 @@ components:
       description: >
         Mensaje que AEXSA SYS envía al Satélite (v2). Detalle de prioridades (A, B, C) y origen de cada
         campo en contratos-integracion.md §2.
-      required: [tipoEvento, version, operacionIdAexsa, visadoAprobadoEn, estadoOperacion, tipoCarga, conConvenio, terminal, consignatario, servicios]
+      required: [tipoEvento, version, operacionIdAexsa, documentoCargaId, visadoAprobadoEn, estadoOperacion, tipoCarga, conConvenio, terminal, consignatario, servicios]
       properties:
         tipoEvento: { type: string, enum: [VISADO_APROBADO, OPERACION_ACTUALIZADA] }
         version: { type: integer, minimum: 1, description: Sube con cada actualización; el Satélite actualiza, no duplica }
-        operacionIdAexsa: { type: string }
+        operacionIdAexsa: { type: string, description: SolicitudVisadoID de AEXSA, enviado como texto }
+        documentoCargaId: { type: string, description: Documento de carga de la solicitud. El 1,9 % de los documentos tiene más de una solicitud. }
         visadoAprobadoEn: { type: string, format: date-time }
         estadoOperacion: { type: string, enum: [ACTIVA, ANULADA], description: ANULADA si el visado se devolvió o anuló después de enviado }
         tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
@@ -969,8 +974,14 @@ components:
           enum: [DIRECTO, INDIRECTO]
           nullable: true
           description: Vacío en el 95,6 % de los contenedores del ambiente revisado. Si es null, el Satélite no clasifica la ruta y queda pendiente.
-        conConvenio: { type: boolean }
-        terminal: { $ref: '#/components/schemas/TerminalAexsa' }
+        conConvenio:
+          type: boolean
+          description: Respuesta del visador a "¿el cliente tiene convenio?". El Satélite la contrasta con su registro de convenios por RUT.
+        terminal:
+          nullable: true
+          description: Puede venir null (cerca del 18 % de los documentos no tiene terminal).
+          allOf:
+            - $ref: '#/components/schemas/TerminalAexsa'
         din: { type: string, nullable: true }
         dus:
           type: array

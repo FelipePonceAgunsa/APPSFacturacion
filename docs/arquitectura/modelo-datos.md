@@ -121,7 +121,8 @@ CREATE TABLE servicio_convenio (
 ```sql
 CREATE TABLE operacion (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    operacion_id_aexsa  varchar(40) NOT NULL UNIQUE,     -- idempotencia de ingesta
+    operacion_id_aexsa  varchar(40) NOT NULL UNIQUE,     -- idempotencia de ingesta (SolicitudVisadoID de AEXSA, como texto)
+    documento_carga_id  varchar(40) NOT NULL,            -- 1,9 % de los documentos tiene mas de una solicitud: evita facturar dos veces
     cliente_id          uuid REFERENCES cliente(id),
     tipo_carga          text CHECK (tipo_carga IN ('CONTENEDOR','BULTO')),       -- RN-027
     sentido             text CHECK (sentido IN ('IMPORTACION','EXPORTACION')),   -- impo usa DIN, expo usa DUS (RN-047)
@@ -152,6 +153,7 @@ CREATE TABLE operacion (
     actualizado_en      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_operacion_cliente ON operacion (cliente_id);
+CREATE INDEX ix_operacion_documento ON operacion (documento_carga_id);
 
 -- Contenedores de la operacion: almacenaje, despacho, aforo e inspecciones (RN-033/046/052/058).
 CREATE TABLE contenedor_operacion (

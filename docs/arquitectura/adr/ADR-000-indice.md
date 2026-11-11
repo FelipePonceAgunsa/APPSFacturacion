@@ -10,7 +10,7 @@ Cada ADR documenta una decisión de arquitectura relevante con sus alternativas,
 | [ADR-002](ADR-002-integracion-sap-agunsa-connect.md) | Integración con SAP B1 vía Agunsa Connect (Outbox + adaptadores) | Propuesto | PQ-029, PQ-030, BR-027, BR-028, RN-076, PA-001, PA-002 |
 | [ADR-003](ADR-003-lectura-tarifas-sap.md) | Lectura de tarifas y artículos desde SAP | Propuesto | PQ-025, RN-061, PA-003, PA-007 |
 | [ADR-004](ADR-004-retorno-aexsa-sys.md) | Retorno de facturación a AEXSA SYS | Propuesto | PQ-032, RN-072, RN-074, PA-004, PA-008 |
-| [ADR-005](ADR-005-ingesta-evento-facturable.md) | Ingesta del evento facturable desde AEXSA SYS | Propuesto | REQ-001, RN-028, BR-004, PA-006 |
+| [ADR-005](ADR-005-ingesta-evento-facturable.md) | Ingesta del evento facturable desde AEXSA SYS (tabla de salida + push + GET de conciliación; actualizado 2026-11) | Propuesto (mecanismo definido; falta fecha y autenticación) | REQ-001, RN-028, BR-004, PA-006 |
 | [ADR-006](ADR-006-motor-tarifas-determinista.md) | Motor de tarifas determinístico y versionado | Aceptado | REQ-005, RNF-03, principios |
 | [ADR-007](ADR-007-convenios-versionados-ia-asistida.md) | Convenios versionados con extracción asistida por IA | Aceptado | REQ-004, REQ-012, RN-071, BR-001 |
 | [ADR-008](ADR-008-capa-configurable-reglas.md) | Capa configurable para reglas no escritas | Aceptado | REQ-006, RN-070, BR-023 |
