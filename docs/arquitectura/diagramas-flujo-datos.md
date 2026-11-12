@@ -1,6 +1,6 @@
 # Flujo de datos y arquitectura — ZARPE - FACTURACIÓN
 
-Versión: 1.0
+Versión: 1.1 (catálogo SAP: análisis previo y extracción en Fase A, API-1 en Fase B)
 Fecha: 2026-11-05
 Autor: Arquitecto de Solución (`arquitecto-satelite`)
 Base: `contratos-integracion.md` (§2 a §6), ADR-002, ADR-005, `arquitectura-despliegue.md`, `modelo-datos.md`.
@@ -20,6 +20,7 @@ Están en `docs/arquitectura/diagramas-uml/`, en PNG (para presentar) y SVG (par
 | `02-secuencia-aexsa-a-zarpe.png` | Secuencia: de AEXSA a ZARPE (Fase A) |
 | `03-secuencia-zarpe-a-sap.png` | Secuencia: de ZARPE a SAP, folio y pagos (Fase B) |
 | `04-estados-operacion-y-ofa.png` | Estados de la operación y de la OFA |
+| `05-secuencia-catalogo-sap.png` | Secuencia: catálogo de SAP (análisis previo y extracción en Fase A, API-1 en Fase B) |
 
 ![Componentes y flujo de datos](diagramas-uml/01-componentes-flujo-de-datos.png)
 
@@ -32,6 +33,7 @@ Están en `docs/arquitectura/diagramas-uml/`, en PNG (para presentar) y SVG (par
 | ¿Qué piezas hay y cómo se conectan? | **Componentes** | Diagrama 1 |
 | ¿Quién habla con quién, en qué orden y con qué datos? | **Secuencia** | Diagramas 2 y 3 |
 | ¿Por qué estados pasa una operación o una OFA? | **Estados** (máquina de estados) | Diagrama 4 |
+| ¿Cómo llegan los datos de SAP al catálogo? | **Secuencia** | Diagrama 5 |
 | ¿Dónde corre cada pieza en AWS? | **Despliegue** | `arquitectura-despliegue.md` |
 | ¿Qué tablas hay y cómo se relacionan? | **Clases / entidad-relación** | `modelo-datos.md` |
 
@@ -68,7 +70,8 @@ flowchart TB
 
     AC["Agunsa Connect<br/>(middleware corporativo)"]
     SAP["SAP Business One"]
-    ARCH["Archivos CSV<br/>exportados de SAP"]
+    EQSAP["Equipo SAP"]
+    ARCH["Extracción Excel/CSV<br/>(revisada en análisis previo)"]
 
     VIS -->|"1 presiona Aprueba"| UI_A
     UI_A -->|"2 guarda aprobación<br/>+ mensaje, misma transacción"| DB_A
@@ -78,8 +81,11 @@ flowchart TB
     API -->|"4 valida, guarda,<br/>calcula pendientes"| DB_Z
     DB_Z <-->|"5 contexto de cálculo"| MOTOR
     CAT -->|"tarifa pública"| MOTOR
-    ARCH -->|"6 importación<br/>(confirmación humana)"| API
+    SAP -->|"6a extrae datos"| EQSAP
+    EQSAP -->|"análisis previo<br/>+ extracción"| ARCH
+    ARCH -->|"6b importación<br/>(confirmación humana)"| API
     API --> CAT
+    API -.->|"6c API-1 consulta<br/>de catálogo"| AC
     FAC <-->|"7 revisa, ajusta,<br/>agrega servicios"| UI_Z
     UI_Z <--> API
     GET_A -.->|"conciliar eventos"| API
@@ -102,7 +108,9 @@ flowchart TB
 | 3 | AEXSA → ZARPE | `EventoFacturable`: operación, documento de carga, tipo de carga, sentido, tipo de retiro, convenio declarado, terminal, DIN/DUS, partes, contenedores, servicios prestados. **Sin montos tecleados a mano** | `POST /aexsa/eventos`, con reintentos, idempotente por `operacionIdAexsa` + `version` | A |
 | 4 | API → BD | Operación, contenedores, servicios, registro del mensaje (`evento_aexsa`), lista de datos pendientes | Escritura transaccional | A |
 | 5 | BD ↔ Motor | `ContextoCalculo` inmutable: operación, convenio vigente, tarifa pública, tipo de cambio. Sale: líneas con monto y memoria de cálculo | Llamada interna, sin consultas en vivo | A |
-| 6 | CSV de SAP → API | Artículos, listas de precios, kits y tipo de cambio | Subida de archivo, confirmación humana | A |
+| 6a | SAP → equipo SAP | Artículos, listas de precios, kits, tipo de cambio y socios de negocio | Extracción hecha por el equipo SAP. Primero una **muestra** que se revisa en conjunto (EXT-1, análisis previo de datos) | A |
+| 6b | Extracción → ZARPE | Lo mismo, ya revisado (EXT-2). Se guarda como catálogo versionado; cada cálculo muestra la versión usada | Subida de archivo Excel/CSV, validación y confirmación humana | A |
+| 6c | ZARPE → SAP (vía Agunsa Connect) | Lo mismo, por consulta automática de solo lectura. Reemplaza a 6a y 6b | API-1, programada y a pedido. Se construye en paralelo sobre lo aprendido en el análisis previo (`solicitud-apis-sap.md`) | B |
 | 7 | Facturador ↔ pantallas | Ver cálculo, "¿Por qué?", ajustar monto, agregar servicio, corregir directo/indirecto | HTTPS, rol en la API | A |
 | 8 | OFA → Outbox | OFA validada y mensaje de envío, **misma transacción** | Escritura en BD | B |
 | 9 | Worker → SAP | `OfaDto`: destinatarios con líneas (artículo SAP, cantidad, tarifa, moneda, monto), clave de idempotencia | Vía Agunsa Connect, reintentos con espera creciente | B |
@@ -265,7 +273,57 @@ Notas:
 
 ---
 
-## Diagrama 5 — Dónde corre cada pieza (despliegue en AWS)
+## Diagrama 5 — Secuencia: catálogo de SAP (Fase A por extracción, Fase B por API)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant EQ as Equipo SAP
+    participant SAP as SAP B1
+    actor FAC as Facturación
+    actor ADM as Administrador ZARPE
+    participant API as API ZARPE
+    participant BDZ as PostgreSQL ZARPE
+    participant AC as Agunsa Connect
+
+    rect rgb(245, 245, 245)
+    Note over EQ,BDZ: Fase A · Paso 1: análisis previo de los datos (EXT-1)
+    EQ->>SAP: Extrae una muestra (artículos, precios, kits, TC, clientes)
+    EQ->>FAC: Revisan juntos la muestra
+    Note over EQ,FAC: Significado de cada campo, duplicados, inactivos,<br/>armado de kits, listas vigentes, moneda, tipo de cambio, RUT
+    FAC-->>EQ: Acta de hallazgos y ajustes acordados
+    end
+
+    rect rgb(245, 245, 245)
+    Note over EQ,BDZ: Fase A · Paso 2: extracción para pruebas (EXT-2)
+    EQ->>SAP: Extracción completa con los campos acordados
+    EQ->>ADM: Entrega el Excel/CSV por canal interno
+    ADM->>API: Sube el archivo
+    API->>API: Valida formato, duplicados y artículos inactivos
+    API-->>ADM: Resultado de la validación (pendiente de confirmar)
+    ADM->>API: Confirma
+    API->>BDZ: Nueva versión del catálogo (snapshot)
+    Note over API,BDZ: Cada cálculo guarda qué versión usó.<br/>Se repite cada vez que cambien precios
+    end
+
+    Note over EQ,AC: Fase B · API-1 (se construye en paralelo, sobre el análisis previo)
+    API->>AC: Consulta de catálogo (programada o a pedido), solo lectura
+    AC->>SAP: Lee artículos, precios, kits, TC y clientes
+    SAP-->>AC: Datos
+    AC-->>API: Datos
+    API->>API: Misma validación que la extracción
+    API->>BDZ: Nueva versión del catálogo (snapshot)
+```
+
+**Qué mirar al conversarlo con el equipo:**
+- El cálculo nunca lee SAP en vivo: usa la versión guardada del catálogo, venga del archivo o de la API.
+- El análisis previo se hace **una vez, antes** de construir la carga definitiva. Sus hallazgos fijan los campos de la extracción y el contrato de la API-1.
+- La extracción y la API entregan los mismos campos, así que pasar de la Fase A a la B solo cambia el conector, no el cálculo ni las pantallas.
+- `[POR CONFIRMAR]` Quién del equipo SAP hace la extracción y cada cuánto cambian los precios.
+
+---
+
+## Diagrama 6 — Dónde corre cada pieza (despliegue en AWS)
 
 Ver `arquitectura-despliegue.md`, §1. En resumen: Angular en S3 + CloudFront (con WAF), API y Worker en ECS Fargate detrás de un balanceador, PostgreSQL en RDS Multi-AZ, documentos en S3 y secretos en Secrets Manager. Toda comunicación con SAP pasa por Agunsa Connect.
 
@@ -280,4 +338,6 @@ Ver `arquitectura-despliegue.md`, §1. En resumen: Angular en S3 + CloudFront (c
 | PA-001: cómo se crea la orden en SAP | La flecha 9: el contenido exacto de lo que se envía |
 | Factura emitida hacia AEXSA `[POR CONFIRMAR]` | La flecha 12: que el canal existente de SAP a AEXSA siga funcionando igual, y qué pasa con las operaciones con convenio (consolidadas, PA-010) |
 | Aviso de pagos a ZARPE `[POR CONFIRMAR]` | La flecha 13: cómo se entera ZARPE de un pago (PA-002, PA-003) |
+| Análisis previo y extracción de SAP (EXT-1, EXT-2) `[POR CONFIRMAR]` | Las flechas 6a y 6b: quién extrae, con qué frecuencia y qué campos quedan tras el análisis |
+| PA-003 y PA-007: API-1 de consulta | La flecha 6c: objeto de SAP que se consulta y cómo se identifica al cliente por RUT |
 | Dónde está alojado AEXSA SYS | La red entre AEXSA y AWS (flecha 3) |
