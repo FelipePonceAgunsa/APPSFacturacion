@@ -10,6 +10,21 @@ Propósito: dibujar cómo viajan los datos de AEXSA SYS a ZARPE - FACTURACIÓN y
 
 ---
 
+## Imágenes listas para abrir o proyectar
+
+Están en `docs/arquitectura/diagramas-uml/`, en PNG (para presentar) y SVG (para ampliar sin perder calidad). Se generan desde los bloques Mermaid de este mismo archivo con `scripts/desarrollo/generar_diagramas_uml.py`; si cambias un diagrama aquí, vuelve a ejecutar el script.
+
+| Imagen | Diagrama UML |
+|---|---|
+| `01-componentes-flujo-de-datos.png` | Componentes y flujo de datos (vista general) |
+| `02-secuencia-aexsa-a-zarpe.png` | Secuencia: de AEXSA a ZARPE (Fase A) |
+| `03-secuencia-zarpe-a-sap.png` | Secuencia: de ZARPE a SAP, folio y pagos (Fase B) |
+| `04-estados-operacion-y-ofa.png` | Estados de la operación y de la OFA |
+
+![Componentes y flujo de datos](diagramas-uml/01-componentes-flujo-de-datos.png)
+
+---
+
 ## Qué tipo de diagrama UML usar para cada pregunta
 
 | Pregunta | Diagrama UML | Dónde está aquí |
@@ -29,7 +44,7 @@ Para conversar con desarrolladores, los más útiles son **Secuencia** (el orden
 Los números de las flechas se explican en la tabla siguiente.
 
 ```mermaid
-flowchart LR
+flowchart TB
     VIS["Visador<br/>(usuario AEXSA)"]
     FAC["Facturador<br/>(usuario ZARPE)"]
 

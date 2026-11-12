@@ -33,6 +33,8 @@ docs/arquitectura/*
 !docs/arquitectura/estrategia-pruebas.md
 !docs/arquitectura/mapa-pantallas.md
 !docs/arquitectura/diagramas-flujo-datos.md
+!docs/arquitectura/diagramas-uml/
+!docs/arquitectura/diagramas-uml/**
 !docs/arquitectura/api/
 !docs/arquitectura/api/**
 
