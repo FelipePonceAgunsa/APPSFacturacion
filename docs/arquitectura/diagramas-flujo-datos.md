@@ -78,7 +78,7 @@ flowchart TB
     DB_A --- OUT_A
     OUT_A --> ENV_A
     ENV_A ==>|"3 POST /aexsa/eventos<br/>EventoFacturable (JSON)"| API
-    API -->|"4 valida, guarda,<br/>calcula pendientes"| DB_Z
+    API -->|"4 valida, guarda, busca el<br/>convenio por RUT, calcula pendientes"| DB_Z
     DB_Z <-->|"5 contexto de cálculo"| MOTOR
     CAT -->|"tarifa pública"| MOTOR
     SAP -->|"6a una persona del equipo SAP<br/>exporta desde SAP"| ARCH
@@ -104,11 +104,11 @@ flowchart TB
 
 | N.º | De → A | Qué viaja | Mecanismo | Fase |
 |---|---|---|---|---|
-| 1 | Visador → AEXSA | Revisión de documentos y respuesta a "¿tiene convenio?" | Pantalla de AEXSA | A |
+| 1 | Visador → AEXSA | Revisión de documentos y aprobación. El visador **no** indica si hay convenio: eso lo determina ZARPE | Pantalla de AEXSA | A |
 | 2 | Pantalla → BD AEXSA | La aprobación y el mensaje del evento, **en una sola transacción** | Escritura en BD | A |
-| 3 | AEXSA → ZARPE | `EventoFacturable`: operación, documento de carga, tipo de carga, sentido, tipo de retiro, convenio declarado, terminal, DIN/DUS, partes, contenedores, servicios prestados. **Sin montos tecleados a mano** | `POST /aexsa/eventos`, con reintentos, idempotente por `operacionIdAexsa` + `version` | A |
-| 4 | API → BD | Operación, contenedores, servicios, registro del mensaje (`evento_aexsa`), lista de datos pendientes | Escritura transaccional | A |
-| 5 | BD ↔ Motor | `ContextoCalculo` inmutable: operación, convenio vigente, tarifa pública, tipo de cambio. Sale: líneas con monto y memoria de cálculo | Llamada interna, sin consultas en vivo | A |
+| 3 | AEXSA → ZARPE | `EventoFacturable`: operación, documento de carga, tipo de carga, sentido, tipo de retiro, terminal, DIN/DUS, partes, contenedores, servicios prestados. **Sin montos tecleados a mano** | `POST /aexsa/eventos`, con reintentos, idempotente por `operacionIdAexsa` + `version` | A |
+| 4 | API → BD | Operación, contenedores, servicios, registro del mensaje (`evento_aexsa`), lista de datos pendientes. **ZARPE busca el convenio vigente** por RUT del cliente facturador (o consignatario) y fecha; si no hay, la operación es sin convenio | Escritura transaccional | A |
+| 5 | BD ↔ Motor | `ContextoCalculo` inmutable: operación, **convenio vigente que ZARPE encontró por RUT y fecha** (o ninguno), tarifa pública, tipo de cambio. Sale: líneas con monto y memoria de cálculo | Llamada interna, sin consultas en vivo | A |
 | 6a | SAP → archivo | Artículos, listas de precios, kits, tipo de cambio y socios de negocio | Una persona del equipo SAP **exporta** esos datos desde SAP a un Excel/CSV, como cualquier reporte. La primera vez es una **muestra** que se revisa con facturación (EXT-1, análisis previo); después, la extracción completa (EXT-2), y de nuevo cada vez que cambien precios | A |
 | 6b | Archivo → ZARPE | Lo mismo. **Puente: solo mientras no exista la API-1 (6c)** | El **administrador de ZARPE sube el archivo** en la pantalla Catálogo. ZARPE lo revisa (formato, duplicados, inactivos), muestra el resultado y la persona confirma. Queda guardado como una versión del catálogo; cada cálculo registra qué versión usó | A |
 | 6c | ZARPE → SAP (vía Agunsa Connect) | Lo mismo, por consulta automática de solo lectura. **Reemplaza a 6a y 6b apenas exista** | API-1, programada y a pedido. La **construye el equipo SAP** según `solicitud-apis-sap.md`, sobre lo aprendido en el análisis previo. Se pide desde ya | A si llega a tiempo; si no, B |
@@ -136,7 +136,7 @@ sequenceDiagram
     participant MOT as Motor de tarifas
     actor FAC as Facturador
 
-    VIS->>UIA: Revisa documentos y responde "¿tiene convenio?"
+    VIS->>UIA: Revisa que los documentos estén correctos
     VIS->>UIA: Presiona Aprueba
     UIA->>BDA: Guarda aprobación + mensaje (una transacción)
     ENV->>BDA: Lee mensajes sin enviar
@@ -145,8 +145,8 @@ sequenceDiagram
     alt Mensaje nuevo o versión mayor
         API->>BDZ: Registra en evento_aexsa (APLICADO)
         API->>BDZ: Crea o actualiza operación, contenedores y servicios
-        API->>BDZ: Busca convenio vigente por RUT
-        Note over API,BDZ: Contrasta "conConvenio" del visador con el convenio registrado.<br/>Si difieren: pendiente CONVENIO_DISCREPANTE
+        API->>BDZ: Busca el convenio vigente por RUT y fecha
+        Note over API,BDZ: ZARPE decide: con convenio (guarda la versión) o sin convenio (tarifa pública).<br/>Si hay dos vigentes: el más antiguo y pendiente VARIOS_CONVENIOS_VIGENTES
         API->>BDZ: Calcula pendientes (tipo de retiro, terminal, DUS, etc.)
         API-->>ENV: 201 aceptado
     else Mensaje repetido
@@ -171,7 +171,7 @@ sequenceDiagram
 ```
 
 **Qué mirar al conversarlo con el equipo:**
-- AEXSA nunca envía montos. El monto lo calcula siempre el motor.
+- AEXSA nunca envía montos ni dice si hay convenio. **ZARPE busca el convenio y calcula**: ese es su valor.
 - El mensaje es idempotente: repetirlo no duplica. Una versión nueva actualiza la operación.
 - Lo que falta no hace fallar el mensaje: queda como pendiente y lo completa una persona, con registro.
 
@@ -280,7 +280,7 @@ stateDiagram-v2
 
 Notas:
 - La OFA ya enviada no se recalcula: una corrección debe hacerse antes de enviar.
-- Un `CONVENIO_DISCREPANTE` o un `DOCUMENTO_CON_VARIAS_SOLICITUDES` exige una decisión registrada antes de pasar a `VALIDADA`.
+- Un `VARIOS_CONVENIOS_VIGENTES` o un `DOCUMENTO_CON_VARIAS_SOLICITUDES` exige una decisión registrada antes de pasar a `VALIDADA`.
 
 ---
 

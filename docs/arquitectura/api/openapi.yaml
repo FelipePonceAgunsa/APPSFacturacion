@@ -841,7 +841,7 @@ components:
         operacionId: { type: string, format: uuid }
         operacionIdAexsa: { type: string }
         rut: { type: string }
-        conConvenio: { type: boolean }
+        conConvenio: { type: boolean, description: 'Lo determina ZARPE buscando el convenio vigente por RUT; no viene de AEXSA' }
         facturable: { type: boolean }
     Operacion:
       allOf:
@@ -866,7 +866,7 @@ components:
               description: Datos que faltan y que el facturador debe completar antes de validar la OFA.
               items:
                 type: string
-                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, CONVENIO_DISCREPANTE, DOCUMENTO_CON_VARIAS_SOLICITUDES]
+                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES]
             din: { type: string, nullable: true }
             dus:
               type: array
@@ -1033,7 +1033,7 @@ components:
       description: >
         Mensaje que AEXSA SYS envía al Satélite (v2). Detalle de prioridades (A, B, C) y origen de cada
         campo en contratos-integracion.md §2.
-      required: [tipoEvento, version, operacionIdAexsa, documentoCargaId, visadoAprobadoEn, estadoOperacion, tipoCarga, conConvenio, terminal, consignatario, servicios]
+      required: [tipoEvento, version, operacionIdAexsa, documentoCargaId, visadoAprobadoEn, estadoOperacion, tipoCarga, terminal, consignatario, servicios]
       properties:
         tipoEvento: { type: string, enum: [VISADO_APROBADO, OPERACION_ACTUALIZADA] }
         version: { type: integer, minimum: 1, description: Sube con cada actualización; el Satélite actualiza, no duplica }
@@ -1048,9 +1048,6 @@ components:
           enum: [DIRECTO, INDIRECTO]
           nullable: true
           description: Vacío en el 95,6 % de los contenedores del ambiente revisado. Si es null, el Satélite no clasifica la ruta y queda pendiente.
-        conConvenio:
-          type: boolean
-          description: Respuesta del visador a "¿el cliente tiene convenio?". El Satélite la contrasta con su registro de convenios por RUT.
         terminal:
           nullable: true
           description: Puede venir null (cerca del 18 % de los documentos no tiene terminal).

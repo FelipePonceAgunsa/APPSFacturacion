@@ -127,7 +127,8 @@ CREATE TABLE operacion (
     tipo_carga          text CHECK (tipo_carga IN ('CONTENEDOR','BULTO')),       -- RN-027
     sentido             text CHECK (sentido IN ('IMPORTACION','EXPORTACION')),   -- impo usa DIN, expo usa DUS (RN-047)
     tipo_retiro         text CHECK (tipo_retiro IN ('DIRECTO','INDIRECTO')),     -- RN-026
-    con_convenio        boolean NOT NULL DEFAULT false,
+    con_convenio        boolean NOT NULL DEFAULT false,  -- lo determina ZARPE al buscar el convenio vigente por RUT y fecha; no viene de AEXSA
+    version_convenio_id uuid REFERENCES version_convenio(id), -- convenio encontrado (null = sin convenio, tarifa publica)
     puerto              text,                            -- heredado; usar terminal
     din                 varchar(40),                     -- declaracion import
     dus                 text[],                          -- declaraciones de salida (expo); BL<->DUS 1:N
