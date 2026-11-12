@@ -210,12 +210,12 @@ CREATE TABLE terminal_mapa (
 ### 3.3b Catálogo SAP importado (ADR-017)
 
 ```sql
--- Cabecera de cada carga del catalogo. Solo por consulta a la API de SAP (ADR-003, ADR-017 revisado 2026-11-05: sin archivos).
+-- Cabecera de cada carga del catalogo (archivo Excel/CSV en Fase A, API en Fase B).
 CREATE TABLE catalogo_snapshot (
     version         int PRIMARY KEY,
     fecha           timestamptz NOT NULL DEFAULT now(),
-    origen          text NOT NULL DEFAULT 'API_SAP' CHECK (origen IN ('API_SAP')),
-    sincronizacion_id uuid NOT NULL,                     -- consulta a SAP que la origino (registro de solicitud y respuesta)
+    origen          text NOT NULL CHECK (origen IN ('ARCHIVO_SAP','API_SAP')),
+    archivo         text,                                -- archivo importado (S3)
     cargado_por     text NOT NULL,
     confirmado_por  text,                                -- confirmacion humana antes de activar
     confirmado_en   timestamptz

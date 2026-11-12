@@ -24,7 +24,7 @@ tags:
       Ingreso por formulario manual (por defecto), versionado y vigencia de convenios.
       La carga de documento con extracción por IA es una etapa opcional (ADR-007/012).
   - name: Catalogo
-    description: Catálogo de SAP traído por consulta a la API de SAP desde la Fase A, sin archivos (ADR-003, ADR-017)
+    description: Catálogo de SAP importado por archivo en la Fase A; API en la Fase B (ADR-017)
   - name: Configuracion
     description: Parámetros mantenidos por el Administrador (mapeo de terminales)
   - name: Operaciones
@@ -433,7 +433,7 @@ paths:
   /catalogo/articulos:
     get:
       tags: [Catalogo]
-      summary: Artículos de servicio del catálogo vigente (API-1, recurso 1.1)
+      summary: Artículos de servicio del catálogo vigente (archivo A1)
       parameters:
         - { name: q, in: query, schema: { type: string }, description: Búsqueda por código o descripción }
       responses:
@@ -448,7 +448,7 @@ paths:
   /catalogo/listas-precios/{codigoLista}/precios:
     get:
       tags: [Catalogo]
-      summary: Precios de una lista de precios del catálogo vigente (API-1, recurso 1.2)
+      summary: Precios de una lista de precios del catálogo vigente (archivo A2)
       parameters:
         - { name: codigoLista, in: path, required: true, schema: { type: string } }
       responses:
@@ -464,7 +464,7 @@ paths:
   /catalogo/kits:
     get:
       tags: [Catalogo]
-      summary: Kits con su composición (API-1, recurso 1.3). Referencia, no entrada del cálculo (ADR-017)
+      summary: Kits con su composición (archivo A3). Referencia, no entrada del cálculo (ADR-017)
       parameters:
         - { name: ruta, in: query, schema: { type: string }, description: Filtra por ruta clasificada }
       responses:
@@ -479,7 +479,7 @@ paths:
   /catalogo/tipo-cambio:
     get:
       tags: [Catalogo]
-      summary: Tipo de cambio diario (API-1, recurso 1.4)
+      summary: Tipo de cambio diario (archivo A4)
       parameters:
         - { name: desde, in: query, schema: { type: string, format: date } }
         - { name: moneda, in: query, schema: { type: string, enum: [USD, UF] } }
@@ -493,8 +493,8 @@ paths:
                 items: { $ref: '#/components/schemas/TipoCambio' }
     post:
       tags: [Catalogo]
-      summary: Ingresar el tipo de cambio de un día (contingencia si SAP no lo informa)
-      description: Lo ingresa facturación solo si la API de SAP no trae el tipo de cambio del día. Queda auditado y se marca como ingreso manual.
+      summary: Ingresar el tipo de cambio de un día (alternativa al archivo A4)
+      description: Lo ingresa facturación cuando no viene en la importación. Queda auditado.
       requestBody:
         required: true
         content:
@@ -504,35 +504,38 @@ paths:
         '201': { description: Tipo de cambio registrado }
         '400': { $ref: '#/components/responses/Error400' }
 
-  /catalogo/sincronizaciones:
+  /catalogo/importaciones:
     post:
       tags: [Catalogo]
-      summary: Consultar ahora la API de SAP y traer el catálogo (refresco manual)
+      summary: Subir un archivo del catálogo (A1 a A4) — respaldo si la API de SAP no está disponible. Valida y deja la importación pendiente de confirmar.
       description: >
-        Única vía del catálogo (ADR-003, ADR-017 revisado; no se usan archivos ni Excel). El Satélite
-        consulta a SAP en solo lectura, por Agunsa Connect (API-1 de solicitud-apis-sap.md), y guarda un
-        catálogo versionado; el cálculo usa ese catálogo, nunca la consulta en vivo. También corre de
-        forma programada. La versión nueva se valida (duplicados, artículos inactivos) y queda pendiente
-        de confirmar por una persona `[POR CONFIRMAR: si los cambios menores se activan solos]`. Si la
-        API de SAP no está disponible responde 503 y sigue vigente la última versión confirmada.
+        Formato de columnas en docs/desarrollo/formato-archivos-catalogo-sap.md. La importación no
+        se activa sola: devuelve el resultado de la validación (formato, duplicados, artículos
+        inactivos) y una persona la confirma.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [tipo, archivo]
+              properties:
+                tipo: { type: string, enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO] }
+                archivo: { type: string, format: binary, description: CSV UTF-8 separado por punto y coma }
       responses:
-        '202':
-          description: Sincronización iniciada; devuelve el resultado de la validación
+        '201':
+          description: Archivo validado; pendiente de confirmación
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ResultadoImportacion' }
-        '503':
-          description: La API de SAP no está disponible; sigue vigente la última versión confirmada
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '400': { $ref: '#/components/responses/Error400' }
 
-  /catalogo/sincronizaciones/{sincronizacionId}/confirmar:
+  /catalogo/importaciones/{importacionId}/confirmar:
     post:
       tags: [Catalogo]
-      summary: Confirmar una sincronización (humano) → crea una nueva versión del catálogo
+      summary: Confirmar una importación (humano) → crea una nueva versión del catálogo
       parameters:
-        - { name: sincronizacionId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: importacionId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
           description: Nueva versión de catálogo activa
@@ -540,6 +543,28 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CatalogoResumen' }
         '404': { $ref: '#/components/responses/Error404' }
+
+  /catalogo/sincronizaciones:
+    post:
+      tags: [Catalogo]
+      summary: Consultar ahora la API de SAP y traer el catálogo (refresco manual)
+      description: >
+        Vía principal del catálogo (ADR-003, ADR-017 revisado). El Satélite consulta a SAP en solo lectura,
+        por Agunsa Connect, y guarda un catálogo versionado; el cálculo usa ese catálogo, nunca la
+        consulta en vivo. También corre de forma programada. Por defecto la versión nueva queda pendiente
+        de confirmar, igual que la importación por archivo `[POR CONFIRMAR]`. Si la API de SAP no está
+        disponible responde 503 y se puede usar la importación por archivo.
+      responses:
+        '202':
+          description: Sincronización iniciada; devuelve el resultado de la validación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoImportacion' }
+        '503':
+          description: La API de SAP no está disponible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /catalogo/vinculos:
     get:

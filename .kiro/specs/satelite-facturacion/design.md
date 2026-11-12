@@ -291,7 +291,8 @@ Cada integración define disparador, contrato, idempotencia, reintentos, errores
 | Integración | Dirección | Puerto | Mecanismo | Idempotencia | Estado |
 |-------------|-----------|--------|-----------|--------------|--------|
 | Evento facturable | AEXSA → Satélite | `IEventoFacturable` | Pull a vista/API (push si hay webhook) | por `operacionId` | PA-006 |
-| Catálogo SAP — **desde la Fase A** | SAP → Satélite | `ISapCatalogoPort` (adaptador de API; simulador mientras SAP no la entregue) | Consulta de solo lectura programada y a pedido → validación → confirmación humana → snapshot versionado. **Sin archivos ni Excel** (revisión 2026-11-05) | sync idempotente, por versión de snapshot | ADR-003, ADR-017, PA-003, PA-007 |
+| Catálogo SAP — **Fase A** | SAP → Satélite | `ISapCatalogoPort` (adaptador de archivo) | Excel/CSV exportado por SAP, validado y confirmado por una persona → snapshot versionado | por versión de snapshot | ADR-017 (sin API) |
+| Lectura tarifas — **Fase B** | SAP → Satélite | `ISapCatalogoPort` (adaptador de API) | API consulta + snapshot versionado; reemplaza al archivo | sync idempotente | PA-003, PA-007 |
 | Escritura OFA | Satélite → SAP | `ISapOrdenVenta` | Outbox → Agunsa Connect → SAP | por `OfaId`+versión | PA-001, PA-002 |
 | Folio/DTE | SAP → Satélite | (callback) | Callback / conciliación por folio | por folio | PA-002 |
 | Retorno AEXSA | Satélite → AEXSA | `IAexsaRetorno` | Reutiliza canal de conciliación por folio | por folio | PA-004, PA-008 |
@@ -328,7 +329,7 @@ Los bloqueantes son de terceros, no del desarrollo del Satélite (principio: sep
 - **PA-004/PA-006/PA-008:** vía de retorno a AEXSA, ingesta del evento, acceso al XML/PDF. Mitigado por puertos.
 - **Negocio (no bloquea):** STI vs DP World (PQ-006) quedó **cerrada** como regla fija por puerto (ADR-015). Sigue abierta la mecánica fina del DUS (BR-030): se absorbe con la capa configurable (ADR-008) y la captura manual de `CantidadDus` hasta confirmarse.
 - **Autenticación (PA-009):** falta el app client del Satélite y los grupos de roles en el pool de Cognito. Mitigado con autoridad y audiencia configurables y autenticación de prueba (tarea 0.4).
-- **Catálogo SAP en la Fase A (PA-003, PA-007, PQ-025):** depende de que el equipo de SAP entregue la API-1 de consulta (`docs/arquitectura/solicitud-apis-sap.md`). Sin ella la Fase A no sale a producción. Mitigado construyendo contra un simulador; no se acepta Excel como alternativa (decisión del negocio, 2026-11-05).
+- **Catálogo SAP en la Fase A (PQ-025):** depende de que el equipo de SAP entregue los archivos A1 a A4. Mitigado con archivos de ejemplo con el formato documentado (`docs/desarrollo/formato-archivos-catalogo-sap.md`).
 
 ---
 
@@ -341,7 +342,7 @@ Los bloqueantes son de terceros, no del desarrollo del Satélite (principio: sep
 ### 9.2 Por fase de entrega dentro de la 1ª etapa
 | Fase | Qué incluye | Qué entrega al negocio | Terceros |
 |---|---|---|---|
-| **A** | Fundaciones y autenticación; convenios por formulario manual; catálogo SAP por consulta a la API de SAP; motor de tarifas; reglas configurables y ajuste manual del facturador; OFA validada y "lista para digitar"; ingesta del evento de AEXSA SYS; detección de omisiones; pantallas base | Convenio único y vigente, prefactura valorizada que el facturador digita en SAP como hoy, y alerta de cobros omitidos | API-1 de consulta de SAP, evento de AEXSA SYS y app client de Cognito |
+| **A** | Fundaciones y autenticación; convenios por formulario manual; catálogo SAP por archivo; motor de tarifas; reglas configurables y ajuste manual del facturador; OFA validada y "lista para digitar"; ingesta mínima del evento; detección de omisiones; pantallas base | Convenio único y vigente, prefactura valorizada que el facturador digita en SAP como hoy, y alerta de cobros omitidos | Archivos de catálogo de SAP y app client de Cognito |
 | **B** | Escritura automática en SAP (Outbox), folio y DTE, retorno a AEXSA SYS, conciliación de pagos, ingesta real, cuadraturas, seguridad | Fin de la digitación en SAP y trazabilidad de la operación al pago | SAP, Agunsa Connect, AEXSA SYS, ciberseguridad |
 
 ### 9.3 Etapa opcional (se construye solo si el negocio la pide)

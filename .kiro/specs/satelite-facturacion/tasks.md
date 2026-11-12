@@ -19,7 +19,7 @@ Base: `design.md` v1.1, ADR-001…ADR-017, `docs/desarrollo/requerimientos.md`, 
 > | Entrega | Tareas de este documento | Dependencia externa |
 > |---|---|---|
 > | **E1 — Convenios** | 0.1–0.4, 1.2, 5.1a (convenios) | ninguna (Cognito: ver PA-009) |
-> | **E2 — Factura con valores ajustados (prefactura)** | 1.1, 1.3–1.6, 2.1–2.3, 3.1a, 3.2, 5.1a | API-1 de consulta de SAP (PA-003, PA-007) y evento de AEXSA SYS |
+> | **E2 — Factura con valores ajustados (prefactura)** | 1.1, 1.1b, 1.3–1.6, 2.1–2.3, 3.1a, 3.2, 5.1a | API de consulta de SAP (PA-003); si no está lista, archivos de catálogo (A1 a A4) como respaldo |
 > | **E3 — Detección de omisiones** | 2.4, 5.1a (omisiones) | ninguna |
 > | **E4 — Integración automática con SAP** | 3.3, 3.4 | PA-001, PA-002 |
 > | **E5 — Cierre del lazo y pagos** | 3.1b, 3.5, 3.6, 5.1b, 5.2, 5.3, 5.4 | PA-004, PA-005, PA-006, PA-008 |
@@ -42,7 +42,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 | 2 | 1.3, 1.4, 1.5, 1.6 | Motor de tarifas con los 12 casos de prueba (T1 a T12) en verde | Es el núcleo del valor y no necesita infraestructura. Se prueba solo, con datos en memoria |
 | 3 | 0.4 | Login con roles y API protegida | Todo lo que sigue necesita saber quién hace qué (auditoría) |
 | 4 | 1.2 + pantallas de convenios (5.1a) | Se ingresa, confirma y versiona un convenio | Primera rebanada visible para el negocio (E1) |
-| 5 | 1.1, 3.2 (consulta a la API de SAP, contra simulador) + pantalla de catálogo (5.1a) | Se trae el catálogo SAP por API y se vinculan servicios | Alimenta la tarifa pública y los artículos (E2) |
+| 5 | 1.1, 3.2 (consulta a la API de SAP), 1.1b (archivo, respaldo) + pantalla de catálogo (5.1a) | Se trae el catálogo SAP por API (o por archivo si la API no está lista) y se vinculan servicios | Alimenta la tarifa pública y los artículos (E2) |
 | 6 | 3.1a, 2.1, 2.2, 2.3 + pantallas de operaciones y OFA (5.1a) | De un evento a una prefactura validada y ajustable | Cierra la E2: el facturador ya puede digitar en SAP |
 | 7 | 2.4 + pantalla de omisiones (5.1a) | Alerta de cobros omitidos | E3 |
 | 8 | Pruebas de integración y de aceptación de la Fase A | Fase A lista para QA con negocio | Cierre de la Fase A |
@@ -77,7 +77,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 - [ ] **1.1 Catálogo de servicios normalizado** (`TipoServicio`)
   - Importar desde `MasterData.TipoServicio` (192); normalizar unidades a enum; clave `TipoServicioID`; filtrar `Habilitado`.
   - Cubre: REQ (catálogo), RN-032, BR-014. ADR-010.
-- [ ] **1.1b ~~Importación del catálogo SAP por archivo~~ — NO SE CONSTRUYE** (decisión del negocio, 2026-11-05: los datos de SAP se obtienen por API, no por Excel ni archivos). El catálogo entra solo por la tarea 3.2. Lo que sigue de esta tarea vale para 3.2: snapshot versionado, validación, confirmación humana, kits y vínculo servicio↔artículo. Para desarrollar sin SAP se usa el simulador de 3.2 con datos inventados.
+- [ ] **1.1b Importación del catálogo SAP por archivo** (Fase A) — *respaldo desde el 2026-11-05: la vía principal es la API de SAP (3.2)*
   - Importar CSV exportado de SAP: artículos (A1), listas de precios (A2), kits con composición (A3) y tipo de cambio (A4). Formato en `docs/desarrollo/formato-archivos-catalogo-sap.md`.
   - Resultado: `catalogo_snapshot` versionado, con validación (formato, duplicados, artículos inactivos) y **confirmación humana** antes de activarse. Endpoints en el OpenAPI, etiqueta `Catalogo`.
   - Vínculo servicio↔artículo (`servicio_articulo_sap`): lo fija una persona. La sugerencia automática por coincidencia de descripción y unidad es opcional y solo propone; la IA es opcional (Fase 4).
@@ -150,10 +150,8 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
   - Autenticación de la llamada de AEXSA hacia el Satélite y si pasa por Agunsa Connect: `[POR CONFIRMAR]` (PA-002). Mientras tanto la seguridad del endpoint es configurable.
   - Entrega de AEXSA en dos etapas: etapa 1 con `VISADO_APROBADO`, anulación y el `GET`; etapa 2 con `OPERACION_ACTUALIZADA` completo.
   - Cubre: REQ-001. ADR-005. **(bloqueada por PA-006: falta la fecha de AEXSA.)**
-- [ ] **3.2 Consulta a la API de SAP + snapshot** (Fase A, única vía del catálogo) — *movida a la Fase A el 2026-11-05*
-  - Se trae por API de solo consulta, vía Agunsa Connect: artículos, listas de precios, kits, tipo de cambio y socios de negocio. Contrato pedido a SAP: `docs/arquitectura/solicitud-apis-sap.md`, API-1. Se construye contra un simulador con datos inventados; el adaptador real se enchufa cuando SAP entregue la API (PA-003, PA-007). Endpoint de refresco manual: `POST /catalogo/sincronizaciones`.
-  - Incluye lo que antes estaba en 1.1b: snapshot versionado con validación (duplicados, artículos inactivos), confirmación humana antes de activar, kits como referencia y vínculo servicio↔artículo.
-  - **Riesgo:** sin la API-1 de SAP la Fase A no puede salir a producción. No prometer fecha de salida hasta que SAP confirme la suya.
+- [ ] **3.2 Consulta a la API de SAP + snapshot** (Fase A, vía principal; la importación por archivo de 1.1b queda como respaldo) — *movida a la Fase A el 2026-11-05*
+  - Se trae por API de solo consulta, vía Agunsa Connect: artículos, listas de precios, kits y tipo de cambio. Se construye contra un simulador; el adaptador real se enchufa cuando SAP entregue la API (PA-003). Si no está lista al arrancar, la Fase A usa el archivo (1.1b) sin cambiar el dominio. Endpoint de refresco manual: `POST /catalogo/sincronizaciones`.
   - Puerto `ISapCatalogoPort` (el adaptador de archivo ya existe desde 1.1b); sync programada → `catalogo_snapshot` versionado; mapeo RUT→CardCode, condición de pago/lista de precios (RN-065).
   - Cubre: REQ-005 (fuente), RN-014/061. ADR-003, ADR-017. **(real bloqueada por PA-003/PA-007; stub con datos de ejemplo.)**
 - [ ] **3.3 Outbox + despachador de la OFA hacia SAP**

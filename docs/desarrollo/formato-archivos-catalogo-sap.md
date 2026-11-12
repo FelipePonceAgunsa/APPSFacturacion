@@ -1,7 +1,5 @@
 # Formato de los archivos del catálogo de SAP (Fase A)
 
-> **Superado el 2026-11-05.** El catálogo de SAP **no** entra por archivos ni por Excel: se trae por consulta a la API de SAP (tarea 3.2, API-1 de `docs/arquitectura/solicitud-apis-sap.md`). La importación por archivo (tarea 1.1b) no se construye. Este documento se conserva solo como referencia de **qué campos** necesita el catálogo y **qué validaciones** aplicar a lo que llega de la API (duplicados, artículos inactivos, confirmación humana). Las columnas de abajo equivalen a los campos de API-1.
-
 Versión: 1.0 · Fecha: 2026-11-04
 Para la tarea: **1.1b Importación del catálogo SAP por archivo** (ADR-017).
 Endpoints: etiqueta `Catalogo` del `openapi.yaml`.

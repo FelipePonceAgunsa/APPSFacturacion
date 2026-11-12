@@ -6,8 +6,8 @@ Decide: Arquitecto de Solución
 
 > **Revisión 2026-11-05 (decisión del negocio):** el Satélite debe **consultar la API de SAP** para traer artículos, listas de precios, kits y tipo de cambio, en lugar de depender de que alguien exporte archivos. Cambia así:
 > - La vía principal es el adaptador de **API de solo consulta** del puerto `ISapCatalogoPort`, por Agunsa Connect (ADR-003). Se trae a un `catalogo_snapshot` versionado; el cálculo nunca consulta SAP en vivo.
-> - La **importación por archivo** (decisión 1 de abajo) **queda descartada**: el negocio decidió que los datos de SAP no se obtienen por Excel ni por archivos exportados. No se construye.
-> - La API de lectura **no existe todavía** (PA-003, PA-007). Se construye contra un simulador. Consecuencia: **la Fase A depende de que SAP entregue la API-1** (`solicitud-apis-sap.md`) para salir a producción. Es una dependencia con el equipo de SAP y Agunsa Connect: **no se debe prometer fecha** hasta que la confirmen.
+> - La **importación por archivo** (decisión 1 de abajo) se mantiene como **respaldo**: sirve si la API aún no está disponible cuando arranque la Fase A, o si se cae. Es el mismo puerto con otro adaptador.
+> - La API de lectura **no existe todavía** (PA-003, PA-007). Mientras tanto se construye contra un simulador y la Fase A puede arrancar con el archivo. Esto es una dependencia con el equipo de SAP y Agunsa Connect: **no se debe prometer fecha** hasta que lo confirmen.
 > - El resto de las decisiones (kits como referencia, kit sugerido, vínculo servicio↔artículo, tipo de cambio, pantalla de catálogo) no cambia.
 
 ## Contexto

@@ -101,7 +101,7 @@ flowchart TB
 | 3 | AEXSA → ZARPE | `EventoFacturable`: operación, documento de carga, tipo de carga, sentido, tipo de retiro, convenio declarado, terminal, DIN/DUS, partes, contenedores, servicios prestados. **Sin montos tecleados a mano** | `POST /aexsa/eventos`, con reintentos, idempotente por `operacionIdAexsa` + `version` | A |
 | 4 | API → BD | Operación, contenedores, servicios, registro del mensaje (`evento_aexsa`), lista de datos pendientes | Escritura transaccional | A |
 | 5 | BD ↔ Motor | `ContextoCalculo` inmutable: operación, convenio vigente, tarifa pública, tipo de cambio. Sale: líneas con monto y memoria de cálculo | Llamada interna, sin consultas en vivo | A |
-| 6 | ZARPE ↔ SAP (vía Agunsa Connect) | ZARPE **consulta** a SAP, solo lectura: artículos, listas de precios, kits y tipo de cambio. Se guardan como catálogo versionado; el cálculo nunca consulta SAP en vivo | API-1 de consulta, programada y con refresco manual. **No se usan archivos ni Excel.** Contrato pedido en `solicitud-apis-sap.md` (PA-003) | A |
+| 6 | ZARPE ↔ SAP (vía Agunsa Connect) | ZARPE **consulta** a SAP, solo lectura: artículos, listas de precios, kits y tipo de cambio. Se guardan como catálogo versionado; el cálculo nunca consulta SAP en vivo | API de consulta, programada y con refresco manual. Si la API aún no está lista, importación de archivos CSV como respaldo `[POR CONFIRMAR]` (PA-003) | A |
 | 7 | Facturador ↔ pantallas | Ver cálculo, "¿Por qué?", ajustar monto, agregar servicio, corregir directo/indirecto | HTTPS, rol en la API | A |
 | 8 | OFA → Outbox | OFA validada y mensaje de envío, **misma transacción** | Escritura en BD | B |
 | 9 | Worker → SAP | `OfaDto`: destinatarios con líneas (artículo SAP, cantidad, tarifa, moneda, monto), clave de idempotencia | Vía Agunsa Connect, reintentos con espera creciente | B |
@@ -275,7 +275,7 @@ Ver `arquitectura-despliegue.md`, §1. En resumen: Angular en S3 + CloudFront (c
 | Punto | Qué cambia en el dibujo |
 |---|---|
 | PA-002: cómo se conecta Agunsa Connect | Las flechas 6, 9, 10 y 11: transporte, seguridad y quién llama a quién |
-| PA-003 y PA-007: API de consulta de SAP | La flecha 6: qué objeto de SAP se consulta y cómo se identifica al cliente por RUT. **Hoy esa API no existe**: sin ella la Fase A no sale a producción |
+| PA-003 y PA-007: API de consulta de SAP | La flecha 6: qué objeto de SAP se consulta y cómo se identifica al cliente por RUT. **Hoy esa API no existe**: sin ella, la Fase A usa archivos |
 | Autenticación AEXSA → ZARPE `[POR CONFIRMAR]` | La flecha 3: si va directa o por Agunsa Connect |
 | PA-001: cómo se crea la orden en SAP | La flecha 9: el contenido exacto de lo que se envía |
 | Factura emitida hacia AEXSA `[POR CONFIRMAR]` | La flecha 12: que el canal existente de SAP a AEXSA siga funcionando igual, y qué pasa con las operaciones con convenio (consolidadas, PA-010) |
