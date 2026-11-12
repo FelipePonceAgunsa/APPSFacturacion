@@ -298,7 +298,7 @@ CREATE TABLE ofa (
     operacion_id        uuid NOT NULL REFERENCES operacion(id),
     estado              text NOT NULL CHECK (estado IN
                          ('BORRADOR','VALIDADA','ENVIADA','EMITIDA',
-                          'EMITIDA_SIN_CONFIRMACION','CONCILIADA')),   -- RNF-07
+                          'EMITIDA_SIN_CONFIRMACION','CONCILIADA','INFORMADA_AEXSA')),   -- RNF-07; INFORMADA_AEXSA = AEXSA acuso recibo (ADR-004)
     folio_idempotencia  varchar(80) NOT NULL UNIQUE,      -- OfaId+version (ADR-002)
     fecha_calculo       timestamptz NOT NULL DEFAULT now(),
     version_calculo     int NOT NULL DEFAULT 1
@@ -405,7 +405,7 @@ CREATE INDEX ix_auditoria_fecha   ON evento_auditoria (ocurrido_en);
 -- Outbox transaccional para escritura hacia SAP (ADR-002).
 CREATE TABLE outbox_message (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tipo          text NOT NULL,                          -- OFA_PENDIENTE, etc.
+    tipo          text NOT NULL,                          -- OFA_PENDIENTE (hacia SAP), RETORNO_AEXSA (factura emitida hacia AEXSA, ADR-004)
     payload       jsonb NOT NULL,
     clave_idempotencia varchar(80) NOT NULL,              -- evita doble orden en SAP
     estado        text NOT NULL CHECK (estado IN ('PENDIENTE','ENVIADO','ERROR','REPROCESAR')),

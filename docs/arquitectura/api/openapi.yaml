@@ -367,6 +367,31 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /ofa/{ofaId}/reenviar-aexsa:
+    post:
+      tags: [OFA]
+      summary: Reenviar a AEXSA SYS el aviso de factura emitida (desde la pantalla, Fase B)
+      description: >
+        Vuelve a encolar en el Outbox el aviso de factura emitida hacia AEXSA (ADR-004 revisado), sin
+        tocar la base de datos. Idempotente por folio: AEXSA responde YA_RECIBIDO si ya lo tenía.
+      parameters:
+        - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '202':
+          description: Aviso encolado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ofaId: { type: string, format: uuid }
+                  estado: { $ref: '#/components/schemas/EstadoOfa' }
+        '409':
+          description: La OFA aún no tiene folio conciliado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   # ----------------------------------------------------------------- Facturas
   /facturas:
     get:
@@ -660,7 +685,8 @@ components:
       enum: [BORRADOR, VIGENTE, VENCIDA, REEMPLAZADA]
     EstadoOfa:
       type: string
-      enum: [BORRADOR, VALIDADA, ENVIADA, EMITIDA, EMITIDA_SIN_CONFIRMACION, CONCILIADA]
+      enum: [BORRADOR, VALIDADA, ENVIADA, EMITIDA, EMITIDA_SIN_CONFIRMACION, CONCILIADA, INFORMADA_AEXSA]
+      description: INFORMADA_AEXSA = AEXSA SYS acusó recibo de la factura emitida (ADR-004 revisado)
     EstadoPago:
       type: string
       enum: [PAGADA, PENDIENTE, PARCIAL]

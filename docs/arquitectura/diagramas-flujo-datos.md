@@ -56,6 +56,7 @@ flowchart TB
         OUT_A["Tabla de salida<br/>(outbox)"]
         ENV_A["Proceso de envío<br/>con reintentos"]
         GET_A["GET de solo lectura<br/>(conciliación)"]
+        REC_A["Endpoint de recepción<br/>factura emitida (nuevo)"]
         FLU_A["Documento pasa a Facturado<br/>en el flujo de AEXSA"]
     end
 
@@ -94,8 +95,10 @@ flowchart TB
     WRK -.->|"9 Orden de venta<br/>OfaDto idempotente"| AC
     AC -.-> SAP
     SAP -.->|"10 folio + DTE"| AC
-    AC -.->|"11 callback de folio"| API
-    AC -.->|"12 factura emitida<br/>(XML y folio)"| FLU_A
+    AC -.->|"11 se facturó:<br/>folio + DTE"| API
+    WRK -.->|"12 informa factura emitida<br/>(Outbox, idempotente por folio)"| REC_A
+    REC_A -.->|"acuse de recibo"| WRK
+    REC_A -.-> FLU_A
     AC -.->|"13 estado de pago<br/>por folio"| API
 ```
 
@@ -115,8 +118,8 @@ flowchart TB
 | 8 | OFA → Outbox | OFA validada y mensaje de envío, **misma transacción** | Escritura en BD | B |
 | 9 | Worker → SAP | `OfaDto`: destinatarios con líneas (artículo SAP, cantidad, tarifa, moneda, monto), clave de idempotencia | Vía Agunsa Connect, reintentos con espera creciente | B |
 | 10 | SAP → Agunsa Connect | Folio, número interno, DTE | Respuesta de SAP | B |
-| 11 | Agunsa Connect → API | Folio, tipo de DTE, montos, XML del DTE | `POST /sap/callbacks/folio` | B |
-| 12 | SAP → AEXSA (vía Agunsa Connect) | La factura emitida (XML del DTE y folio), para que la operación pase a **Facturada** en el flujo de AEXSA y se habilite el check de salida | Canal que ya existe de SAP hacia AEXSA (`GetFactura`). **ZARPE no escribe en AEXSA** `[POR CONFIRMAR]` | B |
+| 11 | Agunsa Connect → ZARPE | **Aviso de que se facturó:** `ofaId`, folio, tipo de DTE, montos neto y total, fecha de emisión, XML del DTE. ZARPE une por folio y concilia lo calculado contra lo facturado | `POST /sap/callbacks/folio`, idempotente por folio | B |
+| 12 | ZARPE → AEXSA | **Factura emitida**, ya conciliada: `operacionIdAexsa`, `documentoCargaId`, folio, tipo de DTE, montos, fecha de emisión y XML del DTE. AEXSA pasa la operación a **Facturada**, habilita el check de salida y devuelve un **acuse de recibo**. Así queda la trazabilidad completa: AEXSA → ZARPE → SAP → ZARPE → AEXSA | Outbox de ZARPE con reintentos hacia un **endpoint de recepción nuevo en AEXSA** (lo construye el equipo de AEXSA). Idempotente por folio. Reenvío desde la pantalla. ZARPE no escribe en la base de AEXSA | B |
 | 13 | SAP → ZARPE (vía Agunsa Connect) | Estado de pago de cada factura, por folio: pagada, parcial o impaga. Un pago puede cubrir varias facturas | Callback o consulta `[POR CONFIRMAR]` (PA-002) | B |
 
 ---
@@ -209,13 +212,21 @@ sequenceDiagram
     end
 
     SAP->>AC: DTE emitido
-    par A ZARPE
-        AC->>API: POST /sap/callbacks/folio (folio, tipoDte, montos, XML)
-        API->>BDZ: Une por folio y concilia calculado vs DTE
-        API->>BDZ: OFA CONCILIADA
-    and A AEXSA SYS
-        AC->>AEX: Factura emitida (XML y folio) por el canal existente
-        Note over AEX: La operación pasa a Facturada en el flujo de AEXSA
+    AC->>API: Se facturó: POST /sap/callbacks/folio (folio, tipoDte, montos, XML)
+    API->>BDZ: Une por folio y concilia calculado vs DTE
+    API->>BDZ: OFA CONCILIADA + outbox_message RETORNO_AEXSA (una transacción)
+
+    loop Hasta recibir acuse o agotar reintentos
+        WRK->>BDZ: Lee outbox_message RETORNO_AEXSA
+        WRK->>AEX: Factura emitida (operacionIdAexsa, folio, tipoDte, montos, XML) [idempotente por folio]
+        AEX-->>WRK: Acuse de recibo
+    end
+    Note over AEX: La operación pasa a Facturada en el flujo de AEXSA
+
+    alt Acuse recibido
+        WRK->>BDZ: OFA INFORMADA_AEXSA (queda la traza completa)
+    else Se agotaron los reintentos
+        WRK-->>FAC: Alerta: factura emitida sin informar a AEXSA (reenvío desde la pantalla)
     end
 
     Note over SAP,API: Más adelante, cuando el cliente paga
@@ -230,9 +241,10 @@ sequenceDiagram
 - La clave de idempotencia (`OfaId` + versión) evita crear dos órdenes si se reintenta.
 - Cada línea lleva el artículo SAP. Una OFA con una línea sin artículo no pasa la validación.
 - `[POR CONFIRMAR]` Cómo se escribe en SAP y cómo fija el precio sin que SAP lo recalcule (PA-001, PA-002). Hasta entonces se construye contra un simulador.
-- La factura emitida llega a **dos destinos**: a ZARPE (para conciliar y seguir los pagos) y a AEXSA SYS (para que la operación quede Facturada). A AEXSA llega por el canal que SAP ya usa hoy; ZARPE no escribe en la base de AEXSA.
-- El folio es la clave que une operación, OFA, factura y pago.
-- `[POR CONFIRMAR]` Con PA-002 y el equipo de SAP: que Agunsa Connect pueda entregar la misma factura a los dos destinos y avisar los pagos a ZARPE.
+- **Agunsa Connect avisa a ZARPE que se facturó, y ZARPE le informa a AEXSA.** ZARPE es el único que informa a AEXSA, después de conciliar. Así la trazabilidad es una sola cadena: AEXSA envía a facturar → ZARPE calcula → SAP factura → ZARPE concilia → AEXSA recibe y confirma.
+- El aviso a AEXSA sale por el Outbox de ZARPE, con reintentos, acuse de recibo y reenvío desde la pantalla, igual que el envío a SAP. ZARPE no escribe en la base de AEXSA: AEXSA expone un endpoint de recepción nuevo.
+- El folio es la clave que une operación, OFA, factura, aviso a AEXSA y pago.
+- `[POR CONFIRMAR]` Con el equipo de AEXSA: el endpoint de recepción y su autenticación. Y si el canal actual `GetFactura` (SAP → AEXSA) se apaga para estas facturas o se mantiene. Recomendación: que ZARPE sea el único que informa, para evitar avisos duplicados; si se mantienen ambos, AEXSA debe ignorar el segundo aviso del mismo folio.
 - `[POR CONFIRMAR]` Las operaciones con convenio no se facturan dentro del flujo de AEXSA (se consolidan fuera, PA-010). Falta definir qué pasa con su estado en AEXSA.
 
 ---
@@ -263,7 +275,8 @@ stateDiagram-v2
         ENVIADA --> EMITIDA_SIN_CONFIRMACION: se agotan reintentos
         EMITIDA_SIN_CONFIRMACION --> ENVIADA: reenvío desde pantalla
         EMITIDA --> CONCILIADA: DTE coincide con el cálculo
-        CONCILIADA --> [*]
+        CONCILIADA --> INFORMADA_AEXSA: AEXSA acusa recibo
+        INFORMADA_AEXSA --> [*]
     }
 ```
 
@@ -336,7 +349,7 @@ Ver `arquitectura-despliegue.md`, §1. En resumen: Angular en S3 + CloudFront (c
 | PA-002: cómo se conecta Agunsa Connect | Las flechas 9, 10 y 11: transporte, seguridad y quién llama a quién |
 | Autenticación AEXSA → ZARPE `[POR CONFIRMAR]` | La flecha 3: si va directa o por Agunsa Connect |
 | PA-001: cómo se crea la orden en SAP | La flecha 9: el contenido exacto de lo que se envía |
-| Factura emitida hacia AEXSA `[POR CONFIRMAR]` | La flecha 12: que el canal existente de SAP a AEXSA siga funcionando igual, y qué pasa con las operaciones con convenio (consolidadas, PA-010) |
+| Endpoint de recepción en AEXSA `[POR CONFIRMAR]` (PA-004) | La flecha 12: nombre, autenticación y acuse del endpoint que construye el equipo de AEXSA; si se apaga `GetFactura` para estas facturas; qué pasa con las operaciones con convenio (consolidadas, PA-010) |
 | Aviso de pagos a ZARPE `[POR CONFIRMAR]` | La flecha 13: cómo se entera ZARPE de un pago (PA-002, PA-003) |
 | Análisis previo y extracción de SAP (EXT-1, EXT-2) `[POR CONFIRMAR]` | Las flechas 6a y 6b: quién extrae, con qué frecuencia y qué campos quedan tras el análisis |
 | PA-003 y PA-007: API-1 de consulta | La flecha 6c: objeto de SAP que se consulta y cómo se identifica al cliente por RUT |

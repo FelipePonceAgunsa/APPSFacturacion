@@ -160,8 +160,11 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 - [ ] **3.4 Recepción de folio/DTE y conciliación**
   - Endpoint callback de folio; recibe DTE XML; concilia calculado↔DTE por folio; cierra vínculo operación↔factura.
   - Cubre: REQ-009, RN-029/076. ADR-002, ADR-004. **(bloqueada por PA-002.)**
-- [ ] **3.5 Retorno a AEXSA SYS** — *redefinida el 2026-11-05: SAP envía la factura a AEXSA por el canal que ya existe; ZARPE no escribe en AEXSA. Esta tarea pasa a ser verificar que el folio llegue a AEXSA y que la operación quede Facturada, y que ZARPE reciba la misma factura por el callback de 3.4. Solo se construye un puerto de retorno si TI de AEXSA lo pide.*
-  - Puerto `IAexsaRetorno`; notifica folio para habilitar check de salida (RN-072); reutiliza canal de conciliación; idempotente por folio.
+- [ ] **3.5 Retorno a AEXSA SYS: ZARPE informa la factura emitida** — *ratificada el 2026-11-05: Agunsa Connect avisa a ZARPE que se facturó (3.4) y ZARPE informa a AEXSA, para tener la trazabilidad completa*
+  - Puerto `IAexsaRetornoPort` con adaptador simulado. Al conciliar el folio (3.4), en la misma transacción se escribe un `outbox_message` de tipo `RETORNO_AEXSA`. El Worker lo envía al endpoint de recepción de AEXSA con reintentos; registra solicitud, respuesta y error; alerta al agotar reintentos; reenvío desde la pantalla con `POST /ofa/{id}/reenviar-aexsa`. Idempotente por folio.
+  - Contenido: `operacionIdAexsa`, `documentoCargaId`, folio, tipo de DTE, montos neto y total, fecha de emisión y XML del DTE (ver `contratos-integracion.md` §6). Con el acuse de AEXSA, la OFA pasa a `INFORMADA_AEXSA`.
+  - Pruebas: acuse recibido; AEXSA caído y reintento; folio repetido (no duplica); reenvío manual; reintentos agotados con alerta.
+  - Dependencia: el equipo de AEXSA construye el endpoint de recepción `[POR CONFIRMAR]` (PA-004).
   - `[POR CONFIRMAR]` En AEXSA las operaciones con convenio no emiten factura dentro del sistema (recorrido `PREAPROBADO_CONVENIO` → `PRDIN_EMITIDA` → `CONFORMADA`). El retorno del folio probablemente solo aplica a las operaciones sin convenio. Confirmar con TI de AEXSA y con facturación antes de construir.
   - Las operaciones con convenio se facturan en consolidado, fuera de AEXSA (RN-055): la consolidación de varias operaciones en una factura está abierta como PA-010 y condiciona la Fase B.
   - Cubre: REQ-009, RN-072/074. ADR-004. **(bloqueada por PA-004/PA-008.)**

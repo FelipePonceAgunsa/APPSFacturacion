@@ -18,7 +18,7 @@ Propósito: definir **cómo se consumen** las integraciones — el contrato de c
 | `ISapCatalogoPort` | SAP → Satélite | Consulta (request/response) + snapshot versionado local | versión de snapshot | PA-003/PA-007 |
 | `ISapOrdenVentaPort` | Satélite → SAP | **Outbox asíncrono** → Agunsa Connect | `clave_idempotencia` (OfaId+versión) | PA-001/PA-002 |
 | (callback de folio) | SAP → Satélite | Callback HTTP a endpoint del Satélite | `folio` | PA-002 |
-| `IAexsaRetornoPort` | Satélite → AEXSA | Notificación (reutiliza canal de conciliación) | `folio` | PA-004/PA-008 |
+| `IAexsaRetornoPort` | Satélite → AEXSA | **Outbox** → endpoint de recepción nuevo en AEXSA, con acuse | `folio` | PA-004/PA-008 |
 | `IExtraccionConvenioPort` | IA → Satélite | Request/response; salida es **propuesta** con confirmación humana | — | — |
 
 Todos los contratos: transporte y seguridad los fija Agunsa Connect (PA-002); aquí se define el **contrato de datos**, independiente del transporte. Todo intercambio registra request/response/error para auditoría y reproceso (ADR-002).
@@ -234,19 +234,39 @@ Al recibirlo: cierra el vínculo operación↔factura por folio y dispara la con
 
 ## 6. `IAexsaRetornoPort` — cierre del lazo (REQ-009, ADR-004)
 
-**Cómo se consume:** el Satélite **notifica** el folio a AEXSA SYS para habilitar el check de salida (RN-072), reutilizando el canal de conciliación por folio. Idempotente por folio.
+**Cómo se consume (revisado 2026-11-05):** Agunsa Connect avisa al Satélite que se facturó (§5). El Satélite concilia y **informa a AEXSA SYS la factura emitida**, para habilitar el check de salida (RN-072) y dejar la trazabilidad completa de que la factura se generó correctamente. El aviso sale por el **Outbox** (misma transacción que la conciliación), con reintentos, registro de solicitud, respuesta y error, alerta al agotarse y reenvío desde la pantalla. AEXSA expone un **endpoint de recepción nuevo** y responde con un acuse. Idempotente por folio. El Satélite no escribe en la base de AEXSA.
 
 ```csharp
 public interface IAexsaRetornoPort
 {
-    Task NotificarFacturaEmitidaAsync(RetornoFacturaDto retorno, CancellationToken ct);
+    Task<AcuseAexsaDto> NotificarFacturaEmitidaAsync(RetornoFacturaDto retorno, CancellationToken ct);
 }
 ```
 ```jsonc
-// RetornoFacturaDto
-{ "operacionIdAexsa": "OP-2026-000123", "folio": "F-00098765",
-  "tipoDte": 33, "montoTotal": 35700.0000 }
+// RetornoFacturaDto (Satélite → AEXSA). Endpoint de AEXSA: [POR CONFIRMAR con el equipo de AEXSA]
+{
+  "claveIdempotencia": "F-00098765",       // el folio: repetir el aviso no duplica
+  "operacionIdAexsa": "98933",             // SolicitudVisadoID recibido en el evento
+  "documentoCargaId": "184520",
+  "ofaId": "a1b2c3d4-...",
+  "folio": "F-00098765",
+  "tipoDte": 33,
+  "montoNeto": 30000.0000,
+  "montoTotal": 35700.0000,
+  "moneda": "CLP",
+  "fechaEmision": "2026-10-26",
+  "dteXmlBase64": "PD94bWw..."             // si está disponible (PA-008)
+}
+
+// AcuseAexsaDto (AEXSA → Satélite)
+{ "folio": "F-00098765", "resultado": "RECIBIDO",   // RECIBIDO | YA_RECIBIDO | RECHAZADO
+  "estadoOperacionAexsa": "FACTURADA", "mensaje": null }
 ```
+
+- `RECIBIDO` o `YA_RECIBIDO`: la OFA pasa a `INFORMADA_AEXSA`.
+- `RECHAZADO` (por ejemplo, operación inexistente o anulada): no se reintenta; alerta para revisión.
+- Error de red o 5xx: reintento con espera creciente; al agotarse, alerta y reenvío desde la pantalla.
+- `[POR CONFIRMAR]` Si el canal actual `GetFactura` (SAP → AEXSA) se apaga para estas facturas. Recomendación: el Satélite es el único que informa; si conviven, AEXSA ignora el segundo aviso de un mismo folio.
 
 ---
 
