@@ -242,6 +242,7 @@ Una tarea se marca `[x]` solo si cumple **todo** esto:
 | Cómo se arma un kit en SAP y fechas de los archivos (PQ-025) | Archivos de ejemplo con el formato documentado |
 | Escritura en SAP y contrato de Agunsa Connect (PA-001, PA-002) | Simulador `AgunsaConnectSapAdapter`; el contrato está en `contratos-integracion.md` |
 | Fecha de inicio y plazo | Los define la jefatura de TI. Esta lista de tareas no depende de eso |
+| **Precarga de los convenios vigentes** `[PENDIENTE]` (decisión 2026-11-05) | Se hará a mano con el formulario de convenios (tarea 1.2), sin importación masiva. Quién la hace, cuántos convenios son y la fecha quedan por definir. **Debe estar lista antes de probar la Fase A con negocio**: un convenio no cargado se cobra con tarifa pública. No bloquea el desarrollo; las pruebas usan convenios inventados |
 
 ## Registro de avance
 
