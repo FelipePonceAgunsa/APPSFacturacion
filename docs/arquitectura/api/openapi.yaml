@@ -507,7 +507,7 @@ paths:
   /catalogo/importaciones:
     post:
       tags: [Catalogo]
-      summary: Subir un archivo del catálogo (A1 a A4) — respaldo si la API de SAP no está disponible. Valida y deja la importación pendiente de confirmar.
+      summary: Subir un archivo del catálogo (A1 a A4). Valida y deja la importación pendiente de confirmar.
       description: >
         Formato de columnas en docs/desarrollo/formato-archivos-catalogo-sap.md. La importación no
         se activa sola: devuelve el resultado de la validación (formato, duplicados, artículos
@@ -543,28 +543,6 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CatalogoResumen' }
         '404': { $ref: '#/components/responses/Error404' }
-
-  /catalogo/sincronizaciones:
-    post:
-      tags: [Catalogo]
-      summary: Consultar ahora la API de SAP y traer el catálogo (refresco manual)
-      description: >
-        Vía principal del catálogo (ADR-003, ADR-017 revisado). El Satélite consulta a SAP en solo lectura,
-        por Agunsa Connect, y guarda un catálogo versionado; el cálculo usa ese catálogo, nunca la
-        consulta en vivo. También corre de forma programada. Por defecto la versión nueva queda pendiente
-        de confirmar, igual que la importación por archivo `[POR CONFIRMAR]`. Si la API de SAP no está
-        disponible responde 503 y se puede usar la importación por archivo.
-      responses:
-        '202':
-          description: Sincronización iniciada; devuelve el resultado de la validación
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ResultadoImportacion' }
-        '503':
-          description: La API de SAP no está disponible
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
 
   /catalogo/vinculos:
     get:
