@@ -71,8 +71,7 @@ flowchart TB
 
     AC["Agunsa Connect<br/>(middleware corporativo)"]
     SAP["SAP Business One"]
-    EQSAP["Equipo SAP"]
-    ARCH["Extracción Excel/CSV<br/>(revisada en análisis previo)"]
+    ARCH["Archivo Excel/CSV<br/>artículos, precios, kits, TC"]
 
     VIS -->|"1 presiona Aprueba"| UI_A
     UI_A -->|"2 guarda aprobación<br/>+ mensaje, misma transacción"| DB_A
@@ -82,9 +81,8 @@ flowchart TB
     API -->|"4 valida, guarda,<br/>calcula pendientes"| DB_Z
     DB_Z <-->|"5 contexto de cálculo"| MOTOR
     CAT -->|"tarifa pública"| MOTOR
-    SAP -->|"6a extrae datos"| EQSAP
-    EQSAP -->|"análisis previo<br/>+ extracción"| ARCH
-    ARCH -->|"6b importación<br/>(confirmación humana)"| API
+    SAP -->|"6a una persona del equipo SAP<br/>exporta desde SAP"| ARCH
+    ARCH -->|"6b el administrador lo sube<br/>en la pantalla Catálogo y confirma"| UI_Z
     API --> CAT
     API -.->|"6c API-1 consulta<br/>de catálogo"| AC
     FAC <-->|"7 revisa, ajusta,<br/>agrega servicios"| UI_Z
@@ -111,8 +109,8 @@ flowchart TB
 | 3 | AEXSA → ZARPE | `EventoFacturable`: operación, documento de carga, tipo de carga, sentido, tipo de retiro, convenio declarado, terminal, DIN/DUS, partes, contenedores, servicios prestados. **Sin montos tecleados a mano** | `POST /aexsa/eventos`, con reintentos, idempotente por `operacionIdAexsa` + `version` | A |
 | 4 | API → BD | Operación, contenedores, servicios, registro del mensaje (`evento_aexsa`), lista de datos pendientes | Escritura transaccional | A |
 | 5 | BD ↔ Motor | `ContextoCalculo` inmutable: operación, convenio vigente, tarifa pública, tipo de cambio. Sale: líneas con monto y memoria de cálculo | Llamada interna, sin consultas en vivo | A |
-| 6a | SAP → equipo SAP | Artículos, listas de precios, kits, tipo de cambio y socios de negocio | Extracción hecha por el equipo SAP. Primero una **muestra** que se revisa en conjunto (EXT-1, análisis previo de datos) | A |
-| 6b | Extracción → ZARPE | Lo mismo, ya revisado (EXT-2). Se guarda como catálogo versionado; cada cálculo muestra la versión usada | Subida de archivo Excel/CSV, validación y confirmación humana | A |
+| 6a | SAP → archivo | Artículos, listas de precios, kits, tipo de cambio y socios de negocio | Una persona del equipo SAP **exporta** esos datos desde SAP a un Excel/CSV, como cualquier reporte. La primera vez es una **muestra** que se revisa con facturación (EXT-1, análisis previo); después, la extracción completa (EXT-2), y de nuevo cada vez que cambien precios | A |
+| 6b | Archivo → ZARPE | Lo mismo | El **administrador de ZARPE sube el archivo** en la pantalla Catálogo. ZARPE lo revisa (formato, duplicados, inactivos), muestra el resultado y la persona confirma. Queda guardado como una versión del catálogo; cada cálculo registra qué versión usó | A |
 | 6c | ZARPE → SAP (vía Agunsa Connect) | Lo mismo, por consulta automática de solo lectura. Reemplaza a 6a y 6b | API-1, programada y a pedido. Se construye en paralelo sobre lo aprendido en el análisis previo (`solicitud-apis-sap.md`) | B |
 | 7 | Facturador ↔ pantallas | Ver cálculo, "¿Por qué?", ajustar monto, agregar servicio, corregir directo/indirecto | HTTPS, rol en la API | A |
 | 8 | OFA → Outbox | OFA validada y mensaje de envío, **misma transacción** | Escritura en BD | B |
