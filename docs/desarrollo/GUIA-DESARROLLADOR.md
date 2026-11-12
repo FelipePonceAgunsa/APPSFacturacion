@@ -27,7 +27,7 @@ El detalle del cálculo, regla por regla, está en `diagramas/flujo-calculo.svg`
 | | Fase A | Fase B |
 |---|---|---|
 | **Qué entrega** | Convenio único y vigente, prefactura valorizada **que el facturador digita en SAP como hoy**, y alerta de cobros omitidos | Fin de la digitación: escritura automática en SAP, folio, pagos y retorno a AEXSA SYS |
-| **Depende de terceros** | Casi nada: archivos de catálogo de SAP y un app client de Cognito | Sí: SAP, Agunsa Connect, AEXSA SYS, ciberseguridad |
+| **Depende de terceros** | Poco: la API de consulta de catálogo de SAP (API-1), el evento de AEXSA SYS y un app client de Cognito. Se construye contra simuladores | Sí: SAP, Agunsa Connect, AEXSA SYS, ciberseguridad |
 | **Empiezas por** | Aquí | Después, contra simuladores |
 
 **Regla práctica:** construye todo lo que toca a un tercero detrás de un **puerto** con un **simulador**. Así avanzas aunque el tercero no haya respondido. Cuando responda, enchufas el adaptador real sin tocar el dominio.
@@ -47,7 +47,7 @@ docs/
     requerimientos.md                      QUÉ pide el negocio (REQ-001 a REQ-012)
     reglas-negocio.md                      Las 79 reglas (RN-001 a RN-079), texto completo
     glosario.md                            Términos del negocio explicados
-    formato-archivos-catalogo-sap.md       Columnas de los CSV que exporta SAP
+    formato-archivos-catalogo-sap.md       Campos del catálogo SAP (vienen por API, no por archivo)
     diagramas/                             Flujo del sistema y del cálculo
   arquitectura/
     adr/                                   17 decisiones de arquitectura (empieza por ADR-000-indice.md)
@@ -116,7 +116,7 @@ Estructura de la solución (tarea 0.1): `Satelite.Dominio`, `Satelite.Aplicacion
 - "Lee `docs/desarrollo/GUIA-DESARROLLADOR.md` y `.kiro/specs/satelite-facturacion/tasks.md`. Ejecuta la tarea 0.1."
 - "Implementa la tarea 1.3. Escribe primero las pruebas T1 a T4 y T12 de `motor-tarifas-detalle.md`."
 - "Revisa que los endpoints que acabas de crear coincidan con `docs/arquitectura/api/openapi.yaml`."
-- "Genera archivos de ejemplo del catálogo según `formato-archivos-catalogo-sap.md`, con datos inventados y algunos errores a propósito."
+- "Implementa el simulador de la API de catálogo de SAP (`ISapCatalogoPort`) con datos inventados según los campos de API-1, e incluye algunos errores a propósito (duplicados, artículos inactivos)."
 
 ## 8. Definición de "hecho"
 
@@ -131,12 +131,12 @@ Ninguno de estos puntos te bloquea. Todos tienen una forma de avanzar.
 | Tema | Estado | Qué haces mientras tanto |
 |---|---|---|
 | **Escritura en SAP y contrato de Agunsa Connect** (PA-001, PA-002) | Abierto. Es el bloqueante técnico de la Fase B | Simulador `AgunsaConnectSapAdapter`. El contrato está en `contratos-integracion.md` |
-| **Lectura de SAP por API** (PA-003) | Abierto | En la Fase A el catálogo entra por archivo (ADR-017) |
+| **Lectura de SAP por API** (PA-003, PA-007) | Abierto. Pedida al equipo SAP como API-1. **No se usan archivos ni Excel** | Simulador de `ISapCatalogoPort` con datos inventados (tarea 3.2). Sin la API real la Fase A no sale a producción |
 | **Cómo llega el evento desde AEXSA SYS** (PA-006) | Abierto. El **contenido** del mensaje ya está definido en `docs/arquitectura/contratos-integracion.md` §2; lo que falta es la vía (consulta o aviso) y la fecha de AEXSA | Tarea 3.1a: simulador con ese formato, `POST /aexsa/eventos` y alta manual de operación como puente |
 | **Retorno a AEXSA SYS** (PA-004, PA-008) | Abierto | Simulador. Es Fase B |
 | **Ciberseguridad y datos personales** (PA-005) | Abierto | Respeta las reglas de seguridad de la sección 5 |
 | **App client y roles de Cognito** (PA-009) | Abierto | Autoridad y audiencia configurables. En pruebas, autenticación de prueba con usuarios y roles |
-| **Archivos de catálogo de SAP** (PQ-025) | A la espera de la fecha del equipo SAP | Archivos de ejemplo con el formato documentado |
+| **Composición de los kits en SAP** (PQ-025) | A la espera del equipo SAP | Kits de ejemplo en el simulador |
 | **Si el folio vuelve al Satélite en la Fase A** | `[POR CONFIRMAR]` | La OFA queda "lista para digitar". No construyas el registro del folio hasta que se defina |
 | **Mecánica fina del cobro por DUS** (BR-030) | Abierto | `CantidadDus` es captura manual. Qué se cobra por DUS lo define el convenio |
 | **Fecha de inicio y plazo** | Lo definen la jefatura de TI | No afecta el orden de las tareas |
@@ -149,7 +149,7 @@ Ninguno de estos puntos te bloquea. Todos tienen una forma de avanzar.
 Por canal interno, no por git:
 - **Prototipo navegable** (carpeta de páginas HTML). Muestra cómo debe verse y sentirse la interfaz. Tiene datos de ejemplo y algunas pantallas aún traen notas de IA y tarjetas de indicadores que ya se decidió **no** construir. Lo que dicen `mapa-pantallas.md` y los "Ajustes vigentes" de `requerimientos.md` prevalece sobre el prototipo.
 - **Acceso al repositorio, a la cuenta de AWS y al pipeline,** según lo que defina TI.
-- **Los archivos de catálogo reales de SAP,** cuando el equipo SAP los entregue.
+- **El acceso a la API de consulta de SAP** (ambiente de pruebas), cuando el equipo SAP la entregue.
 
 No recibirás los documentos originales del levantamiento ni los convenios de los clientes, por la ley de protección de datos personales. Lo que necesitas para construir está en esta carpeta.
 

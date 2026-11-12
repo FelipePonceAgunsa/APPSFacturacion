@@ -19,7 +19,7 @@ docs/desarrollo/
 ├── requerimientos.md            Qué pide el negocio (REQ-001…012) con los ajustes vigentes
 ├── reglas-negocio.md            Las 79 reglas (RN-001…079), sin nombres de personas ni de clientes
 ├── glosario.md                  Vocabulario del negocio
-├── formato-archivos-catalogo-sap.md   Columnas de los CSV que exporta SAP (Fase A)
+├── formato-archivos-catalogo-sap.md   Campos del catálogo SAP (la vía es la API de SAP, no archivos)
 └── diagramas/                   Flujo del sistema y flujo del cálculo (SVG)
 
 docs/arquitectura/
