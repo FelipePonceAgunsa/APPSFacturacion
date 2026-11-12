@@ -32,6 +32,7 @@ docs/arquitectura/*
 !docs/arquitectura/restricciones-tecnicas.md
 !docs/arquitectura/estrategia-pruebas.md
 !docs/arquitectura/mapa-pantallas.md
+!docs/arquitectura/diagramas-flujo-datos.md
 !docs/arquitectura/api/
 !docs/arquitectura/api/**
 

@@ -14,7 +14,7 @@ Propósito: definir **cómo se consumen** las integraciones — el contrato de c
 
 | Puerto | Dirección | Patrón de consumo | Idempotencia | Estado |
 |--------|-----------|-------------------|--------------|--------|
-| `IEventoFacturablePort` | AEXSA → Satélite | Pull (polling) por defecto; push (webhook) si se habilita | `operacion_id_aexsa` | PA-006 |
+| `IEventoFacturablePort` | AEXSA → Satélite | **Push**: AEXSA envía `POST /aexsa/eventos` desde su tabla de salida, con reintentos. Un `GET` de solo lectura en AEXSA sirve para conciliar y recuperar lo que falte (ADR-005) | `operacion_id_aexsa` + `version` | PA-006 |
 | `ISapCatalogoPort` | SAP → Satélite | Consulta (request/response) + snapshot versionado local | versión de snapshot | PA-003/PA-007 |
 | `ISapOrdenVentaPort` | Satélite → SAP | **Outbox asíncrono** → Agunsa Connect | `clave_idempotencia` (OfaId+versión) | PA-001/PA-002 |
 | (callback de folio) | SAP → Satélite | Callback HTTP a endpoint del Satélite | `folio` | PA-002 |
@@ -27,7 +27,9 @@ Todos los contratos: transporte y seguridad los fija Agunsa Connect (PA-002); aq
 
 ## 2. `IEventoFacturablePort` — entrada del evento (REQ-001, ADR-005)
 
-**Cómo se consume:** el Satélite **consulta** periódicamente (pull) una vista/API de AEXSA que lista operaciones con visado aprobado aún no ingeridas. Si AEXSA habilita webhook (push), el Satélite expone `POST /api/aexsa/eventos` y el pull queda de respaldo. Cada operación se procesa **una sola vez** (idempotencia por `operacionIdAexsa`).
+**Cómo se consume:** AEXSA **envía** el evento (push) al `POST /aexsa/eventos` del Satélite. Lo registra en una tabla de salida en la misma transacción que la aprobación del visado y un proceso lo envía con reintentos. El Satélite no consulta a AEXSA para recibir eventos. Un `GET` de solo lectura sobre esa tabla de salida queda solo para **conciliar** y recuperar lo que no llegó. Cada operación se procesa **una sola vez** (idempotencia por `operacionIdAexsa` + `version`). Ver ADR-005.
+
+**Cuándo se envía:** AEXSA envía al aprobarse el visado, y el Satélite decide cuándo corresponde facturar (RN-046: con convenio, se retiene hasta la fecha de despacho, con tope de 7 días). Si el negocio quiere que AEXSA envíe en otro momento, se cambia el disparador, no el mensaje `[POR CONFIRMAR]`.
 
 ```csharp
 public interface IEventoFacturablePort

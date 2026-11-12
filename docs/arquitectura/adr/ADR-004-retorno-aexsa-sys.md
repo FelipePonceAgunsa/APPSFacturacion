@@ -1,6 +1,8 @@
 # ADR-004 — Retorno de facturación a AEXSA SYS
 
 Estado: **Propuesto** (depende de PA-004, PA-008)
+
+> **Revisión 2026-11-05 (decisión del negocio):** la factura emitida llega a AEXSA SYS **directamente desde SAP**, por el canal que ya existe (`GetFactura`), para que el documento quede Facturado en su flujo. Además llega a ZARPE (callback de folio) para conciliar y seguir los pagos. Por eso el puerto `IAexsaRetornoPort` de la decisión de abajo **ya no es la vía por defecto**: ZARPE no notifica ni escribe en AEXSA, salvo que TI de AEXSA lo pida. El resto (unión por folio, conciliación del DTE, idempotencia) sigue igual. Falta confirmar con PA-002 que Agunsa Connect entregue la factura a ambos destinos, y qué pasa con las operaciones con convenio (PA-010).
 Fecha: 2026-10-26
 Decide: Arquitecto de Solución
 

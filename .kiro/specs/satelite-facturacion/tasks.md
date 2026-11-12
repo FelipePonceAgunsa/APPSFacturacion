@@ -159,7 +159,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 - [ ] **3.4 Recepción de folio/DTE y conciliación**
   - Endpoint callback de folio; recibe DTE XML; concilia calculado↔DTE por folio; cierra vínculo operación↔factura.
   - Cubre: REQ-009, RN-029/076. ADR-002, ADR-004. **(bloqueada por PA-002.)**
-- [ ] **3.5 Retorno a AEXSA SYS**
+- [ ] **3.5 Retorno a AEXSA SYS** — *redefinida el 2026-11-05: SAP envía la factura a AEXSA por el canal que ya existe; ZARPE no escribe en AEXSA. Esta tarea pasa a ser verificar que el folio llegue a AEXSA y que la operación quede Facturada, y que ZARPE reciba la misma factura por el callback de 3.4. Solo se construye un puerto de retorno si TI de AEXSA lo pide.*
   - Puerto `IAexsaRetorno`; notifica folio para habilitar check de salida (RN-072); reutiliza canal de conciliación; idempotente por folio.
   - `[POR CONFIRMAR]` En AEXSA las operaciones con convenio no emiten factura dentro del sistema (recorrido `PREAPROBADO_CONVENIO` → `PRDIN_EMITIDA` → `CONFORMADA`). El retorno del folio probablemente solo aplica a las operaciones sin convenio. Confirmar con TI de AEXSA y con facturación antes de construir.
   - Las operaciones con convenio se facturan en consolidado, fuera de AEXSA (RN-055): la consolidación de varias operaciones en una factura está abierta como PA-010 y condiciona la Fase B.
