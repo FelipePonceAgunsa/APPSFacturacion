@@ -1,8 +1,14 @@
 # ADR-017 — Catálogo de SAP en la Fase A: importación por archivo, kits y vínculo servicio↔artículo
 
-Estado: **Aceptado** para la Fase A · la sincronización por API sigue en la Fase B (ADR-003, PA-003)
+Estado: **Aceptado** · **revisado el 2026-11-05**: la vía principal es la consulta a la API de SAP; la importación por archivo queda como respaldo
 Fecha: 2026-10-28
 Decide: Arquitecto de Solución
+
+> **Revisión 2026-11-05 (decisión del negocio):** el Satélite debe **consultar la API de SAP** para traer artículos, listas de precios, kits y tipo de cambio, en lugar de depender de que alguien exporte archivos. Cambia así:
+> - La vía principal es el adaptador de **API de solo consulta** del puerto `ISapCatalogoPort`, por Agunsa Connect (ADR-003). Se trae a un `catalogo_snapshot` versionado; el cálculo nunca consulta SAP en vivo.
+> - La **importación por archivo** (decisión 1 de abajo) se mantiene como **respaldo**: sirve si la API aún no está disponible cuando arranque la Fase A, o si se cae. Es el mismo puerto con otro adaptador.
+> - La API de lectura **no existe todavía** (PA-003, PA-007). Mientras tanto se construye contra un simulador y la Fase A puede arrancar con el archivo. Esto es una dependencia con el equipo de SAP y Agunsa Connect: **no se debe prometer fecha** hasta que lo confirmen.
+> - El resto de las decisiones (kits como referencia, kit sugerido, vínculo servicio↔artículo, tipo de cambio, pantalla de catálogo) no cambia.
 
 ## Contexto
 En la Fase A el Satélite entrega la prefactura valorizada y el facturador la digita en SAP. En SAP el facturador elige un **kit** y una **lista de precios**, y SAP despliega los artículos amarrados con su precio por unidad (RN-061). Sin ver el kit, tendría que teclear línea por línea o elegirlo de memoria, que es el problema actual.
