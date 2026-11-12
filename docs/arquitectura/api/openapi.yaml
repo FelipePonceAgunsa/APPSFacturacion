@@ -936,6 +936,9 @@ components:
         moneda: { $ref: '#/components/schemas/Moneda' }
         montoClp: { type: number }
         esExcepcion: { type: boolean }
+        origen: { type: string, enum: [CALCULADA, AGREGADA_MANUAL, REGLA_CONFIGURABLE], description: 'Cómo nació la línea (modelo-datos DBA-6)' }
+        enKitSap: { type: boolean, nullable: true, description: 'Está en el kit SAP sugerido; null si no hay kit (ADR-017)' }
+        versionCalculo: { type: integer, description: Versión de cálculo de la OFA a la que pertenece la línea }
         memoria: { $ref: '#/components/schemas/MemoriaCalculo' }
     MemoriaCalculo:
       type: object
@@ -1011,10 +1014,14 @@ components:
     Omision:
       type: object
       properties:
+        omisionId: { type: string, format: uuid }
         tipoServicioId: { type: integer }
         descripcion: { type: string }
         origen: { type: string, enum: [CRUCE_DETERMINISTICO, PROPUESTA_IA] }
         confianza: { type: number, nullable: true }
+        decision: { type: string, enum: [INCLUIDA, DESCARTADA, COMPLEMENTARIA], nullable: true, description: null = sin decidir }
+        motivo: { type: string, nullable: true }
+        decididaPor: { type: string, nullable: true }
 
     # ----- callbacks
     FolioCallback:
