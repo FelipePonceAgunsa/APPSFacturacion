@@ -77,7 +77,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 - [ ] **1.1 Catálogo de servicios normalizado** (`TipoServicio`)
   - Importar desde `MasterData.TipoServicio` (192); normalizar unidades a enum; clave `TipoServicioID`; filtrar `Habilitado`.
   - Cubre: REQ (catálogo), RN-032, BR-014. ADR-010.
-- [ ] **1.1b Importación del catálogo SAP por archivo** (Fase A) — *confirmada el 2026-11-05: Excel/CSV para probar la Fase A; la API (3.2) es de la Fase B*
+- [ ] **1.1b Importación del catálogo SAP por archivo** (Fase A) — *puente: se usa solo mientras SAP no entregue la API-1 (3.2). Las APIs las construye el equipo SAP; nosotros las especificamos en `solicitud-apis-sap.md`. Si la API-1 llega antes de probar la Fase A, se usa la API y el archivo queda solo para el análisis previo y como respaldo*
   - **Paso previo: análisis de los datos de SAP.** Con la primera extracción, antes de construir el importador definitivo, revisar con el equipo SAP y facturación: campos reales y su significado, artículos duplicados o inactivos, cómo está armado un kit, listas de precios vigentes, moneda de cada precio y origen del tipo de cambio. Dejar el resultado en el registro de avance. Lo que se aprenda define también el contrato de la API-1 de la Fase B (`solicitud-apis-sap.md`).
   - Importar CSV exportado de SAP: artículos (A1), listas de precios (A2), kits con composición (A3) y tipo de cambio (A4). Formato en `docs/desarrollo/formato-archivos-catalogo-sap.md`.
   - Resultado: `catalogo_snapshot` versionado, con validación (formato, duplicados, artículos inactivos) y **confirmación humana** antes de activarse. Endpoints en el OpenAPI, etiqueta `Catalogo`.

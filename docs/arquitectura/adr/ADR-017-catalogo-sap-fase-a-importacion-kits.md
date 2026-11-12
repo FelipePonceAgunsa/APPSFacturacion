@@ -4,7 +4,7 @@ Estado: **Aceptado** para la Fase A · la sincronización por API sigue en la Fa
 Fecha: 2026-10-28
 Decide: Arquitecto de Solución
 
-> **Ratificado el 2026-11-05 (decisión del negocio):** la Fase A es para probar que el cálculo da los valores correctos, así que el catálogo entra por **extracción de SAP (Excel/CSV)**. La **API-1 de consulta queda para la Fase B**, pero se pide a SAP desde ya para que la construyan en paralelo (`solicitud-apis-sap.md`). Antes de construir el importador definitivo se hace un **análisis previo de los datos** extraídos con SAP y facturación; sus hallazgos también ajustan el contrato de la API-1.
+> **Ratificado el 2026-11-05 (decisión del negocio):** la Fase A es para probar que el cálculo da los valores correctos. La vía definitiva del catálogo es la **API-1 de consulta**, que **construye el equipo SAP** a partir de lo que especificamos en `solicitud-apis-sap.md`, y se pide desde ya. La **extracción de SAP (Excel/CSV) es solo un puente**: se usa mientras la API-1 no exista, lo que llegue primero. Antes de construir el importador se hace un **análisis previo de los datos** con SAP y facturación; sus hallazgos también ajustan el contrato de la API-1. Cuando la API-1 esté disponible, el archivo queda solo como respaldo.
 
 ## Contexto
 En la Fase A el Satélite entrega la prefactura valorizada y el facturador la digita en SAP. En SAP el facturador elige un **kit** y una **lista de precios**, y SAP despliega los artículos amarrados con su precio por unidad (RN-061). Sin ver el kit, tendría que teclear línea por línea o elegirlo de memoria, que es el problema actual.
