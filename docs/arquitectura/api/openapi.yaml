@@ -253,6 +253,11 @@ paths:
               schema: { $ref: '#/components/schemas/Operacion' }
         '400': { $ref: '#/components/responses/Error400' }
         '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: La OFA ya fue ENVIADA o posterior (codigo OFA_YA_ENVIADA), o la operación está anulada (OPERACION_ANULADA)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   # --------------------------------------------------------------- Configuración
   /configuracion/terminales:
@@ -1052,18 +1057,65 @@ components:
         operacionIdAexsa:
           type: array
           items: { type: integer, format: int64 }
-        rut: { type: string }
+        rut: { type: string, nullable: true, description: 'RUT al que se factura: cliente facturador o, si no hay, consignatario (RN-077)' }
+        razonSocial: { type: string, nullable: true }
         conConvenio: { type: boolean, description: 'Lo determina ZARPE buscando el convenio vigente por RUT; no viene de AEXSA' }
-        facturable: { type: boolean }
+        facturable: { type: boolean, description: 'false en BULTO (fuera de alcance) o si el facturador decidió NO_FACTURAR' }
+        estadoOperacion: { type: string, enum: [ACTIVA, ANULADA] }
+        tipoCarga: { type: string, enum: [CONTENEDOR, BULTO], nullable: true }
+        tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO], nullable: true }
+        rutaClasificada: { type: string, nullable: true, description: '{tipoCarga}-{tipoRetiro}-{CON|SIN}_CONVENIO; null mientras falte el tipo de retiro' }
+        visadoAprobadoEn: { type: string, format: date-time, nullable: true }
+        versionEvento: { type: integer, description: Última versión del evento recibido de AEXSA }
+        pendientes:
+          type: array
+          description: Pendientes abiertos. Datos que faltan o decisiones que el facturador debe tomar antes de validar la OFA.
+          items: { $ref: '#/components/schemas/TipoPendiente' }
+        ofaId: { type: string, format: uuid, nullable: true, description: OFA principal de la operación, si ya se calculó }
+        estadoOfa:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/EstadoOfa'
+    TipoPendiente:
+      type: string
+      enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES, INSPECCION_NO_FINALIZADA, INSPECCION_RECHAZADA]
+    PendienteOperacion:
+      type: object
+      description: Pendiente abierto o resuelto (operacion_pendiente, DBA-8). Un pendiente resuelto no se borra.
+      properties:
+        pendienteId: { type: string, format: uuid }
+        tipo: { $ref: '#/components/schemas/TipoPendiente' }
+        bloqueaValidacion: { type: boolean }
+        exigeDecision: { type: boolean, description: 'VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES e INSPECCION_RECHAZADA se resuelven con una decisión (decisiones[] del PATCH)' }
+        detalle: { type: object, nullable: true, description: 'Por ejemplo los convenios candidatos o la otra operación del mismo documento' }
+        detectadoEn: { type: string, format: date-time }
+        resueltoEn: { type: string, format: date-time, nullable: true }
+        resueltoPor: { type: string, nullable: true }
+        resolucion: { type: string, enum: [DATO_COMPLETADO, DECISION, YA_NO_APLICA], nullable: true }
+        decision: { type: object, nullable: true }
+        motivo: { type: string, nullable: true }
+    ConvenioOperacion:
+      type: object
+      description: Versión de convenio encontrada por ZARPE (o elegida por el facturador entre varias vigentes).
+      properties:
+        versionConvenioId: { type: string, format: uuid }
+        convenioId: { type: string, format: uuid }
+        numero: { type: integer }
+        vigenciaDesde: { type: string, format: date }
+        vigenciaHasta: { type: string, format: date, nullable: true }
+    ContenedorOperacionDetalle:
+      description: Contenedor de la operación con los días bajo aforo que usa el cálculo (de la inspección de aforo o completados a mano).
+      allOf:
+        - $ref: '#/components/schemas/ContenedorOperacion'
+        - type: object
+          properties:
+            diasBajoAforo: { type: integer, nullable: true }
     Operacion:
       allOf:
         - $ref: '#/components/schemas/OperacionResumen'
         - type: object
           properties:
-            tipoCarga: { type: string, enum: [CONTENEDOR, BULTO] }
             sentido: { type: string, enum: [IMPORTACION, EXPORTACION], nullable: true }
-            tipoRetiro: { type: string, enum: [DIRECTO, INDIRECTO], nullable: true }
-            estadoOperacion: { type: string, enum: [ACTIVA, ANULADA] }
             terminal:
               nullable: true
               allOf:
@@ -1072,12 +1124,16 @@ components:
               type: string
               enum: [STI, DP_WORLD, OTRO, SIN_MAPEAR]
               description: Resuelto por el Satélite con terminal_mapa. SIN_MAPEAR bloquea la decisión de refacturación del directo (RN-079).
-            pendientes:
+            pendientesDetalle:
               type: array
-              description: Datos que faltan y que el facturador debe completar antes de validar la OFA.
-              items:
-                type: string
-                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES, INSPECCION_NO_FINALIZADA, INSPECCION_RECHAZADA]
+              items: { $ref: '#/components/schemas/PendienteOperacion' }
+            convenio:
+              nullable: true
+              description: 'Convenio encontrado; null = "Sin convenio para el RUT …" (se cobra con tarifa pública)'
+              allOf:
+                - $ref: '#/components/schemas/ConvenioOperacion'
+            ingeridoEn: { type: string, format: date-time }
+            actualizadoEn: { type: string, format: date-time }
             din:
               type: array
               items: { type: integer, format: int64 }
@@ -1094,12 +1150,15 @@ components:
               description: Quien indicó AEXSA. Si es null, la OFA usa al consignatario por defecto (RN-077).
               allOf:
                 - $ref: '#/components/schemas/ParteFactura'
+                - type: object
+                  properties:
+                    tipo: { type: string, enum: [EMISOR_BL, CLIENTE, GENERADOR_NEGOCIO, CONSIGNATARIO], nullable: true }
+                    asignadoPor: { type: string, nullable: true }
+                    asignadoEn: { type: string, format: date-time, nullable: true }
             contenedores:
               type: array
-              items: { $ref: '#/components/schemas/ContenedorOperacion' }
-            versionEvento: { type: integer, description: Última versión del evento recibido de AEXSA }
-            rutaClasificada: { type: string }
-            momentoFacturacion: { type: string, enum: [EN_VISACION, POST_DESPACHO] }
+              items: { $ref: '#/components/schemas/ContenedorOperacionDetalle' }
+            momentoFacturacion: { type: string, enum: [EN_VISACION, POST_DESPACHO], nullable: true }
             servicios:
               type: array
               items: { $ref: '#/components/schemas/ServicioPrestado' }
@@ -1109,6 +1168,7 @@ components:
       required: [tipoServicioId, unidad]
       properties:
         tipoServicioId: { type: integer }
+        descripcion: { type: string, nullable: true, description: Descripción del catálogo de servicios }
         cantidad: { type: number, nullable: true, description: null = pendiente de completar por el facturador }
         unidad: { $ref: '#/components/schemas/UnidadCobro' }
         contenedor: { type: string, nullable: true }
@@ -1371,6 +1431,22 @@ components:
             properties:
               tipoServicioId: { type: integer }
               cantidad: { type: number }
+        decisiones:
+          type: array
+          description: >
+            Decisión registrada sobre los pendientes que la exigen (resolucion = DECISION, con el motivo del request).
+            Sin esta lista esos pendientes no podrían resolverse antes de validar la OFA.
+          items:
+            type: object
+            required: [tipo, valor]
+            properties:
+              tipo: { type: string, enum: [VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES, INSPECCION_RECHAZADA] }
+              valor:
+                type: string
+                description: >
+                  VARIOS_CONVENIOS_VIGENTES → id del convenio elegido (o de su versión);
+                  DOCUMENTO_CON_VARIAS_SOLICITUDES → FACTURAR | NO_FACTURAR;
+                  INSPECCION_RECHAZADA → CONTINUAR | NO_FACTURAR. NO_FACTURAR deja la operación con facturable = false.
     ParteFactura:
       type: object
       required: [rut]

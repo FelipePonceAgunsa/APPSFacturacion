@@ -23,7 +23,7 @@ public abstract class ApiConBaseNueva(PostgresFixture fixture) : IAsyncLifetime
     protected HttpClient Cliente { get; private set; } = null!;
     protected static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public async ValueTask InitializeAsync()
+    public virtual async ValueTask InitializeAsync()
     {
         Api = new ApiFactory(await fixture.CrearBaseNuevaAsync());
         Cliente = Api.CreateClient();

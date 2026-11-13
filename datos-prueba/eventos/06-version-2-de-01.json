@@ -1,0 +1,39 @@
+{
+  "entidad": "VISADO_VIRTUAL",
+  "tipoEvento": "OPERACION_ACTUALIZADA",
+  "version": 2,
+  "operacionIdAexsa": [98933],
+  "visadoAprobadoEn": "2026-10-26T14:30:00Z",
+  "estadoOperacion": "ACTIVA",
+  "tipoCarga": "CONTENEDOR",
+  "sentido": "IMPORTACION",
+  "tipoRetiro": "INDIRECTO",
+  "terminal": { "id": 1, "nombre": "STI DE EJEMPLO" },
+  "din": [6123456789],
+  "bls": [{ "id": 184520, "numero": "BL-0001" }],
+  "papeletas": [5512],
+  "consignatario": { "rut": "76.111.111-6", "razonSocial": "Importadora de Ejemplo Uno SpA" },
+  "clienteFacturador": null,
+  "contenedores": [
+    {
+      "numero": "ABCD1234567",
+      "fechaRecepcion": "2026-10-20T08:00:00Z",
+      "fechaRetiro": "2026-10-27T10:00:00Z",
+      "fechaDespacho": "2026-10-28T09:00:00Z",
+      "diasAlmacenaje": 15,
+      "esReefer": false,
+      "inspecciones": [
+        { "tipo": "ADU-FIS", "asignadaEn": "2026-10-21T09:00:00Z", "finalizadaEn": "2026-10-23T11:00:00Z", "resultado": "APROBADA" },
+        { "tipo": "SAG", "asignadaEn": "2026-10-21T09:00:00Z", "finalizadaEn": "2026-10-22T11:00:00Z", "resultado": "APROBADA" }
+      ]
+    }
+  ],
+  "servicios": [
+    { "tipoServicioId": 42, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-24T10:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 43, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-27T10:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 44, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-27T11:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 45, "cantidad": 1, "unidad": "Por B/L", "contenedor": null, "finalizadoEn": "2026-10-26T14:30:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 48, "cantidad": 15, "unidad": "Contenedor / Día", "contenedor": "ABCD1234567", "finalizadoEn": "2026-10-27T10:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 49, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-22T11:00:00Z", "origen": "AEXSA" }
+  ]
+}

@@ -5,6 +5,8 @@ using Satelite.Aplicacion.Catalogo;
 using Satelite.Aplicacion.Comun;
 using Satelite.Aplicacion.Configuracion;
 using Satelite.Aplicacion.Convenios;
+using Satelite.Aplicacion.Ofa;
+using Satelite.Aplicacion.Operaciones;
 using Satelite.Infraestructura.Archivos;
 using Satelite.Infraestructura.Persistencia;
 using Satelite.Infraestructura.Repositorios;
@@ -52,6 +54,8 @@ public static class DependencyInjection
         services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
         services.AddScoped<IConfiguracionRepositorio, ConfiguracionRepositorio>();
         services.AddScoped<IConveniosRepositorio, ConveniosRepositorio>();
+        services.AddScoped<IOperacionesRepositorio, OperacionesRepositorio>();
+        services.AddScoped<IOfaRepositorio, OfaRepositorio>();
 
         return services;
     }

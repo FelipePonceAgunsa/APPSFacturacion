@@ -1,0 +1,28 @@
+{
+  "entidad": "VISADO_VIRTUAL",
+  "tipoEvento": "VISADO_APROBADO",
+  "version": 1,
+  "operacionIdAexsa": [98937],
+  "visadoAprobadoEn": "2026-10-28T12:00:00Z",
+  "estadoOperacion": "ACTIVA",
+  "tipoCarga": "CONTENEDOR",
+  "sentido": null,
+  "tipoRetiro": null,
+  "terminal": null,
+  "din": [6123456792],
+  "bls": [{ "id": 184524, "numero": "BL-0005" }],
+  "papeletas": [5515],
+  "consignatario": { "rut": "78.333.333-3", "razonSocial": "Comercial de Ejemplo Tres SA" },
+  "clienteFacturador": null,
+  "contenedores": [
+    {
+      "numero": "QRST5556667", "fechaRecepcion": "2026-10-25T08:00:00Z", "fechaRetiro": null, "fechaDespacho": null,
+      "diasAlmacenaje": 4, "esReefer": true,
+      "inspecciones": [{ "tipo": "ADU-FIS", "asignadaEn": "2026-10-26T09:00:00Z", "finalizadaEn": null, "resultado": null }]
+    }
+  ],
+  "servicios": [
+    { "tipoServicioId": 42, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-25T08:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 48, "cantidad": null, "unidad": "Contenedor / Día", "contenedor": null, "finalizadoEn": null, "origen": "AEXSA" }
+  ]
+}

@@ -11,6 +11,16 @@ public interface IUnidadTrabajo
     /// (p. ej. el trigger <c>TIPO_CAMBIO_DE_SAP_EXISTE</c>) a <see cref="ReglaDatosException"/>.
     /// </summary>
     Task GuardarAsync(CancellationToken ct);
+    /// <summary>Olvida los cambios pendientes (p. ej. para reintentar tras <see cref="ReglasDatos.OperacionYaExiste"/>).</summary>
+    void DescartarCambios();
+}
+/// <summary>Códigos de <see cref="ReglaDatosException"/> que traduce <see cref="IUnidadTrabajo.GuardarAsync"/>.</summary>
+public static class ReglasDatos
+{
+    /// <summary>Trigger de 02-ajustes-etapa1.sql: el día ya tiene tipo de cambio de SAP.</summary>
+    public const string TipoCambioDeSapExiste = "TIPO_CAMBIO_DE_SAP_EXISTE";
+    /// <summary>Índice único ux_operacion_entidad_clave: otra transacción insertó la misma operación (§4b).</summary>
+    public const string OperacionYaExiste = "OPERACION_YA_EXISTE";
 }
 
 public interface ITransaccion : IAsyncDisposable

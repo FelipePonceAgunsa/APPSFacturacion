@@ -55,6 +55,8 @@ public enum TipoPendiente
 }
 
 public enum ResolucionPendiente { DATO_COMPLETADO, DECISION, YA_NO_APLICA }
+/// <summary>Resultado de una inspección (contrato v3.0, nota 15). Se guarda en el jsonb contenedor_operacion.inspecciones.</summary>
+public enum ResultadoInspeccion { APROBADA, RECHAZADA_PARCIAL, RECHAZADA_TOTAL, VISADO_LIBERADO }
 
 /// <summary>Grupo de un tipo de inspección de AEXSA ([E1-7]). AFORO_ADUANA: sus días no se cobran (RN-052).</summary>
 public enum GrupoInspeccion { AFORO_ADUANA, SAG, OTRA, SIN_MAPEAR }

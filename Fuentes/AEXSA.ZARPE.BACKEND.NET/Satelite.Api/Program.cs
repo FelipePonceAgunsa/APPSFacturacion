@@ -21,6 +21,8 @@ builder.Services.Configure<Satelite.Aplicacion.Catalogo.CatalogoOptions>(
     builder.Configuration.GetSection(Satelite.Aplicacion.Catalogo.CatalogoOptions.Seccion));
 builder.Services.Configure<Satelite.Aplicacion.Motor.MotorOptions>(
     builder.Configuration.GetSection(Satelite.Aplicacion.Motor.MotorOptions.Seccion));
+builder.Services.Configure<Satelite.Aplicacion.Ofa.OfaOptions>(
+    builder.Configuration.GetSection(Satelite.Aplicacion.Ofa.OfaOptions.Seccion));
 builder.Services.AddInfraestructura(builder.Configuration);
 
 // Configurar CORS (orígenes por ambiente en Cors:AllowedOrigins)

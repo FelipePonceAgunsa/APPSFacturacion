@@ -26,7 +26,16 @@ internal sealed class UnidadTrabajo(PrincipalDbContext db) : IUnidadTrabajo
         {
             throw new ReglaDatosException(codigo, pg.MessageText, ex);
         }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+                                           {
+                                               SqlState: PostgresErrorCodes.UniqueViolation,
+                                               ConstraintName: "ux_operacion_entidad_clave",
+                                           } pg)
+        {
+            throw new ReglaDatosException(ReglasDatos.OperacionYaExiste, pg.MessageText, ex);
+        }
     }
+    public void DescartarCambios() => db.ChangeTracker.Clear();
 
     private sealed class Transaccion(IDbContextTransaction transaccion) : ITransaccion
     {

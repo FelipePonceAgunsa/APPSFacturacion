@@ -1,0 +1,25 @@
+{
+  "entidad": "VISADO_VIRTUAL",
+  "tipoEvento": "VISADO_APROBADO",
+  "version": 1,
+  "operacionIdAexsa": [98934],
+  "visadoAprobadoEn": "2026-10-27T15:00:00Z",
+  "estadoOperacion": "ACTIVA",
+  "tipoCarga": "CONTENEDOR",
+  "sentido": "IMPORTACION",
+  "tipoRetiro": "DIRECTO",
+  "terminal": { "id": 1, "nombre": "STI DE EJEMPLO" },
+  "din": [6123456790],
+  "bls": [{ "id": 184521, "numero": "BL-0002" }],
+  "papeletas": [5513],
+  "consignatario": { "rut": "78.333.333-3", "razonSocial": "Comercial de Ejemplo Tres SA" },
+  "clienteFacturador": null,
+  "contenedores": [
+    { "numero": "EFGH7654321", "fechaRecepcion": "2026-10-27T08:00:00Z", "fechaRetiro": "2026-10-27T16:00:00Z", "fechaDespacho": null, "diasAlmacenaje": 0, "esReefer": false, "inspecciones": [] }
+  ],
+  "servicios": [
+    { "tipoServicioId": 42, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-27T08:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 43, "cantidad": 1, "unidad": "Contenedor", "contenedor": null, "finalizadoEn": "2026-10-27T16:00:00Z", "origen": "AEXSA" },
+    { "tipoServicioId": 45, "cantidad": 1, "unidad": "Por B/L", "contenedor": null, "finalizadoEn": "2026-10-27T15:00:00Z", "origen": "AEXSA" }
+  ]
+}

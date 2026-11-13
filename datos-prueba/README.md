@@ -36,6 +36,21 @@ Cuerpos de `POST /api/convenios` (formulario manual, ADR-012). Nacen en BORRADOR
 | `convenio-76111111-6.json` | Vigencia 2026; tarifas CLP (42, 43, 48) y USD (45); `tcMinimo` 800 (piso del caso T3 con el TC de 700 del 2026-10-26); `diasLibres` 10 |
 | `convenio-77222222-K.json` | Vigencia 2026-06-01 a 2027-05-31; tarifas CLP (42, 49) y USD (46); `tcMinimo` 820; `diasLibres` 5 |
 
+## eventos/
+Mensajes de AEXSA con el contrato v3.0 (`contratos-integracion.md` §2), para `POST /api/aexsa/eventos` o el alta manual
+`POST /api/operaciones`. Visados entre el 2026-10-26 y el 2026-10-29 (el TC del catálogo de ejemplo cubre esas fechas).
+| Archivo | Caso | Respuesta esperada |
+|---|---|---|
+| `01-impo-indirecto-con-convenio.json` | 76.111.111-6 (convenio), indirecto, 1 contenedor con 15 días, aforo ADU-FIS del 21 al 23 (2 días) y SAG aprobada | 201; OFA de 93.000 CLP (almacenaje 15 − 10 libres − 2 aforo = 3 días; visación con el piso de 800) |
+| `02-directo-sti-sin-convenio.json` | Directo en el terminal 1 (STI), sin convenio | 201; OFA con visación, security fee y refacturación con valor |
+| `03-directo-dpworld-sin-convenio.json` | Directo en el terminal 2 (DP World), sin convenio | 201; refacturación en 0 |
+| `04-expo-sin-cantidad-dus.json` | Exportación sin cantidad de DUS | 201; pendiente `CANTIDAD_DUS` |
+| `05-tipo-retiro-null.json` | Sin tipo de retiro, sentido ni terminal; aforo sin terminar; almacenaje sin cantidad | 201; pendientes `TIPO_RETIRO`, `SENTIDO`, `TERMINAL_SIN_MAPEAR`, `CANTIDAD_SERVICIO`, `DIAS_AFORO`, `INSPECCION_NO_FINALIZADA` |
+| `06-version-2-de-01.json` | Versión 2 de 01 (agrega movilización y la fecha de despacho) | 200; si la OFA está en BORRADOR o VALIDADA se recalcula |
+| `07-visado-presencial.json` | `VISADO_PRESENCIAL` con 2 IDs | 400 `ENTIDAD_NO_HABILITADA` |
+| `08-virtual-dos-ids.json` | `VISADO_VIRTUAL` con 2 IDs | 400 `INVALIDO` |
+| `09-bulto.json` | Carga suelta | 201; `facturable = false` (fuera de alcance) |
+| `10-comparte-bl-con-01.json` | Comparte el BL 184520 con 01; facturador 77.222.222-K | 201; pendiente `DOCUMENTO_CON_VARIAS_SOLICITUDES` en ambas |
 ## e2e-etapa1.ps1
 Prueba de punta a punta contra la API local en modo abierto. Con la base recién creada y la API levantada **después**
 de recrearla (el script de la base corta las conexiones abiertas):
