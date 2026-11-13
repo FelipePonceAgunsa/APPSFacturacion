@@ -1,4 +1,10 @@
+export * from './catalogo.service';
+import { CatalogoService } from './catalogo.service';
+export * from './catalogo.serviceInterface';
+export * from './configuracion.service';
+import { ConfiguracionService } from './configuracion.service';
+export * from './configuracion.serviceInterface';
 export * from './session.service';
 import { SessionService } from './session.service';
 export * from './session.serviceInterface';
-export const APIS = [SessionService];
+export const APIS = [CatalogoService, ConfiguracionService, SessionService];

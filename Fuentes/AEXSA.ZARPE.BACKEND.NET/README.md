@@ -97,6 +97,14 @@ Qué valida la API:
 
 Si `Auth` está vacío, la API arranca en Development y deja una advertencia en el log; todos los endpoints protegidos responden 401. Fuera de Development no arranca.
 
+### Modo abierto de desarrollo (`Auth:ModoAbierto`)
+
+Mientras no estén los valores de Cognito (PA-009), `appsettings.Development.json` trae `"Auth": { "ModoAbierto": true }`. En ese modo no se valida ningún token: cada request queda autenticado como el usuario local `admin.local@zarpe.local` con el rol Administrador (el grupo de `Auth:GruposPorRol:Administrador`), y ese usuario queda en la auditoría. Al arrancar se registra una advertencia en el log.
+
+- Es imposible activarlo fuera de Development: con `Auth:ModoAbierto=true` en otro ambiente, la API no arranca (`InvalidOperationException`).
+- `appsettings.json` no lo trae. Para probar la validación del JWT en local: `dotnet run --project Satelite.Api -- --Auth:ModoAbierto=false`.
+- Las pruebas de integración (`Satelite.Tests/Api`) usan el mismo modo abierto con `WebApplicationFactory`.
+
 ### Permisos (estándar AGUNSA adaptado)
 
 Los roles vienen de Cognito y no de tablas propias. La asignación de accesos a cada rol está en `Handlers/MatrizAccesos.cs`, con una matriz inicial `[SUPUESTO]` que se valida con negocio (PA-009).

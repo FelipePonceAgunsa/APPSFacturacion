@@ -33,7 +33,8 @@ export class SessionManagerService implements OnDestroy {
 
   constructor() {
     effect(() => {
-      if (this.authService.isLoggedIn()) {
+      // En modo abierto de desarrollo no hay sesión de Cognito que cerrar por inactividad.
+      if (this.authService.isLoggedIn() && !this.authService.modoAbierto) {
         this.start();
       } else {
         this.stop();

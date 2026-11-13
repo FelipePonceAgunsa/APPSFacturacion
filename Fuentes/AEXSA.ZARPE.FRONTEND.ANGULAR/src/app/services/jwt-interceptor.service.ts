@@ -26,7 +26,8 @@ export function jwtInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn): 
         authService.cierreSesion();
       }
 
-      const serverMessage = error.error?.message;
+      // La API responde con el esquema Error del OpenAPI ({ codigo, mensaje, detalle }).
+      const serverMessage = error.error?.mensaje ?? error.error?.message;
       const friendlyMessage = serverMessage || HTTP_MESSAGES[error.status];
 
       if (friendlyMessage) {

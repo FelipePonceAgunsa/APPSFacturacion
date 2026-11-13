@@ -1,0 +1,204 @@
+<div class="pagina">
+  <h2>Catálogo SAP</h2>
+  @if (cargando()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <mat-tab-group>
+    <mat-tab label="Resumen">
+      @if (resumen(); as r) {
+        <mat-card appearance="outlined" class="section-card">
+          <mat-card-header>
+            <mat-card-title>Versión {{ r.version }}</mat-card-title>
+            <mat-card-subtitle>Confirmada el {{ r.fecha | date: 'dd-MM-yyyy HH:mm' }} · origen {{ r.origen }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>{{ r.articulos }} artículos · {{ r.listasPrecios }} listas de precios · {{ r.kits }} kits</p>
+            <p>Tipo de cambio cargado hasta: {{ r.tipoCambioAl ?? 'sin datos' }}</p>
+            <p class="texto-secundario">El cálculo usa esta versión y la deja registrada en la memoria de cálculo.</p>
+          </mat-card-content>
+        </mat-card>
+      } @else if (sinCatalogo()) {
+        <p class="texto-secundario section-card">Aún no hay una versión confirmada. Importa los archivos A1 a A4 en la pestaña Importar.</p>
+      }
+    </mat-tab>
+
+    <mat-tab label="Artículos">
+      <div class="fila-acciones">
+        <mat-form-field appearance="outline">
+          <mat-label>Código o descripción</mat-label>
+          <input matInput [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" (keyup.enter)="buscarArticulos()" />
+        </mat-form-field>
+        <button mat-flat-button type="button" (click)="buscarArticulos()"><mat-icon>search</mat-icon>Buscar</button>
+      </div>
+      <table mat-table [dataSource]="articulos()" class="tabla-completa">
+        <ng-container matColumnDef="codigoArticulo"><th mat-header-cell *matHeaderCellDef>Código</th><td mat-cell *matCellDef="let a">{{ a.codigoArticulo }}</td></ng-container>
+        <ng-container matColumnDef="descripcion"><th mat-header-cell *matHeaderCellDef>Descripción</th><td mat-cell *matCellDef="let a">{{ a.descripcion }}</td></ng-container>
+        <ng-container matColumnDef="unidadMedida"><th mat-header-cell *matHeaderCellDef>Unidad</th><td mat-cell *matCellDef="let a">{{ a.unidadMedida }}</td></ng-container>
+        <ng-container matColumnDef="activo"><th mat-header-cell *matHeaderCellDef>Activo</th><td mat-cell *matCellDef="let a">{{ a.activo ? 'Sí' : 'No' }}</td></ng-container>
+        <ng-container matColumnDef="grupoArticulo"><th mat-header-cell *matHeaderCellDef>Grupo</th><td mat-cell *matCellDef="let a">{{ a.grupoArticulo }}</td></ng-container>
+        <tr mat-header-row *matHeaderRowDef="columnasArticulos"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnasArticulos"></tr>
+      </table>
+    </mat-tab>
+
+    <mat-tab label="Precios">
+      <div class="fila-acciones">
+        <mat-form-field appearance="outline">
+          <mat-label>Lista de precios</mat-label>
+          <input matInput [ngModel]="codigoLista()" (ngModelChange)="codigoLista.set($event)" (keyup.enter)="cargarPrecios()" />
+        </mat-form-field>
+        <button mat-flat-button type="button" (click)="cargarPrecios()"><mat-icon>search</mat-icon>Ver precios</button>
+      </div>
+      <table mat-table [dataSource]="precios()" class="tabla-completa">
+        <ng-container matColumnDef="codigoArticulo"><th mat-header-cell *matHeaderCellDef>Artículo</th><td mat-cell *matCellDef="let p">{{ p.codigoArticulo }}</td></ng-container>
+        <ng-container matColumnDef="precio"><th mat-header-cell *matHeaderCellDef class="dato-numero">Precio</th><td mat-cell *matCellDef="let p" class="dato-numero">{{ p.precio | number: '1.0-4' }}</td></ng-container>
+        <ng-container matColumnDef="moneda"><th mat-header-cell *matHeaderCellDef>Moneda</th><td mat-cell *matCellDef="let p">{{ p.moneda }}</td></ng-container>
+        <ng-container matColumnDef="vigenteDesde"><th mat-header-cell *matHeaderCellDef>Desde</th><td mat-cell *matCellDef="let p">{{ p.vigenteDesde }}</td></ng-container>
+        <ng-container matColumnDef="vigenteHasta"><th mat-header-cell *matHeaderCellDef>Hasta</th><td mat-cell *matCellDef="let p">{{ p.vigenteHasta ?? '—' }}</td></ng-container>
+        <tr mat-header-row *matHeaderRowDef="columnasPrecios"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnasPrecios"></tr>
+      </table>
+    </mat-tab>
+
+    <mat-tab label="Kits">
+      <div class="fila-acciones">
+        <mat-form-field appearance="outline">
+          <mat-label>Ruta</mat-label>
+          <input matInput [ngModel]="ruta()" (ngModelChange)="ruta.set($event)" (keyup.enter)="cargarKits()" placeholder="Directo sin convenio" />
+        </mat-form-field>
+        <button mat-flat-button type="button" (click)="cargarKits()"><mat-icon>filter_list</mat-icon>Filtrar</button>
+      </div>
+      <p class="texto-secundario">El kit es referencia: se muestra como "kit sugerido" en la OFA y no entra al cálculo.</p>
+      @for (k of kits(); track k.codigoKit) {
+        <mat-card appearance="outlined" class="section-card">
+          <mat-card-header>
+            <mat-card-title>{{ k.codigoKit }} · {{ k.nombre }}</mat-card-title>
+            <mat-card-subtitle>{{ k.ruta ?? 'Sin ruta' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <ul>
+              @for (a of k.articulos; track a.codigoArticulo) {
+                <li>{{ a.codigoArticulo }} × {{ a.cantidad }}</li>
+              }
+            </ul>
+          </mat-card-content>
+        </mat-card>
+      } @empty {
+        <p class="texto-secundario">Sin kits.</p>
+      }
+    </mat-tab>
+
+    <mat-tab label="Tipo de cambio">
+      <div *hasAccess="[Access.CatalogoSap_Importar]" class="fila-acciones">
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha</mat-label>
+          <input matInput type="date" [(ngModel)]="nuevoTipoCambio.fecha" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Moneda</mat-label>
+          <mat-select [(ngModel)]="nuevoTipoCambio.moneda">
+            @for (m of monedasTipoCambio; track m) {
+              <mat-option [value]="m">{{ m }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Valor en CLP</mat-label>
+          <input matInput type="number" min="0" step="0.01" [(ngModel)]="nuevoTipoCambio.valor" />
+        </mat-form-field>
+        <button mat-flat-button type="button" (click)="registrarTipoCambio()"><mat-icon>add</mat-icon>Ingresar manual</button>
+        <span class="texto-secundario">Solo si falta el de SAP: gana el valor de SAP.</span>
+      </div>
+      <table mat-table [dataSource]="tiposCambio()" class="tabla-completa">
+        <ng-container matColumnDef="fecha"><th mat-header-cell *matHeaderCellDef>Fecha</th><td mat-cell *matCellDef="let t">{{ t.fecha }}</td></ng-container>
+        <ng-container matColumnDef="moneda"><th mat-header-cell *matHeaderCellDef>Moneda</th><td mat-cell *matCellDef="let t">{{ t.moneda }}</td></ng-container>
+        <ng-container matColumnDef="valor"><th mat-header-cell *matHeaderCellDef class="dato-numero">Valor</th><td mat-cell *matCellDef="let t" class="dato-numero">{{ t.valor | number: '1.2-4' }}</td></ng-container>
+        <ng-container matColumnDef="fuente"><th mat-header-cell *matHeaderCellDef>Fuente</th><td mat-cell *matCellDef="let t">{{ t.fuente }}</td></ng-container>
+        <tr mat-header-row *matHeaderRowDef="columnasTipoCambio"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnasTipoCambio"></tr>
+      </table>
+    </mat-tab>
+
+    <mat-tab label="Vínculos">
+      <p class="texto-secundario">Una persona fija el artículo SAP de cada servicio. Sin vínculo confirmado, la línea sale "sin artículo SAP" y no pasa la validación de la OFA.</p>
+      <table mat-table [dataSource]="vinculos()" class="tabla-completa">
+        <ng-container matColumnDef="tipoServicioId"><th mat-header-cell *matHeaderCellDef>Servicio</th><td mat-cell *matCellDef="let v">{{ v.tipoServicioId }}</td></ng-container>
+        <ng-container matColumnDef="descripcionServicio"><th mat-header-cell *matHeaderCellDef>Descripción</th><td mat-cell *matCellDef="let v">{{ v.descripcionServicio }}</td></ng-container>
+        <ng-container matColumnDef="articuloSap">
+          <th mat-header-cell *matHeaderCellDef>Artículo SAP</th>
+          <td mat-cell *matCellDef="let v">
+            <mat-select [value]="seleccionVinculo()[v.tipoServicioId]" (selectionChange)="elegirArticulo(v.tipoServicioId, $event.value)" placeholder="Sin vínculo" aria-label="Artículo SAP">
+              @for (a of articulosActivos(); track a.codigoArticulo) {
+                <mat-option [value]="a.codigoArticulo">{{ a.codigoArticulo }} · {{ a.descripcion }}</mat-option>
+              }
+            </mat-select>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="estado"><th mat-header-cell *matHeaderCellDef>Estado</th><td mat-cell *matCellDef="let v">{{ v.estado }}@if (v.confirmadoPor) { <span class="texto-secundario"> · {{ v.confirmadoPor }}</span> }</td></ng-container>
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let v">
+            <button *hasAccess="[Access.CatalogoSap_Importar]" mat-stroked-button type="button" (click)="fijarVinculo(v)">Confirmar</button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="columnasVinculos"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnasVinculos"></tr>
+      </table>
+    </mat-tab>
+
+    <mat-tab label="Importar">
+      <ng-container *hasAccess="[Access.CatalogoSap_Importar]">
+        <div class="fila-acciones">
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo de importación</mat-label>
+            <mat-select [value]="tipoImportacion()" (selectionChange)="cambiarTipo($event.value)">
+              @for (t of tiposImportacion; track t) {
+                <mat-option [value]="t">{{ t }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+        @if (tipoImportacion() === 'COMPLETO') {
+          @for (p of partesCompleto; track p.parte) {
+            <div class="fila-acciones">
+              <label [for]="'archivo-' + p.parte">{{ p.etiqueta }}</label>
+              <input [id]="'archivo-' + p.parte" type="file" accept=".csv" (change)="elegirArchivo(p.parte, $event)" />
+            </div>
+          }
+        } @else {
+          <div class="fila-acciones">
+            <label for="archivo-unico">Archivo CSV</label>
+            <input id="archivo-unico" type="file" accept=".csv" (change)="elegirArchivo('archivo', $event)" />
+          </div>
+          <p class="texto-secundario">Una carga parcial parte de la versión vigente y copia lo que no viene.</p>
+        }
+        <div class="fila-acciones">
+          <button mat-flat-button type="button" (click)="importar()" [disabled]="cargando()"><mat-icon>upload_file</mat-icon>Validar archivos</button>
+          @if (resultado()?.estado === 'PENDIENTE_CONFIRMACION') {
+            <button mat-flat-button class="success" type="button" (click)="confirmarImportacion()" [disabled]="cargando()">
+              <mat-icon>check</mat-icon>Confirmar importación
+            </button>
+          }
+        </div>
+        @if (resultado(); as r) {
+          <p>
+            Estado: <strong [class.texto-error]="r.estado === 'RECHAZADA'">{{ r.estado }}</strong> ·
+            {{ r.filasValidas }} de {{ r.filasLeidas }} filas válidas
+            @if (r.versionBase) { · parte de la versión {{ r.versionBase }} }
+          </p>
+          @if (r.errores.length) {
+            <table mat-table [dataSource]="r.errores" class="tabla-completa">
+              <ng-container matColumnDef="fila"><th mat-header-cell *matHeaderCellDef>Fila</th><td mat-cell *matCellDef="let e">{{ e.fila ?? '—' }}</td></ng-container>
+              <ng-container matColumnDef="columna"><th mat-header-cell *matHeaderCellDef>Columna</th><td mat-cell *matCellDef="let e">{{ e.columna ?? '—' }}</td></ng-container>
+              <ng-container matColumnDef="codigo"><th mat-header-cell *matHeaderCellDef>Código</th><td mat-cell *matCellDef="let e">{{ e.codigo }}</td></ng-container>
+              <ng-container matColumnDef="mensaje"><th mat-header-cell *matHeaderCellDef>Mensaje</th><td mat-cell *matCellDef="let e">{{ e.mensaje }}</td></ng-container>
+              <tr mat-header-row *matHeaderRowDef="columnasErrores"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasErrores"></tr>
+            </table>
+          }
+        }
+      </ng-container>
+    </mat-tab>
+  </mat-tab-group>
+</div>

@@ -9,6 +9,10 @@
  */
 
 
-export interface ProblemDetailsStatus { 
-}
+export const FuenteTipoCambio = {
+    Api: 'API',
+    Archivo: 'ARCHIVO',
+    Manual: 'MANUAL'
+} as const;
+export type FuenteTipoCambio = typeof FuenteTipoCambio[keyof typeof FuenteTipoCambio];
 

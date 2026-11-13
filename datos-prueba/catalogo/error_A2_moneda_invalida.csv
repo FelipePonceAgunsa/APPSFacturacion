@@ -1,0 +1,4 @@
+codigo_lista;nombre_lista;codigo_articulo;precio;moneda;vigente_desde;vigente_hasta
+LP-PUBLICA;Lista pública;SRV-REC-001;17000.00;CLP;2026-01-01;
+LP-PUBLICA;Lista pública;SRV-DES-001;15000.00;EUR;2026-01-01;
+LP-PUBLICA;Lista pública;SRV-MOV-001;12000,00;CLP;2026-01-01;

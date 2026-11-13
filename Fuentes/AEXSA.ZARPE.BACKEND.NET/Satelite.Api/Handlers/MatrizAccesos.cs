@@ -16,7 +16,9 @@ public static class MatrizAccesos
             [
                 AccessNames.Convenios, AccessNames.Convenios_Edit, AccessNames.Convenios_Confirmar,
                 AccessNames.CatalogoSap, AccessNames.CatalogoSap_Importar,
-                AccessNames.Operaciones, AccessNames.Ofa, AccessNames.Ofa_AjusteManual,
+                AccessNames.Operaciones, AccessNames.Operaciones_Edit,
+                AccessNames.Ofa, AccessNames.Ofa_AjusteManual,
+                AccessNames.Configuracion,
             ],
             [RolesSatelite.Comercial] =
             [
@@ -27,7 +29,7 @@ public static class MatrizAccesos
             [
                 AccessNames.Convenios,
                 AccessNames.CatalogoSap, AccessNames.CatalogoSap_Importar,
-                AccessNames.Operaciones, AccessNames.Ofa, AccessNames.Ofa_AjusteManual,
+                AccessNames.Operaciones, AccessNames.Operaciones_Edit, AccessNames.Ofa, AccessNames.Ofa_AjusteManual,
             ],
             [RolesSatelite.Recaudacion] =
             [

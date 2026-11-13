@@ -250,6 +250,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/TerminalMapa' }
         '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
   /configuracion/tipos-inspeccion:
     get:
       tags: [Configuracion]
@@ -480,6 +481,21 @@ paths:
                 items: { $ref: '#/components/schemas/Omision' }
 
   # --------------------------------------------------------------- Catálogo SAP (ADR-017)
+  /tipos-servicio:
+    get:
+      tags: [Catalogo]
+      summary: Catálogo de servicios del Satélite (tipo_servicio, tarea 1.1)
+      description: >
+        Servicios con su unidad de cobro normalizada. El formulario de convenios (C2) toma de aquí el servicio
+        y muestra la unidad, que no se digita (RN-036).
+      responses:
+        '200':
+          description: Servicios del catálogo
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TipoServicio' }
   /catalogo:
     get:
       tags: [Catalogo]
@@ -568,7 +584,11 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/TipoCambio' }
       responses:
-        '201': { description: Tipo de cambio registrado }
+        '201':
+          description: Tipo de cambio registrado (fuente MANUAL)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TipoCambio' }
         '400': { $ref: '#/components/responses/Error400' }
         '409':
           description: TIPO_CAMBIO_DE_SAP_EXISTE. El día ya tiene el valor de SAP.
@@ -632,6 +652,13 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CatalogoResumen' }
         '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: >
+            IMPORTACION_NO_PENDIENTE (ya está CONFIRMADA o RECHAZADA) o IMPORTACION_DESACTUALIZADA (al validar
+            otra vez contra la versión vigente aparecen errores; hay que volver a cargar los archivos).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /catalogo/vinculos:
     get:
@@ -672,7 +699,12 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/VinculoServicioArticulo' }
-        '400': { $ref: '#/components/responses/Error400' }
+        '400':
+          description: ARTICULO_NO_EXISTE. El artículo no está en la versión vigente del catálogo.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/Error404' }
 
   # --------------------------------------------------------------- Callbacks
   /sap/callbacks/folio:
@@ -847,6 +879,15 @@ components:
           minItems: 1
           items: { $ref: '#/components/schemas/ServicioConvenio' }
 
+    # ----- catálogo de servicios
+    TipoServicio:
+      type: object
+      properties:
+        tipoServicioId: { type: integer, description: Clave de MasterData.TipoServicio de AEXSA }
+        codigo: { type: string }
+        descripcion: { type: string }
+        unidad: { $ref: '#/components/schemas/UnidadCobro' }
+        habilitado: { type: boolean, description: Solo los habilitados se facturan (RN-032) }
     # ----- catálogo SAP
     CatalogoResumen:
       type: object
@@ -924,9 +965,14 @@ components:
           items:
             type: object
             properties:
-              fila: { type: integer }
-              columna: { type: string }
-              mensaje: { type: string }
+              fila: { type: integer, nullable: true, description: Línea del archivo (el encabezado es la 1); null si el error es del archivo o del envío }
+              columna: { type: string, nullable: true }
+              codigo:
+                type: string
+                description: >
+                  FORMATO, DUPLICADO, MONEDA_INVALIDA, ARTICULO_NO_EXISTE, PRIMERA_CARGA_SIN_ARTICULOS (rechazan la
+                  importación) o ADVERTENCIA_ARTICULO_INACTIVO, ADVERTENCIA_ARCHIVO_REPETIDO (solo informan)
+              mensaje: { type: string, description: 'Empieza con el archivo entre corchetes, p. ej. [A2]' }
         estado: { type: string, enum: [PENDIENTE_CONFIRMACION, RECHAZADA, CONFIRMADA] }
 
     # ----- operaciones

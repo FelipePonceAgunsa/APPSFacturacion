@@ -1,3 +1,5 @@
+import { Access } from './access.constants';
+
 export interface MenuItem {
   label: string;
   icon: string;
@@ -16,4 +18,12 @@ export interface MenuItem {
  */
 export const MENU_ITEMS: MenuItem[] = [
   { label: 'Inicio', icon: 'home', route: '/inicio', access: [] },
+  { label: 'Catálogo SAP', icon: 'inventory_2', route: '/catalogo', access: [Access.CatalogoSap] },
+  {
+    label: 'Configuración', icon: 'settings', access: [Access.Configuracion],
+    children: [
+      { label: 'Terminales', icon: 'directions_boat', route: '/configuracion/terminales', access: [Access.Configuracion] },
+      { label: 'Tipos de inspección', icon: 'fact_check', route: '/configuracion/tipos-inspeccion', access: [Access.Configuracion] },
+    ],
+  },
 ];

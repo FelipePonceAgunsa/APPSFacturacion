@@ -4,6 +4,8 @@
  */
 export const environment = {
   apiUrl: 'http://localhost:5228',
+  /** Modo abierto de desarrollo. Siempre false fuera de environment.development.ts. */
+  modoAbierto: false,
   cognito: {
     /** https://cognito-idp.<region>.amazonaws.com/<userPoolId>  [POR CONFIRMAR PA-009] */
     authority: '',

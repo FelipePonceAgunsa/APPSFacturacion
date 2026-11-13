@@ -1,0 +1,13 @@
+codigo_articulo;descripcion;unidad_medida;activo;grupo_articulo
+SRV-REC-001;Recepción contenedor;CTR;S;SERVICIOS
+SRV-DES-001;Despacho contenedor;CTR;S;SERVICIOS
+SRV-MOV-001;Movilización contenedor;CTR;S;SERVICIOS
+SRV-VIS-001;Visación documental;BL;S;SERVICIOS
+SRV-SEC-001;Security fee;CTR;S;SERVICIOS
+SRV-REF-001;Refacturación terminal;CTR;S;SERVICIOS
+SRV-ALM-001;Almacenaje por día;CTR_DIA;S;ALMACENAJE
+SRV-SAG-001;Inspección SAG;CTR;S;INSPECCIONES
+SRV-USO-001;Uso de área;CTR;S;SERVICIOS
+SRV-DOC-001;Documentación exportación;DUS;S;DOCUMENTAL
+SRV-MAN-001;Manipuleo por tonelada;TON;S;SERVICIOS
+SRV-OLD-001;Servicio antiguo de ejemplo;CTR;N;

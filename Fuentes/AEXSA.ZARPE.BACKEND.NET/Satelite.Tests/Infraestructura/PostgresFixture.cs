@@ -26,6 +26,29 @@ public sealed class PostgresFixture : IAsyncLifetime
         await db.Database.MigrateAsync();
     }
 
+    /// <summary>
+    /// Crea una base nueva en el mismo contenedor, con la migración aplicada, y devuelve su cadena de conexión.
+    /// Sirve a las pruebas que necesitan partir de una base vacía (p. ej. la primera carga del catálogo).
+    /// </summary>
+    public async Task<string> CrearBaseNuevaAsync()
+    {
+        var nombre = "prueba_" + Guid.NewGuid().ToString("N")[..12];
+        await using (var db = CrearContexto())
+        {
+            // El nombre lo arma esta clase (prefijo fijo + hex): no hay entrada externa.
+#pragma warning disable EF1002
+            await db.Database.ExecuteSqlRawAsync($"CREATE DATABASE {nombre}");
+#pragma warning restore EF1002
+        }
+
+        var cadena = new Npgsql.NpgsqlConnectionStringBuilder(ConnectionString) { Database = nombre }.ConnectionString;
+        await using (var db = new PrincipalDbContext(new DbContextOptionsBuilder<PrincipalDbContext>().UseNpgsql(cadena).Options))
+        {
+            await db.Database.MigrateAsync();
+        }
+        return cadena;
+    }
+
     public ValueTask DisposeAsync() => _contenedor.DisposeAsync();
 }
 

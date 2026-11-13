@@ -80,6 +80,11 @@ docs/arquitectura/*
 !db/
 !db/**
 
+# 8) Datos de prueba INVENTADOS (CSV del catálogo SAP, convenios y eventos de ejemplo, script de punta a punta).
+#    Nunca datos reales de clientes ni de SAP.
+!datos-prueba/
+!datos-prueba/**
+
 # === Exclusiones técnicas habituales ===
 # Secretos — nunca (evita el antipatrón del legacy, BR-016)
 .env

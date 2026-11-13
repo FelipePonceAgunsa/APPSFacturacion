@@ -1,0 +1,8 @@
+codigo_kit;nombre_kit;codigo_articulo;cantidad;ruta;activo
+SPOT-DIRECTO;SPOT contenedor directo;SRV-VIS-001;1;Directo sin convenio;S
+SPOT-DIRECTO;SPOT contenedor directo;SRV-SEC-001;1;Directo sin convenio;S
+SPOT-DIRECTO;SPOT contenedor directo;SRV-REF-001;1;Directo sin convenio;S
+SPOT-INDIRECTO;SPOT contenedor indirecto;SRV-REC-001;1;Indirecto sin convenio;S
+SPOT-INDIRECTO;SPOT contenedor indirecto;SRV-DES-001;1;Indirecto sin convenio;S
+SPOT-INDIRECTO;SPOT contenedor indirecto;SRV-MOV-001;1;Indirecto sin convenio;S
+SPOT-INDIRECTO;SPOT contenedor indirecto;SRV-VIS-001;1;Indirecto sin convenio;S

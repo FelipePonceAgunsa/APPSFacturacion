@@ -22,8 +22,14 @@ export class AuthService {
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
 
-  /** El ambiente tiene configurado el user pool de Cognito. */
-  readonly configurado = cognitoConfigurado;
+  /**
+   * Modo abierto de desarrollo (environment.modoAbierto): no pasa por Cognito; la API (Auth:ModoAbierto,
+   * solo Development) autentica cada request como el usuario local Administrador.
+   */
+  readonly modoAbierto = environment.modoAbierto;
+
+  /** El ambiente puede iniciar sesión: tiene el user pool de Cognito o está en modo abierto. */
+  readonly configurado = cognitoConfigurado || this.modoAbierto;
 
   /** Autenticado en Cognito. */
   readonly autenticado = signal(false);
@@ -39,6 +45,11 @@ export class AuthService {
 
   /** Se ejecuta antes de la primera navegación (provideAppInitializer). Nunca rechaza. */
   async init(): Promise<void> {
+    if (this.modoAbierto) {
+      this.autenticado.set(true);
+      await this.cargarUsuario();
+      return;
+    }
     if (!this.configurado) return;
 
     try {
@@ -55,12 +66,26 @@ export class AuthService {
 
   /** Redirige al inicio de sesión de Cognito (Entra ID). */
   login(): void {
+    if (this.modoAbierto) {
+      this.autenticado.set(true);
+      void this.cargarUsuario().then(() => {
+        if (this.isLoggedIn()) {
+          this.router.navigate([this.getDefaultRoute()]);
+        }
+      });
+      return;
+    }
     if (!this.configurado) return;
     this.oidc.authorize();
   }
 
   /** Cierra la sesión local y en Cognito. */
   cierreSesion(): void {
+    if (this.modoAbierto) {
+      this.limpiarEstado();
+      this.router.navigate(['/']);
+      return;
+    }
     this.oidc.logoffLocal();
     this.limpiarEstado();
 

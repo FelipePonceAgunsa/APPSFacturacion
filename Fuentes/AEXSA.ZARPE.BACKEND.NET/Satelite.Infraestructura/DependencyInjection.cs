@@ -1,7 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Satelite.Aplicacion.Catalogo;
+using Satelite.Aplicacion.Comun;
+using Satelite.Aplicacion.Configuracion;
+using Satelite.Infraestructura.Archivos;
 using Satelite.Infraestructura.Persistencia;
+using Satelite.Infraestructura.Repositorios;
 
 namespace Satelite.Infraestructura;
 
@@ -26,6 +31,25 @@ public static class DependencyInjection
 
         services.AddHealthChecks()
             .AddDbContextCheck<PrincipalDbContext>("postgres");
+
+        services.AddScoped<IUnidadTrabajo, UnidadTrabajo>();
+        services.AddScoped<IAuditoria, Auditoria>();
+
+        // Almacén de archivos: carpeta local (stub de S3). Por defecto <ContentRoot>/App_Data/archivos.
+        services.AddSingleton<IAlmacenArchivos>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var ruta = config["Almacen:RutaLocal"];
+            if (string.IsNullOrWhiteSpace(ruta))
+            {
+                var raiz = config["contentRoot"] ?? Directory.GetCurrentDirectory();
+                ruta = Path.Combine(raiz, "App_Data", "archivos");
+            }
+            return new AlmacenArchivosLocal(ruta);
+        });
+
+        services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
+        services.AddScoped<IConfiguracionRepositorio, ConfiguracionRepositorio>();
 
         return services;
     }

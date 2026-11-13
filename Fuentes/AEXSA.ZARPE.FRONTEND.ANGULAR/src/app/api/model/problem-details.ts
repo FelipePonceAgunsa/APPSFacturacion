@@ -7,13 +7,12 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { ProblemDetailsStatus } from './problem-details-status';
 
 
 export interface ProblemDetails { 
     type?: string | null;
     title?: string | null;
-    status?: ProblemDetailsStatus | null;
+    status?: number | null;
     detail?: string | null;
     instance?: string | null;
 }

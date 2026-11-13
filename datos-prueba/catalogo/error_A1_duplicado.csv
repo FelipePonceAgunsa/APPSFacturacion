@@ -1,0 +1,5 @@
+codigo_articulo;descripcion;unidad_medida;activo;grupo_articulo
+SRV-REC-001;Recepción contenedor;CTR;S;SERVICIOS
+SRV-DES-001;Despacho contenedor;CTR;S;SERVICIOS
+SRV-REC-001;Recepción contenedor repetida;CTR;S;SERVICIOS
+SRV-VIS-001;Visación documental;BL;X;SERVICIOS

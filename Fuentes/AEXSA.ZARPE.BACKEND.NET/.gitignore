@@ -85,3 +85,6 @@ publish/
 *.tmp
 *.cache
 StyleCopReport.xml
+
+# Archivos subidos en desarrollo (almacén local, stub de S3)
+App_Data/

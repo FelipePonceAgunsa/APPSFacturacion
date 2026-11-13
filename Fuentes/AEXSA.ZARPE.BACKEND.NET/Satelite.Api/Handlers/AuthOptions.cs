@@ -27,5 +27,12 @@ public sealed class AuthOptions
     /// </summary>
     public Dictionary<string, string> GruposPorRol { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Modo abierto de desarrollo: cada request queda autenticado como un usuario local con rol Administrador
+    /// (mientras no existan los valores de Cognito, PA-009). Solo se puede activar en el ambiente Development:
+    /// en cualquier otro ambiente la API no arranca.
+    /// </summary>
+    public bool ModoAbierto { get; set; }
+
     public bool EstaConfigurado => !string.IsNullOrWhiteSpace(Authority) && !string.IsNullOrWhiteSpace(ClientId);
 }

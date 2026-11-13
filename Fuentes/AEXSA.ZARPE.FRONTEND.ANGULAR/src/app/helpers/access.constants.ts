@@ -19,4 +19,8 @@ export const Access = {
   Operaciones:          'operaciones',
   Ofa:                  'ofa',
   Ofa_AjusteManual:     'ofa_ajusteManual',
+  Operaciones_Edit:     'operaciones_edit',
+
+  // --- Configuración: terminales y tipos de inspección (Administrador) ---
+  Configuracion:        'configuracion',
 } as const;

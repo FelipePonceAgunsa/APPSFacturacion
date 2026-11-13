@@ -99,3 +99,29 @@ body {
 [mat-dialog-actions] {
   padding: 12px 16px 16px !important;
 }
+
+// ── Pantallas del Satélite (catálogo, configuración, convenios) ──
+.pagina {
+  padding: 16px 2%;
+}
+.fila-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+}
+.tabla-completa {
+  width: 100%;
+}
+.texto-error {
+  color: var(--mat-sys-error);
+}
+.texto-secundario {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+.dato-numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

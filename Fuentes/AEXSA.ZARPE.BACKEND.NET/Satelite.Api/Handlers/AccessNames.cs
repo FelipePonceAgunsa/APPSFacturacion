@@ -19,6 +19,10 @@ public static class AccessNames
 
     // --- Operaciones y OFA (E2) ---
     public const string Operaciones          = "operaciones";
+    public const string Operaciones_Edit     = "operaciones_edit";
     public const string Ofa                  = "ofa";
     public const string Ofa_AjusteManual     = "ofa_ajusteManual";
+
+    // --- Configuración: mapeo de terminales y tipos de inspección (rol Administrador) ---
+    public const string Configuracion        = "configuracion";
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -11,13 +12,30 @@ public static class SeguridadExtensions
     /// Autenticación con el JWT de Cognito federado con Entra ID (ADR-016, tarea 0.4).
     /// La API solo valida el token: firma (JWKS del pool), emisor, expiración, <c>token_use = access</c>
     /// y <c>client_id</c> del app client del Satélite. No emite tokens ni guarda credenciales.
+    /// Con <c>Auth:ModoAbierto</c> (solo Development) registra en su lugar el esquema de modo abierto.
+    /// Devuelve el nombre del esquema activo, que usan las políticas de autorización.
     /// </summary>
-    public static IServiceCollection AddCognitoAuthentication(
+    public static string AddCognitoAuthentication(
         this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var seccion = configuration.GetSection(AuthOptions.Seccion);
         services.Configure<AuthOptions>(seccion);
         var auth = seccion.Get<AuthOptions>() ?? new AuthOptions();
+
+        if (auth.ModoAbierto)
+        {
+            // Secure by default: el modo abierto nunca se activa fuera de Development.
+            if (!environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    $"'Auth:ModoAbierto' solo se permite en el ambiente Development (ambiente actual: {environment.EnvironmentName}).");
+            }
+
+            services.AddAuthentication(ModoAbiertoAuthenticationHandler.Esquema)
+                .AddScheme<AuthenticationSchemeOptions, ModoAbiertoAuthenticationHandler>(
+                    ModoAbiertoAuthenticationHandler.Esquema, _ => { });
+            return ModoAbiertoAuthenticationHandler.Esquema;
+        }
 
         if (!auth.EstaConfigurado && !environment.IsDevelopment())
         {
@@ -73,14 +91,15 @@ public static class SeguridadExtensions
                 };
             });
 
-        return services;
+        return JwtBearerDefaults.AuthenticationScheme;
     }
 
     /// <summary>
     /// Autorización: la política por defecto (y la de respaldo) exige usuario autenticado con al menos
     /// un rol del Satélite. Los endpoints públicos se marcan explícitamente con AllowAnonymous.
+    /// <paramref name="esquema"/> es el esquema de autenticación activo (JWT de Cognito o modo abierto).
     /// </summary>
-    public static IServiceCollection AddAutorizacionSatelite(this IServiceCollection services)
+    public static IServiceCollection AddAutorizacionSatelite(this IServiceCollection services, string esquema)
     {
         services.AddSingleton<ResolutorRoles>();
         services.AddSingleton<IAuthorizationHandler, AccessAuthorizationHandler>();
@@ -88,7 +107,7 @@ public static class SeguridadExtensions
 
         services.AddAuthorization(options =>
         {
-            var politica = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+            var politica = new AuthorizationPolicyBuilder(esquema)
                 .RequireAuthenticatedUser()
                 .AddRequirements(new RolSateliteRequirement())
                 .Build();

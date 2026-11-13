@@ -53,9 +53,6 @@ export class SessionService extends BaseService implements SessionServiceInterfa
 
         let localVarHeaders = this.defaultHeaders;
 
-        // authentication (Bearer) required
-        localVarHeaders = this.configuration.addCredentialToHeaders('Bearer', 'Authorization', localVarHeaders, 'Bearer ');
-
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);

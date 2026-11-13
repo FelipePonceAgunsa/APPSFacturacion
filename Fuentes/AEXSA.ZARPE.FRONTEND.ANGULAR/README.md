@@ -36,6 +36,8 @@ En el app client de Cognito hay que registrar `http://localhost:4200` (y la URL 
 
 Mientras `authority` o `clientId` estén vacíos, la pantalla de ingreso avisa que el inicio de sesión no está configurado.
 
+**Modo abierto de desarrollo.** `environment.development.ts` trae `modoAbierto: true` (en `environment.ts` es `false`). En ese modo la app no pasa por Cognito: `AuthService.init()` carga el usuario con `GET /api/Session/Me` y la API, con `Auth:ModoAbierto` (solo Development), responde como el usuario local Administrador. No hay cierre por inactividad. Se usa mientras no estén los valores de PA-009.
+
 ## Flujo de sesión
 
 1. "Ingresar con cuenta AGUNSA" redirige a Cognito, que delega en Entra ID.
