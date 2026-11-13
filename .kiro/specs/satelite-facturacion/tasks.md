@@ -190,9 +190,9 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 
 ## Fase 5 — Frontend, trazabilidad y cierre
 
-- [~] **5.1a Frontend Angular de la Fase A** — *dividida. Hechas en la etapa 1: modo abierto, convenios C1 a C4, catálogo T3, terminales T4, tipos de inspección, operaciones F1 y F2, OFA F3, F4 y F6 en su forma de la Fase A. Faltan omisiones (F5) y reglas configurables (fuera de alcance de la etapa 1)*
-  - Referencia visual: `docs/arquitectura/mapa-pantallas.md` y el prototipo navegable (se entrega por canal interno).
-  - Pantallas: login y roles; convenios (C1 a C4, formulario manual); catálogo SAP (T3); operaciones (F1, F2); OFA con cálculo, ajuste y "Para digitar en SAP" (F3, F4, F6 en su forma de la Fase A); omisiones (F5); reglas configurables.
+- [~] **5.1a Frontend Angular de la Fase A** — *dividida. Hechas en la etapa 1: modo abierto, convenios C1 a C4, catálogo T3, terminales T4, tipos de inspección, "Por facturar" (F1) y "Operación" (F2, con F3, F4 y F6 como secciones de la misma pantalla, rediseñadas según la maqueta simple el 2026-11-13). Faltan omisiones (F5) y reglas configurables (fuera de alcance de la etapa 1)*
+  - Referencia visual: `docs/arquitectura/mapa-pantallas.md` (v1.1), la maqueta simple de la Fase A (`ux/maqueta-satelite-simple.html`, fuera del repositorio; guía de Por facturar y Operación) y el prototipo navegable (se entrega por canal interno).
+  - Pantallas: login y roles; convenios (C1 a C4, formulario manual); catálogo SAP (T3); Por facturar (F1) y Operación (F2), esta última con el cálculo, el ajuste, el agregado a mano y "Para digitar en SAP" (F3, F4, F6 en su forma de la Fase A, en la misma pantalla); omisiones (F5); reglas configurables.
   - Sin tarjetas de indicadores (KPI) en la primera versión: lo simple primero.
   - Cubre: REQ-004/006/008/012. ADR-001, ADR-016.
 - [ ] **5.1b Frontend de recaudación y cuadraturas** (Fase B)
