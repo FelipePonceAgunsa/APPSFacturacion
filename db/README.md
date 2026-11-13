@@ -32,6 +32,7 @@ Ajustes de la etapa 1 (`02`):
 | E1-4 | Ítem agregado a mano: exige quién, cuándo y motivo, y los prohíbe en las demás líneas |
 | E1-5 | Pendientes: la resolución trae fecha, usuario y tipo juntos; una `DECISION` exige motivo no vacío y la decisión |
 | E1-6 | Contrato de entrada de AEXSA v3.0: `entidad` y `ids_aexsa` (clave única por entidad; visado virtual con un solo ID); `entidad` en la clave de `evento_aexsa`; tabla `operacion_bl` en lugar de `documento_carga_id` y `bls`; `din` y `papeletas` como arreglos de números; sin columnas de aforo (llega en `inspecciones`, con `resultado` validado) |
+| E1-7 | Inspecciones: tabla `tipo_inspeccion_mapa` (código de AEXSA → `AFORO_ADUANA` / `SAG` / `OTRA` / `SIN_MAPEAR`) y pendientes `INSPECCION_NO_FINALIZADA` e `INSPECCION_RECHAZADA` (RN-058) |
 
 Fuera de la etapa 1, sin ajustes: omisiones, alertas y reglas configurables.
 

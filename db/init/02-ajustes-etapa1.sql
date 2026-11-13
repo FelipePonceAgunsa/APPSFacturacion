@@ -179,3 +179,26 @@ ALTER TABLE contenedor_operacion ADD CONSTRAINT ck_contenedor_inspecciones CHECK
             '$[*] ? (!exists(@.tipo) || (exists(@.resultado) && @.resultado != null
                      && !(@.resultado == "APROBADA" || @.resultado == "RECHAZADA_PARCIAL"
                           || @.resultado == "RECHAZADA_TOTAL" || @.resultado == "VISADO_LIBERADO")))')));
+
+-- ===== [E1-7] Inspecciones: tipo mapeado y control antes de validar (contratos-integracion.md §2 nota 15)
+-- AEXSA envia inspecciones[].tipo como codigo de su catalogo. El Administrador asigna cada codigo a un grupo
+-- (mismo patron que terminal_mapa). Un codigo nuevo se inserta como SIN_MAPEAR; mientras tanto, los dias bajo
+-- aforo de ese contenedor quedan como pendiente DIAS_AFORO y los completa el facturador.
+CREATE TABLE IF NOT EXISTS tipo_inspeccion_mapa (
+    codigo_aexsa    varchar(40) PRIMARY KEY,             -- inspecciones[].tipo tal como lo envia AEXSA
+    descripcion     text,
+    grupo           text NOT NULL DEFAULT 'SIN_MAPEAR'
+                    CHECK (grupo IN ('AFORO_ADUANA','SAG','OTRA','SIN_MAPEAR')),  -- AFORO_ADUANA: sus dias no se cobran (RN-052)
+    actualizado_por varchar(80),
+    actualizado_en  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Pendientes nuevos (RN-058): una inspeccion debe estar finalizada para validar la OFA; un rechazo lo decide el facturador.
+--   INSPECCION_NO_FINALIZADA: sin finalizadaEn o con resultado null. Bloquea la validacion.
+--   INSPECCION_RECHAZADA:     resultado RECHAZADA_PARCIAL o RECHAZADA_TOTAL. Exige una DECISION con motivo.
+--   APROBADA o VISADO_LIBERADO, con finalizadaEn: no genera pendiente. El resultado no cambia el precio.
+ALTER TABLE operacion_pendiente DROP CONSTRAINT IF EXISTS operacion_pendiente_tipo_check;
+ALTER TABLE operacion_pendiente ADD CONSTRAINT operacion_pendiente_tipo_check CHECK (tipo IN (
+    'TIPO_RETIRO','SENTIDO','TERMINAL_SIN_MAPEAR','CANTIDAD_DUS','CANTIDAD_SERVICIO','DIAS_AFORO','FECHA_DESPACHO',
+    'VARIOS_CONVENIOS_VIGENTES','DOCUMENTO_CON_VARIAS_SOLICITUDES',
+    'INSPECCION_NO_FINALIZADA','INSPECCION_RECHAZADA'));          -- mismos valores que el OpenAPI

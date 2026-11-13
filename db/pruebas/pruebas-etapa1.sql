@@ -106,6 +106,17 @@ SELECT pg_temp.debe_pasar ('E1-6 inspecciones validas (resultado y null)', $q$IN
 SELECT pg_temp.debe_fallar('E1-6 inspeccion con resultado fuera de la lista (APROBADO)', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'EFGH1234567', '[{"tipo":"SAG","resultado":"APROBADO"}]')$q$);
 SELECT pg_temp.debe_fallar('E1-6 inspeccion sin tipo', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'EFGH1234567', '[{"resultado":"APROBADA"}]')$q$);
 SELECT pg_temp.debe_fallar('E1-6 inspecciones que no son arreglo', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'EFGH1234567', '{"tipo":"SAG"}')$q$);
+-- [E1-7] Inspecciones
+SELECT pg_temp.debe_pasar ('E1-7 tipo de inspeccion nuevo queda SIN_MAPEAR', $q$
+    INSERT INTO tipo_inspeccion_mapa (codigo_aexsa, descripcion) VALUES ('ADU-FIS', 'Aforo fisico');
+    DO $d$ BEGIN IF (SELECT grupo FROM tipo_inspeccion_mapa WHERE codigo_aexsa = 'ADU-FIS') <> 'SIN_MAPEAR' THEN RAISE EXCEPTION 'no quedo SIN_MAPEAR'; END IF; END $d$$q$);
+SELECT pg_temp.debe_pasar ('E1-7 Administrador lo asigna a AFORO_ADUANA', $q$UPDATE tipo_inspeccion_mapa SET grupo = 'AFORO_ADUANA', actualizado_por = 'admin' WHERE codigo_aexsa = 'ADU-FIS'$q$);
+SELECT pg_temp.debe_fallar('E1-7 grupo fuera de la lista', $q$UPDATE tipo_inspeccion_mapa SET grupo = 'ADUANA' WHERE codigo_aexsa = 'ADU-FIS'$q$);
+SELECT pg_temp.debe_pasar ('E1-7 pendiente INSPECCION_NO_FINALIZADA', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion) VALUES ('40000000-0000-0000-0000-000000000001', 'INSPECCION_NO_FINALIZADA', true)$q$);
+SELECT pg_temp.debe_fallar('E1-7 INSPECCION_RECHAZADA resuelta sin motivo', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion, resuelto_en, resuelto_por, resolucion, decision) VALUES ('40000000-0000-0000-0000-000000000001', 'INSPECCION_RECHAZADA', true, now(), 'f', 'DECISION', '{"facturar":true}')$q$);
+SELECT pg_temp.debe_pasar ('E1-7 INSPECCION_RECHAZADA resuelta con motivo', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion, resuelto_en, resuelto_por, resolucion, decision, motivo) VALUES ('40000000-0000-0000-0000-000000000001', 'INSPECCION_RECHAZADA', true, now(), 'f', 'DECISION', '{"facturar":true}', 'Rechazo parcial, se factura lo prestado')$q$);
+SELECT pg_temp.debe_fallar('E1-7 tipo de pendiente desconocido', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion) VALUES ('40000000-0000-0000-0000-000000000001', 'CONVENIO_DISCREPANTE', true)$q$);
+
 SELECT pg_temp.debe_fallar('E1-6 columna documento_carga_id ya no existe', $q$SELECT documento_carga_id FROM operacion$q$);
 SELECT pg_temp.debe_fallar('E1-6 columna aforo_asignado_en ya no existe', $q$SELECT aforo_asignado_en FROM contenedor_operacion$q$);
 

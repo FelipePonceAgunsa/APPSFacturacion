@@ -250,6 +250,44 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/TerminalMapa' }
         '400': { $ref: '#/components/responses/Error400' }
+  /configuracion/tipos-inspeccion:
+    get:
+      tags: [Configuracion]
+      summary: Mapeo de los tipos de inspección de AEXSA a AFORO_ADUANA, SAG u OTRA (RN-052)
+      description: >
+        Un código de inspección que llega por primera vez en un evento se agrega como SIN_MAPEAR. Mientras
+        no se mapee, los días bajo aforo de ese contenedor quedan como pendiente DIAS_AFORO.
+      responses:
+        '200':
+          description: Tipos de inspección y su grupo
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TipoInspeccionMapa' }
+  /configuracion/tipos-inspeccion/{codigo}:
+    put:
+      tags: [Configuracion]
+      summary: Asignar el grupo de un tipo de inspección (solo rol Administrador)
+      parameters:
+        - { name: codigo, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grupo]
+              properties:
+                grupo: { type: string, enum: [AFORO_ADUANA, SAG, OTRA] }
+      responses:
+        '200':
+          description: Mapeo actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TipoInspeccionMapa' }
+        '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
 
   # --------------------------------------------------------------------- OFA
   /operaciones/{operacionId}/ofa:
@@ -900,7 +938,7 @@ components:
               description: Datos que faltan y que el facturador debe completar antes de validar la OFA.
               items:
                 type: string
-                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES]
+                enum: [TIPO_RETIRO, SENTIDO, TERMINAL_SIN_MAPEAR, CANTIDAD_DUS, CANTIDAD_SERVICIO, DIAS_AFORO, FECHA_DESPACHO, VARIOS_CONVENIOS_VIGENTES, DOCUMENTO_CON_VARIAS_SOLICITUDES, INSPECCION_NO_FINALIZADA, INSPECCION_RECHAZADA]
             din:
               type: array
               items: { type: integer, format: int64 }
@@ -1203,14 +1241,29 @@ components:
             type: object
             required: [tipo]
             properties:
-              tipo: { type: string, description: '[POR CONFIRMAR] lista de valores y cuál corresponde al aforo de aduana' }
+              tipo:
+                type: string
+                description: >
+                  Código del catálogo de tipos de inspección de AEXSA (no el texto). El Satélite lo asocia a
+                  AFORO_ADUANA, SAG u OTRA con la tabla tipo_inspeccion_mapa. Un código sin mapear deja los
+                  días bajo aforo como pendiente DIAS_AFORO.
               asignadaEn: { type: string, format: date-time, nullable: true }
               finalizadaEn: { type: string, format: date-time, nullable: true }
               resultado:
                 type: string
                 nullable: true
                 enum: [APROBADA, RECHAZADA_PARCIAL, RECHAZADA_TOTAL, VISADO_LIBERADO]
-                description: null mientras la inspección no termina
+                description: >
+                  null mientras la inspección no termina. No cambia el precio; controla la validación (RN-058):
+                  sin finalizadaEn o con resultado null → pendiente INSPECCION_NO_FINALIZADA;
+                  RECHAZADA_PARCIAL o RECHAZADA_TOTAL → pendiente INSPECCION_RECHAZADA (decide el facturador).
+    TipoInspeccionMapa:
+      type: object
+      properties:
+        codigo: { type: string, description: Código del tipo de inspección en AEXSA }
+        descripcion: { type: string, nullable: true }
+        grupo: { type: string, enum: [AFORO_ADUANA, SAG, OTRA, SIN_MAPEAR] }
+        operacionesPendientes: { type: integer, description: Operaciones que esperan este mapeo }
     BlDocumento:
       type: object
       required: [id, numero]

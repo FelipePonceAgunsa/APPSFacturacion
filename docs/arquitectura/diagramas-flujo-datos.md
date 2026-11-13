@@ -280,7 +280,7 @@ stateDiagram-v2
 
 Notas:
 - La OFA ya enviada no se recalcula: una corrección debe hacerse antes de enviar.
-- Un `VARIOS_CONVENIOS_VIGENTES` o un `DOCUMENTO_CON_VARIAS_SOLICITUDES` exige una decisión registrada antes de pasar a `VALIDADA`.
+- Un `VARIOS_CONVENIOS_VIGENTES`, un `DOCUMENTO_CON_VARIAS_SOLICITUDES` o un `INSPECCION_RECHAZADA` exige una decisión registrada antes de pasar a `VALIDADA`. Un `INSPECCION_NO_FINALIZADA` bloquea hasta que AEXSA informe el término de la inspección (RN-058).
 
 ---
 

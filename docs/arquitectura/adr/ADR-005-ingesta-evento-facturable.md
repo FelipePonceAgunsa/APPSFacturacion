@@ -15,8 +15,9 @@ Decide: Arquitecto de Solución
 >
 > **Actualización 2026-11-13 (ajustes del equipo de AEXSA, contrato v3.0):**
 > 7. **Origen e identidad.** El evento trae `entidad` (`VISADO_VIRTUAL` hoy; `VISADO_PRESENCIAL` después) y `operacionIdAexsa` pasa a ser un arreglo de IDs (uno en visado virtual, varios posibles en presencial). La idempotencia es `entidad` + `operacionIdAexsa` + `version`. Se eliminó `documentoCargaId`: los documentos llegan en `bls` (`id` y `numero`) y el documento compartido se detecta por `bls[].id`. `VISADO_PRESENCIAL` queda fuera de la etapa 1 hasta definir su identidad `[POR CONFIRMAR]`.
-> 8. **DIN contra papeleta.** `papeletas` trae solo IDs, así que el Satélite ya no hace el contraste del punto 4 de la decisión: lo hace el visador en AEXSA antes de aprobar. `[POR CONFIRMAR]` con negocio (REQ-001).
-> 9. **Aforo e inspecciones.** Se eliminó `bajoAforo`; el aforo llega en `inspecciones`, que suman `resultado`. Se eliminaron `dus` y `cantidadDus` en esta entrega.
+> 8. **DIN contra papeleta.** `papeletas` trae solo IDs, así que el Satélite ya no hace el contraste del punto 4 de la decisión: lo hace el visador en AEXSA antes de aprobar (decidido 2026-11-13). `[POR CONFIRMAR]` con negocio para ajustar REQ-001.
+> 9. **Aforo e inspecciones.** Se eliminó `bajoAforo`; el aforo llega en `inspecciones`, que suman `resultado`. El `tipo` es un código del catálogo de AEXSA, mapeado en `tipo_inspeccion_mapa`. El resultado no cambia el precio; controla la validación (pendientes `INSPECCION_NO_FINALIZADA` e `INSPECCION_RECHAZADA`, RN-058). Se eliminaron `dus` y `cantidadDus` en esta entrega.
+> 10. **Visado presencial.** Se pide a AEXSA un ID estable por operación presencial como clave; respaldo: un cambio en la lista de IDs se trata como anulación más operación nueva. Detalle en `contratos-integracion.md` §2 notas 12 a 15.
 
 ## Contexto
 El disparador del ciclo es la **aprobación del visado** por el visador en AEXSA SYS (RN-028, REQ-001). Hay dos mundos: con convenio se factura posterior al despacho (tope 7 días); carga suelta y sin convenio, en la visación (RN-046). AEXSA SYS **no publica eventos** hoy: la operación entra a "Facturación" cambiando de estado (`PREAPROBADO_* → FACTURA_EMITIDA`) en la BD (RN-028, BR-004). No hay un evento sistémico que alimente al Satélite (BR-004). Volumen ~2.428 documentos/mes (RNF-04).
