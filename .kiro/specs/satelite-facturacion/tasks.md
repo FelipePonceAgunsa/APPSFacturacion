@@ -52,7 +52,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 
 ## Fase 0 — Fundaciones
 
-- [ ] **0.1 Scaffolding de la solución** (.NET 10, hexagonal)
+- [~] **0.1 Scaffolding de la solución** (.NET 10, hexagonal) — *hecho en `Fuentes/`, sin `Satelite.Worker` (etapa 2); falta CI (0.3) para cerrarla*
   - Proyectos: `Satelite.Dominio`, `Satelite.Aplicacion`, `Satelite.Infraestructura`, `Satelite.Api`, `Satelite.Worker` (Outbox), `Satelite.Tests`.
   - Referencias: Dominio sin dependencias; Aplicación→Dominio; Infraestructura→Aplicación; Api/Worker→todo.
   - Cubre: ADR-001. Verificación: compila y corre un test vacío.
@@ -62,7 +62,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
 - [ ] **0.3 CI/CD y entorno**
   - GitHub Actions (build + test), ECR, contenedor; secretos en Secrets Manager (no en config, BR-016).
   - Cubre: ADR-001, §7 del diseño. Verificación: pipeline verde.
-- [ ] **0.4 Autenticación y roles** (ADR-016) — *nueva*
+- [~] **0.4 Autenticación y roles** (ADR-016) — *nueva. Validación del JWT, roles y política por defecto hechas; faltan el manejador de autenticación de prueba, las pruebas de integración y los valores de PA-009*
   - La API valida el JWT de Cognito: firma (JWKS), emisor, audiencia o `client_id`, y expiración. No emite tokens ni guarda credenciales.
   - Roles del Satélite: Comercial, Facturación, Recaudación, Administrador. Se aplican **en la API** con políticas de autorización, no solo ocultando menús.
   - Acciones que exigen rol explícito: confirmar convenio, ajuste manual, promover regla, reenviar OFA, importar y confirmar catálogo.
@@ -250,4 +250,4 @@ Completar una fila por tarea terminada (regla del procedimiento de desarrollo: a
 
 | Tarea | Fecha | Archivos generados | Pruebas (cantidad y resultado) | Hallazgos | Pendientes abiertos |
 |---|---|---|---|---|---|
-| | | | | | |
+| 0.1 (parcial) + 0.4 (parcial) + base de 5.1a | 2026-11-13 | `Fuentes/AEXSA.ZARPE.BACKEND.NET` (solución con `Satelite.Dominio`, `.Aplicacion`, `.Infraestructura`, `.Api`, `.Tests`) y `Fuentes/AEXSA.ZARPE.FRONTEND.ANGULAR` (Angular 22.2), desde el estándar AGUNSA BPT | Backend: 2 pruebas de arquitectura, verdes. Frontend: build de producción sin advertencias | El estándar BPT trae login propio con contraseñas; se reemplazó por Cognito (ADR-016). Su `appsettings.json` trae en claro una contraseña SMTP y la clave JWT: no se copiaron | CI (0.3); valores de Cognito y nombres de grupos (PA-009); matriz rol→acceso `[SUPUESTO]`; migración inicial (0.2); `Satelite.Worker` en etapa 2 |

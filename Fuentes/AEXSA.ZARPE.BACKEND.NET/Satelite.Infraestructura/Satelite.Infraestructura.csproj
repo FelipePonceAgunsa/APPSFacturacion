@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Adaptadores: EF Core + PostgreSQL, clientes de Agunsa Connect / SAP / AEXSA, Outbox.
+       Implementa los puertos definidos en Satelite.Aplicacion (ADR-001). -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Satelite.Aplicacion\Satelite.Aplicacion.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.15" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+</Project>

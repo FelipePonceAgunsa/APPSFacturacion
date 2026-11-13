@@ -1,0 +1,250 @@
+:host {
+    display: block;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: #da291c;
+}
+
+.logo-mobile {
+    display: none;
+}
+
+@media (min-width: 600px) {
+    .login-page {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .logo-side {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: rgb(218, 41, 28);
+        width: 50%;
+        overflow: hidden;
+    }
+
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 50%;
+        background-color: var(--mat-sys-surface-container, #efeded);
+    }
+
+    .login-content {
+        max-width: 360px;
+        width: 100%;
+        padding: 0 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .login-page {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #da291c;
+        padding: 24px 0;
+    }
+
+    .logo-side {
+        display: none;
+    }
+
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .login-content {
+        max-width: 95%;
+        width: 100%;
+        padding: 32px 24px;
+        background-color: var(--mat-sys-surface-container, #efeded);
+        border-radius: 16px;
+    }
+
+    .login-subtitle {
+        margin-bottom: 24px;
+    }
+}
+
+// ─── Orbit System ───
+
+.orbit-system {
+    position: relative;
+    width: 580px;
+    height: 580px;
+    flex-shrink: 0;
+}
+
+.logo-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 170px;
+    max-height: 55px;
+    object-fit: contain;
+    z-index: 2;
+}
+
+.ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+
+    &.inner-ring-visual {
+        width: 310px;
+        height: 310px;
+        margin-left: -155px;
+        margin-top: -155px;
+    }
+
+    &.outer-ring-visual {
+        width: 510px;
+        height: 510px;
+        margin-left: -255px;
+        margin-top: -255px;
+    }
+}
+
+.orbit-item {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+
+    img {
+        position: absolute;
+        object-fit: contain;
+    }
+
+    &.inner-item {
+        animation: spin-cw 18s linear infinite var(--delay, 0s);
+
+        img {
+            max-width: 95px;
+            max-height: 44px;
+            animation: counter-cw 18s linear infinite var(--delay, 0s);
+        }
+    }
+
+    &.outer-item {
+        animation: spin-ccw 30s linear infinite var(--delay, 0s);
+
+        img {
+            max-width: 65px;
+            max-height: 30px;
+            animation: counter-ccw 30s linear infinite var(--delay, 0s);
+        }
+    }
+}
+
+// ─── Keyframes: Orbita interior (horario) ───
+
+@keyframes spin-cw {
+    from { transform: rotate(0deg) translateX(155px); }
+    to { transform: rotate(360deg) translateX(155px); }
+}
+
+@keyframes counter-cw {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(-360deg); }
+}
+
+// ─── Keyframes: Orbita exterior (antihorario) ───
+
+@keyframes spin-ccw {
+    from { transform: rotate(0deg) translateX(255px); }
+    to { transform: rotate(-360deg) translateX(255px); }
+}
+
+@keyframes counter-ccw {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orbit-item,
+    .orbit-item img {
+        animation: none !important;
+    }
+}
+
+.login-logo {
+    display: block;
+    max-width: 200px;
+    object-fit: contain;
+    margin: 0 auto 16px;
+}
+
+.login-subtitle {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.65);
+    margin: 0 0 48px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+
+    mat-form-field {
+        width: 100%;
+    }
+
+    button[type="submit"] {
+        width: 100%;
+        margin-top: 8px;
+        --mdc-filled-button-container-color: #da291c;
+        --mdc-filled-button-label-text-color: #fff;
+    }
+}
+
+mat-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+.app-version {
+    margin: 16px 0 0;
+    text-align: center;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: rgba(0, 0, 0, 0.55);
+}
+
+// ─── Ingreso con cuenta corporativa (Cognito / Entra ID) ───
+
+.login-form button {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.login-message {
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0 0 16px;
+}

@@ -1,0 +1,65 @@
+@if (vbCargando()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+<div class="login-page">
+  <div class="logo-side">
+    <img class="logo-mobile" src="./assets/img/agunsa_white.png" alt="Agunsa Logo" width="170" height="55">
+    <div class="orbit-system" aria-hidden="true">
+      <img class="logo-center" src="./assets/img/agunsa_white.png" alt="" width="170" height="55">
+
+      <div class="ring inner-ring-visual"></div>
+      <div class="ring outer-ring-visual"></div>
+
+      @for (item of innerOrbit; track item.alt) {
+        <div class="orbit-item inner-item" [style.--delay]="item.delay">
+          <img [src]="item.src" [alt]="item.alt" width="95" height="44">
+        </div>
+      }
+
+      @for (item of outerOrbit; track item.alt) {
+        <div class="orbit-item outer-item" [style.--delay]="item.delay">
+          <img [src]="item.src" [alt]="item.alt" width="65" height="30">
+        </div>
+      }
+    </div>
+  </div>
+  <div class="login-container">
+    <div class="login-content">
+      <img class="login-logo" src="./assets/img/logo_red.png" alt="AGUNSA" width="200" height="auto">
+      <p class="login-subtitle">ZARPE - FACTURACIÓN</p>
+
+      @if (!authService.configurado) {
+        <p class="login-message">
+          El inicio de sesión corporativo aún no está configurado en este ambiente
+          (user pool y app client de Cognito).
+        </p>
+      } @else if (authService.sinRolSatelite()) {
+        <p class="login-message">
+          Tu cuenta no tiene un rol asignado en ZARPE - FACTURACIÓN.
+          Solicita el acceso a TI del proyecto.
+        </p>
+        <div class="login-form">
+          <button mat-flat-button type="button" (click)="logout()">
+            <mat-icon aria-hidden="true">logout</mat-icon>
+            Cerrar sesión
+          </button>
+        </div>
+      } @else {
+        <div class="login-form">
+          <button mat-flat-button type="submit" (click)="login()" [disabled]="vbCargando()">
+            <mat-icon aria-hidden="true">login</mat-icon>
+            @if (vbCargando()) {
+              Redirigiendo…
+            } @else {
+              Ingresar con cuenta AGUNSA
+            }
+          </button>
+        </div>
+      }
+
+      @if (appVersion()) {
+        <p class="app-version">{{ appVersion() }}</p>
+      }
+    </div>
+  </div>
+</div>

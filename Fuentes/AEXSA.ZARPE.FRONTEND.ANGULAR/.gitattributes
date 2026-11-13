@@ -1,0 +1,3 @@
+# El cliente generado por openapi-generator siempre en LF:
+# evita diffs de line-endings en cada regeneración
+src/app/api/** text eol=lf

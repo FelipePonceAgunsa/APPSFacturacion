@@ -1,0 +1,101 @@
+@use '@angular/material' as mat;
+@use 'ngx-toastr/toastr';
+@use './theme-colors' as agunsa;
+
+// ── Tema corporativo AGUNSA (Material 3) ──
+// Generado desde Brand Book 2026:
+//   Primary:  #DA291C  (Pantone 485 C — rojo corporativo)
+//   Tertiary: #3F3F3E  (Pantone P 179-14C — gris oscuro)
+//   Neutral:  #9A9999  (Pantone Cool Gray 9C)
+html {
+    color-scheme: light;
+
+    @include mat.theme((
+        color: (
+            theme-type: light,
+            primary: agunsa.$primary-palette,
+            tertiary: agunsa.$tertiary-palette,
+        ),
+        typography: Roboto,
+        density: 0,
+    ));
+}
+
+html,
+body,
+app-root {
+    height: 100%;
+}
+
+app-root {
+    display: block;
+}
+
+body {
+    margin: 0;
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+// ── Utilidades de layout ──
+.section-card {
+    margin: 2%;
+}
+
+.position-left {
+    position: absolute;
+    left: 5px;
+}
+
+// ── Variantes de color para botones M3 ──
+// En M3, color="primary/warn/accent" no funciona.
+// Usar estas clases CSS que sobreescriben los tokens del componente.
+
+// Tertiary (gris corporativo)
+.tertiary {
+    --mat-sys-primary: var(--mat-sys-tertiary);
+    --mat-sys-on-primary: var(--mat-sys-on-tertiary);
+    --mat-sys-primary-container: var(--mat-sys-tertiary-container);
+    --mat-sys-on-primary-container: var(--mat-sys-on-tertiary-container);
+}
+
+// Warn / Error (naranja)
+.warn {
+    --mat-sys-primary: var(--mat-sys-error);
+    --mat-sys-on-primary: var(--mat-sys-on-error);
+    --mat-sys-primary-container: var(--mat-sys-error-container);
+    --mat-sys-on-primary-container: var(--mat-sys-on-error-container);
+}
+
+// Success (verde)
+.success {
+    --mat-sys-primary: #4caf50;
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: #c8e6c9;
+    --mat-sys-on-primary-container: #1b5e20;
+}
+
+// ── Padding consistente en modals ──
+.mat-mdc-dialog-surface {
+  padding: 8px 8px 0 !important;
+}
+
+.mat-mdc-dialog-title,
+[mat-dialog-title] {
+  padding: 16px 16px 8px !important;
+  position: static !important;
+  z-index: auto !important;
+
+  &::after {
+    content: none !important;
+  }
+}
+
+.mat-mdc-dialog-content,
+[mat-dialog-content] {
+  padding: 2px 16px !important;
+}
+
+.mat-mdc-dialog-actions,
+[mat-dialog-actions] {
+  padding: 12px 16px 16px !important;
+}

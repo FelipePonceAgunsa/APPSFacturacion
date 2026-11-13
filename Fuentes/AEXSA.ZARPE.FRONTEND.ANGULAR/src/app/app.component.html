@@ -1,0 +1,5 @@
+@if (authService.isLoggedIn()) {
+  <app-side-menu></app-side-menu>
+} @else {
+  <router-outlet />
+}

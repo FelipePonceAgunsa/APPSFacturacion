@@ -1,0 +1,92 @@
+<mat-sidenav-container #swipeArea class="sidenav-container">
+  <mat-sidenav #sidenav class="sidenav"
+    [mode]="isMobile() ? 'over' : 'side'"
+    [opened]="!isMobile()">
+    <div class="sidenavchild">
+      <div class="nav-header">
+        <div class="system-name">
+          <img class="shadow" src="./assets/img/logo_white.png" alt="AGUNSA" width="150" height="auto">
+          <p class="product-name">ZARPE - FACTURACIÓN</p>
+        </div>
+
+        <div class="user-info">
+          <div class="avatar shadow">{{ initials() }}</div>
+          <div class="user-details">
+            <p class="user-name shadow">{{ userName() }}</p>
+            <div class="role-chips">
+              @for (r of actorRoles(); track r) {
+                <span class="role-chip">{{ r }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-nav-list class="menu-list">
+        @for (item of menuItems; track item.label; let i = $index) {
+          @if (isMenuVisible(item)) {
+
+            @if (item.children) {
+              <button mat-list-item class="menu-item" (click)="toggleSubmenu(i)"
+                [attr.aria-expanded]="isExpanded(i)">
+                <div class="menu-item-content">
+                  <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+                  <span>{{ item.label }}</span>
+                  <mat-icon aria-hidden="true" class="expand-icon"
+                    [class.rotated]="isExpanded(i)">expand_more</mat-icon>
+                </div>
+              </button>
+
+              @if (isExpanded(i)) {
+                @for (child of item.children; track child.label) {
+                  @if (isMenuVisible(child)) {
+                    <a mat-list-item class="menu-item submenu-item"
+                      [routerLink]="child.route"
+                      routerLinkActive="active">
+                      <div class="menu-item-content">
+                        <mat-icon aria-hidden="true">{{ child.icon }}</mat-icon>
+                        <span>{{ child.label }}</span>
+                      </div>
+                    </a>
+                  }
+                }
+              }
+
+            } @else {
+              <a mat-list-item class="menu-item"
+                [routerLink]="item.route"
+                routerLinkActive="active">
+                <div class="menu-item-content">
+                  <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+                  <span>{{ item.label }}</span>
+                </div>
+              </a>
+            }
+
+          }
+        }
+      </mat-nav-list>
+
+      <mat-nav-list class="footer-list">
+        <button mat-list-item class="logout-item" (click)="confirmLogout()">
+          <div class="menu-item-content logout-content">
+            <mat-icon aria-hidden="true">logout</mat-icon>
+            <span>Cerrar Sesión</span>
+          </div>
+        </button>
+      </mat-nav-list>
+      @if (appVersion()) {
+        <p class="app-version">{{ appVersion() }}</p>
+      }
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="content-toolbar">
+      <button mat-icon-button (click)="sidenav.toggle()" aria-label="Alternar menú">
+        <mat-icon aria-hidden="true">menu</mat-icon>
+      </button>
+    </mat-toolbar>
+    <router-outlet />
+  </mat-sidenav-content>
+</mat-sidenav-container>

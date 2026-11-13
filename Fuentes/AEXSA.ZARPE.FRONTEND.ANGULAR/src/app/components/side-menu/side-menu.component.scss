@@ -1,0 +1,266 @@
+@use 'sass:color';
+
+// ── Paleta corporativa AGUNSA (Brand Book 2026) ──
+$red-485c: #DA291C;          // Pantone 485 C — rojo corporativo
+$gray-179: #3F3F3E;          // Pantone P 179-14C — gris oscuro
+$black-process: #2D2926;     // Pantone Process Black C
+$gray-cool9: #9A9999;        // Pantone Cool Gray 9C
+$gray-cool9-40: #D0D0D2;    // Pantone 40% Cool Gray 9C — gris claro
+
+// ── Variables de componente ──
+$sidenav-width: 280px;
+$header-overlay: rgba($black-process, 0.5);
+$menu-color: $gray-179;
+$active-color: $red-485c;
+$active-bg: rgba($red-485c, 0.08);
+
+app-side-menu {
+    display: block;
+    height: 100%;
+
+    // ── Layout principal ──
+    .sidenav-container {
+        height: 100%;
+    }
+
+    .sidenav {
+        width: $sidenav-width;
+        background-color: var(--mat-sys-surface-container-lowest, #ffffff);
+        --mat-sidenav-container-shape: 0;
+    }
+
+    .sidenavchild {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    // ── Header (logo + usuario) ──
+    .nav-header {
+        background: linear-gradient(160deg, color.adjust($red-485c, $lightness: -12%) 0%, $red-485c 100%);
+        padding: 24px 16px 16px;
+    }
+
+    .system-name {
+        text-align: center;
+        margin-bottom: 12px;
+
+        img {
+            object-fit: contain;
+        }
+    }
+
+    .product-name {
+        margin: 8px 0 0;
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+    }
+
+    .user-info {
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        text-decoration: none;
+        border-radius: 8px;
+        padding: 8px;
+        margin: 0 -8px;
+
+        p {
+            margin: 0;
+            line-height: 1.3;
+        }
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 50%;
+        background-color: white;
+        color: $red-485c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: white;
+    }
+
+    .role-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 4px;
+    }
+
+    .role-chip {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1;
+        padding: 4px 10px;
+        border-radius: 10px;
+        background-color: rgba(white, 0.2);
+        color: white;
+        white-space: nowrap;
+    }
+
+    .shadow {
+        filter: none;
+    }
+
+    // ── Menú ──
+    .menu-list {
+        --mat-list-active-indicator-shape: 0;
+        padding-top: 8px;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    .footer-list {
+        --mat-list-active-indicator-shape: 0;
+        padding-top: 8px;
+    }
+
+    .app-version {
+        margin: 0;
+        padding: 0 16px 12px;
+        text-align: center;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: rgba(0, 0, 0, 0.55);
+    }
+
+    // Forzar alineación izquierda y quitar borde en button mat-list-item
+    button.menu-item {
+        text-align: left;
+        border: none;
+
+        .mdc-list-item__content {
+            text-align: left;
+        }
+    }
+
+    .menu-item-content {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 16px;
+        color: $menu-color;
+        font-weight: 550;
+
+        mat-icon {
+            color: $menu-color;
+            flex-shrink: 0;
+        }
+
+        span {
+            flex: 1;
+        }
+
+        .expand-icon {
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+
+            &.rotated {
+                transform: rotate(180deg);
+            }
+        }
+    }
+
+    // ── Active state ──
+    .menu-item.active {
+        background-color: $active-bg;
+        border-right: 3px solid $active-color;
+
+        .menu-item-content {
+            color: $active-color;
+            font-weight: 600;
+
+            mat-icon {
+                color: $active-color;
+            }
+        }
+    }
+
+    // ── Submenús ──
+    .submenu-item .menu-item-content {
+        padding-left: 24px;
+    }
+
+    .footer-list {
+        padding-bottom: 8px;
+    }
+
+    .logout-item {
+        text-align: left;
+        border: none;
+
+        .mdc-list-item__content {
+            text-align: left;
+        }
+    }
+
+    .logout-content {
+        color: $gray-cool9 !important;
+        font-weight: 500 !important;
+
+        mat-icon {
+            color: $gray-cool9 !important;
+        }
+
+        &:hover {
+            color: $red-485c !important;
+
+            mat-icon {
+                color: $red-485c !important;
+            }
+        }
+    }
+
+    // ── Contenido principal ──
+    mat-sidenav-content {
+        background-color: var(--mat-sys-surface-container, #efeded);
+    }
+
+    // ── Toolbar ──
+    .content-toolbar {
+        background: var(--mat-sys-surface-container-lowest, #ffffff);
+        padding: 0 8px;
+        height: 48px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    // ── Responsive ──
+    @media (max-width: 600px) {
+        .sidenav {
+            width: 100%;
+            overscroll-behavior: contain;
+        }
+
+        .sidenavchild {
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+    }
+
+    // ── Accesibilidad: respetar preferencia de movimiento reducido ──
+    @media (prefers-reduced-motion: reduce) {
+        .expand-icon {
+            transition: none !important;
+        }
+    }
+}

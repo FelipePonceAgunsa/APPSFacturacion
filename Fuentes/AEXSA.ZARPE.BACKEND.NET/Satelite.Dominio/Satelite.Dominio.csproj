@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Núcleo del dominio: entidades, motor de tarifas, reglas e invariantes.
+       Regla de arquitectura (ADR-001): este proyecto NO referencia ningún otro
+       proyecto ni paquete de infraestructura. -->
+
+</Project>

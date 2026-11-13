@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-icon {
+  color: var(--mat-sys-error);
+}
+
+.warning-message {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.countdown-container {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.countdown-time {
+  font-size: 40px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-error);
+  line-height: 1;
+}
+
+.countdown-label {
+  font-size: 14px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+mat-progress-bar {
+  margin-bottom: 8px;
+  border-radius: 4px;
+}

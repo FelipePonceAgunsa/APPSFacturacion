@@ -1,0 +1,17 @@
+@Satelite_Api_HostAddress = http://localhost:5228
+# Access token de Cognito (copiarlo desde el navegador tras iniciar sesión en el frontend)
+@token =
+
+### Versión desplegada
+GET {{Satelite_Api_HostAddress}}/
+
+### Liveness
+GET {{Satelite_Api_HostAddress}}/health
+
+### Conectividad con PostgreSQL
+GET {{Satelite_Api_HostAddress}}/health/db
+
+### Usuario actual (roles y accesos)
+GET {{Satelite_Api_HostAddress}}/api/Session/Me
+Authorization: Bearer {{token}}
+Accept: application/json
