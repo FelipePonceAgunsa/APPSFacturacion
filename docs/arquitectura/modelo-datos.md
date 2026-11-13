@@ -22,6 +22,16 @@ Propósito: especificar el **modelo físico** (tablas, columnas, tipos, claves, 
 > | 9 | Enums distintos entre BD y API | Se alinean con el OpenAPI: origen del catálogo `ARCHIVO` / `API`; origen del vínculo `SUGERENCIA` / `MANUAL` |
 > | 10 | Sin tablas para omisiones ni alertas | Nuevas tablas `omision_detectada` (con la decisión) y `alerta` |
 > | 11 | `memoria_calculo.tarifa_snapshot_ver` y `tipo_cambio.fuente` sin FK ni CHECK | FK a `catalogo_snapshot(version)` y `CHECK (fuente IN ('API_SAP','ARCHIVO','MANUAL'))` |
+>
+> **Segunda revisión del DBA (2026-11-05).** Marcadas `-- [DBA-nb]`. Probadas con 22 casos que deben fallar o pasar (`DBA/probar_ddl.py`; detalle en `DBA/README.md`).
+>
+> | N.º | Observación | Corrección |
+> |---|---|---|
+> | 1b | Una versión más antigua podía aplicarse después de una más nueva | Algoritmo de ingesta explícito (sección 4b) y trigger `tr_operacion_version_no_retrocede`: `version_evento` nunca baja. La versión antigua queda `RECHAZADO` con `VERSION_SUPERADA` y AEXSA recibe `409` |
+> | 3b / 4b | Una importación solo de listas creaba una versión sin artículos y la FK de `tarifa_snapshot` fallaba | Cada versión es **completa**: la importación parcial copia desde `base_version` lo que no vino. La primera versión exige artículos. `sap_kit_articulo` también queda con FK al artículo de su misma versión |
+> | 6b | Faltaba exigir `agregada_por` en las líneas agregadas a mano | `CHECK ck_linea_agregada_manual`: una línea `AGREGADA_MANUAL` exige `agregada_por` y `motivo_agregada`; las demás no los llevan |
+> | 8b | Faltaba exigir el motivo cuando la resolución es `DECISION` | `CHECK ck_pendiente_decision_con_motivo` y `ck_pendiente_resolucion_completa`. Mismo criterio aplicado a `omision_detectada` (descartar exige motivo) |
+> | 10b | El índice de alertas permitía duplicados con `entidad_id` nulo | `NULLS NOT DISTINCT` (requiere PostgreSQL 15+; el estándar es RDS 16) |
 
 > Principios aplicados: identidad de cliente por **RUT** (BR-020); versionado con vigencia en convenios/tarifas/reglas (un cálculo fija la versión usada); **auditoría append-only** (`memoria_calculo`, `evento_auditoria`); **folio** como clave de cuadratura operación↔OFA↔factura↔pago (RN-029, RNF-02).
 
@@ -178,6 +188,20 @@ CREATE TABLE operacion (
     actualizado_en      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_operacion_cliente ON operacion (cliente_id);
+
+-- [DBA-1b] La version aplicada nunca retrocede: una version mas antigua que llega tarde no puede pisar a una mas nueva.
+-- Respaldo en la base de la regla de ingesta (ver "Algoritmo de ingesta" en la seccion 5).
+CREATE FUNCTION operacion_version_no_retrocede() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.version_evento < OLD.version_evento THEN
+        RAISE EXCEPTION 'version_evento no puede retroceder (% -> %)', OLD.version_evento, NEW.version_evento
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER tr_operacion_version_no_retrocede
+    BEFORE UPDATE OF version_evento ON operacion
+    FOR EACH ROW EXECUTE FUNCTION operacion_version_no_retrocede();
 CREATE INDEX ix_operacion_documento ON operacion (documento_carga_id);
 
 -- Contenedores de la operacion: almacenaje, despacho, aforo e inspecciones (RN-033/046/052/058).
@@ -240,7 +264,15 @@ CREATE TABLE operacion_pendiente (
     resuelto_por   varchar(120),
     resolucion     text CHECK (resolucion IN ('DATO_COMPLETADO','DECISION','YA_NO_APLICA')),
     decision       jsonb,                                      -- p.ej. {convenioElegido} o {operacionValida}
-    motivo         text                                        -- obligatorio si resolucion = DECISION
+    motivo         text,                                       -- obligatorio si resolucion = DECISION
+    -- [DBA-8b] Resolver es todo o nada: fecha, usuario y tipo de resolucion van juntos.
+    CONSTRAINT ck_pendiente_resolucion_completa CHECK (
+        (resuelto_en IS NULL AND resuelto_por IS NULL AND resolucion IS NULL)
+     OR (resuelto_en IS NOT NULL AND resuelto_por IS NOT NULL AND resolucion IS NOT NULL)),
+    -- [DBA-8b] Una DECISION exige motivo no vacio y la decision tomada.
+    CONSTRAINT ck_pendiente_decision_con_motivo CHECK (
+        resolucion IS DISTINCT FROM 'DECISION'
+     OR (decision IS NOT NULL AND motivo IS NOT NULL AND btrim(motivo) <> ''))
 );
 CREATE UNIQUE INDEX ux_pendiente_abierto
     ON operacion_pendiente (operacion_id, tipo) WHERE resuelto_en IS NULL;
@@ -291,9 +323,15 @@ CREATE TABLE catalogo_snapshot (
     fecha           timestamptz NOT NULL DEFAULT now(),
     origen          text NOT NULL CHECK (origen IN ('ARCHIVO','API')),        -- [DBA-9]
     importacion_id  uuid NOT NULL UNIQUE REFERENCES catalogo_importacion(id),
+    base_version    int REFERENCES catalogo_snapshot(version), -- [DBA-3b] version de la que se copiaron los recursos no importados
     confirmado_por  varchar(120) NOT NULL,               -- confirmacion humana antes de activar
-    confirmado_en   timestamptz NOT NULL
+    confirmado_en   timestamptz NOT NULL,
+    CONSTRAINT ck_snapshot_base_anterior CHECK (base_version IS NULL OR base_version < version)
 );
+-- [DBA-3b] Cada version es COMPLETA. Al confirmar una importacion parcial (p.ej. solo LISTAS_PRECIOS), la version
+-- nueva copia de base_version (la vigente) los recursos que no vinieron: articulos, listas, kits. Asi las FK de
+-- tarifa_snapshot y sap_kit_articulo siempre encuentran sus articulos en la misma version.
+-- La primera version (base_version null) debe venir de una importacion COMPLETO o ARTICULOS (regla de aplicacion).
 ALTER TABLE catalogo_importacion
     ADD CONSTRAINT fk_importacion_snapshot FOREIGN KEY (snapshot_version) REFERENCES catalogo_snapshot(version);
 
@@ -324,14 +362,18 @@ CREATE TABLE sap_kit (
     kit_codigo       varchar(40) NOT NULL,
     nombre           text NOT NULL,
     ruta             text,                               -- ruta a la que aplica (directo, indirecto sin convenio, con convenio...)
-    UNIQUE (snapshot_version, kit_codigo)
+    UNIQUE (snapshot_version, kit_codigo),
+    UNIQUE (id, snapshot_version)                        -- para que la composicion use la misma version
 );
 
 CREATE TABLE sap_kit_articulo (
-    kit_id       uuid NOT NULL REFERENCES sap_kit(id),
-    articulo_id  varchar(40) NOT NULL,
-    cantidad     numeric(18,4) NOT NULL DEFAULT 1,
-    PRIMARY KEY (kit_id, articulo_id)
+    kit_id           uuid NOT NULL,
+    snapshot_version int  NOT NULL,                      -- [DBA-3b] misma version que el kit
+    articulo_id      varchar(40) NOT NULL,
+    cantidad         numeric(18,4) NOT NULL DEFAULT 1 CHECK (cantidad > 0),
+    PRIMARY KEY (kit_id, articulo_id),
+    FOREIGN KEY (kit_id, snapshot_version) REFERENCES sap_kit(id, snapshot_version),
+    FOREIGN KEY (snapshot_version, articulo_id) REFERENCES sap_articulo(snapshot_version, codigo)
 );
 
 -- Vinculo servicio del Satelite <-> articulo SAP (sugerencia opcional + confirmacion humana).
@@ -437,7 +479,13 @@ CREATE TABLE linea_ofa (
                          CHECK (origen IN ('CALCULADA','AGREGADA_MANUAL','REGLA_CONFIGURABLE')), -- [DBA-6]
     en_kit_sap          boolean,                           -- [DBA-6] esta en el kit sugerido (ADR-017); null si no hay kit
     agregada_por        varchar(120),                      -- [DBA-6] solo si origen = AGREGADA_MANUAL
-    linea_origen_id     uuid REFERENCES linea_ofa(id)      -- linea de la version anterior que esta reemplaza (trazabilidad del recalculo)
+    motivo_agregada     text,                              -- [DBA-6b] motivo obligatorio del agregado manual (POST /ofa/{id}/lineas)
+    linea_origen_id     uuid REFERENCES linea_ofa(id),     -- linea de la version anterior que esta reemplaza (trazabilidad del recalculo)
+    -- [DBA-6b] Una linea agregada a mano lleva quien y por que; las demas no llevan esos datos.
+    CONSTRAINT ck_linea_agregada_manual CHECK (
+        (origen = 'AGREGADA_MANUAL' AND agregada_por IS NOT NULL AND btrim(agregada_por) <> ''
+                                    AND motivo_agregada IS NOT NULL AND btrim(motivo_agregada) <> '')
+     OR (origen <> 'AGREGADA_MANUAL' AND agregada_por IS NULL AND motivo_agregada IS NULL))
 );
 CREATE INDEX ix_linea_ofa_ofa ON linea_ofa (ofa_id, version_calculo);
 CREATE INDEX ix_linea_ofa_origen ON linea_ofa (ofa_id, origen);
@@ -481,7 +529,13 @@ CREATE TABLE omision_detectada (
     motivo           text,                               -- obligatorio si DESCARTADA
     decidida_por     varchar(120),
     decidida_en      timestamptz,
-    linea_ofa_id     uuid REFERENCES linea_ofa(id)       -- linea creada si se incluyo
+    linea_ofa_id     uuid REFERENCES linea_ofa(id),      -- linea creada si se incluyo
+    -- Mismo criterio que operacion_pendiente: decidir es todo o nada, y descartar exige motivo.
+    CONSTRAINT ck_omision_decision_completa CHECK (
+        (decision IS NULL AND decidida_por IS NULL AND decidida_en IS NULL)
+     OR (decision IS NOT NULL AND decidida_por IS NOT NULL AND decidida_en IS NOT NULL)),
+    CONSTRAINT ck_omision_descarte_con_motivo CHECK (
+        decision IS DISTINCT FROM 'DESCARTADA' OR (motivo IS NOT NULL AND btrim(motivo) <> ''))
 );
 CREATE INDEX ix_omision_operacion ON omision_detectada (operacion_id);
 CREATE INDEX ix_omision_sin_decidir ON omision_detectada (operacion_id) WHERE decision IS NULL;
@@ -502,7 +556,10 @@ CREATE TABLE alerta (
     comentario     text
 );
 CREATE INDEX ix_alerta_abierta ON alerta (tipo, creada_en) WHERE estado = 'ABIERTA';
-CREATE UNIQUE INDEX ux_alerta_abierta_entidad ON alerta (tipo, entidad, entidad_id) WHERE estado = 'ABIERTA'; -- evita alertas repetidas
+-- [DBA-10b] NULLS NOT DISTINCT (PostgreSQL 15+): dos alertas abiertas del mismo tipo sin entidad_id (p.ej.
+-- CATALOGO_DESACTUALIZADO) cuentan como repetidas. Sin esto, PostgreSQL trata cada NULL como distinto.
+CREATE UNIQUE INDEX ux_alerta_abierta_entidad ON alerta (tipo, entidad, entidad_id) NULLS NOT DISTINCT
+    WHERE estado = 'ABIERTA';
 ```
 
 ### 3.8 Factura y pago (ADR-004/010)
@@ -590,7 +647,29 @@ Reconstrucción de un monto (REQ-011): `linea_ofa` → `memoria_calculo` → (`v
 
 ---
 
+## 4b. Algoritmo de ingesta del evento de AEXSA (DBA-1b)
+
+Cada mensaje trae el **estado completo** de la operación, no un cambio parcial. Por eso basta con aplicar la versión más alta recibida, aunque falten versiones intermedias. Todo ocurre en **una transacción**:
+
+1. Buscar `operacion` por `operacion_id_aexsa` con `SELECT … FOR UPDATE`. Si no existe, insertarla. El `UNIQUE (operacion_id_aexsa)` resuelve dos mensajes nuevos simultáneos: el segundo reintenta y entra por el paso 2.
+2. Comparar la versión del mensaje con `operacion.version_evento`:
+
+| Caso | Acción en la base | `evento_aexsa.resultado` | Respuesta a AEXSA |
+|---|---|---|---|
+| Operación nueva, o versión mayor | Aplicar el mensaje y `version_evento = versión` | `APLICADO` | `201` (nueva) o `200` (actualizada) |
+| Versión igual a la aplicada | Nada | `DUPLICADO` | `409` `YA_RECIBIDO` |
+| Versión menor que la aplicada | Nada | `RECHAZADO`, detalle `VERSION_SUPERADA` | `409` `VERSION_SUPERADA` |
+| Mensaje inválido (esquema o reglas) | Nada | `RECHAZADO`, con el error | `400` (sin reintento) |
+
+3. Insertar siempre la fila en `evento_aexsa` con el mensaje tal como llegó.
+
+Dos respaldos en la base: el índice único parcial `ux_evento_aexsa_aplicado` impide aplicar dos veces la misma versión, y el trigger `tr_operacion_version_no_retrocede` impide que `version_evento` baje aunque falle la lógica de la aplicación. Para AEXSA, un `409` significa "ya está, no reintentes".
+
+---
+
 ## 5. Notas de implementación
+- **PostgreSQL 15 o superior** (estándar: RDS PostgreSQL 16): el índice `ux_alerta_abierta_entidad` usa `NULLS NOT DISTINCT`. En EF Core (Npgsql) se declara con `.AreNullsDistinct(false)`.
+- **Catálogo completo por versión (DBA-3b):** al confirmar una importación parcial, en la misma transacción se crea la versión nueva y se copian desde `base_version` los artículos, listas, precios y kits que no vinieron en el archivo o la consulta. La validación previa de una importación de `LISTAS_PRECIOS` o `KITS` revisa que cada artículo exista en la versión vigente (error `ARTICULO_NO_EXISTE` por fila). La primera versión solo puede salir de una importación `COMPLETO` o `ARTICULOS`.
 - El DDL es la **especificación**; la creación real se hace por **migraciones EF Core** versionadas (ADR-001, aplicadas en el despliegue).
 - `gen_random_uuid()` requiere `pgcrypto` (o `uuid-ossp`); habilitar la extensión en la migración inicial.
 - Candidatos a **particionar por fecha** si crecen: `evento_auditoria`, `memoria_calculo` (append-only de alto volumen, RNF-04).

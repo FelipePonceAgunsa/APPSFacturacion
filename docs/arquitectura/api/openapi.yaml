@@ -694,8 +694,12 @@ paths:
   /aexsa/eventos:
     post:
       tags: [Callbacks]
-      summary: Ingesta push de evento facturable desde AEXSA SYS (opcional, ADR-005)
-      description: Alternativa push a la ingesta por pull. Idempotente por entidad + operacionIdAexsa + version.
+      summary: Recepción del evento facturable que envía AEXSA SYS (vía de entrada, ADR-005)
+      description: >
+        AEXSA envía (push) desde su tabla de salida, con reintentos. Idempotente por entidad +
+        operacionIdAexsa + version. Cada mensaje trae el estado completo de la operación. Algoritmo y
+        tabla de respuestas: modelo-datos.md §4b y contratos-integracion.md §2. Autenticación definitiva
+        según PA-002. En la etapa 1, VISADO_PRESENCIAL responde 400 con codigo ENTIDAD_NO_HABILITADA.
       security:
         - agunsaConnect: []
       requestBody:
@@ -704,7 +708,28 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/EventoFacturable' }
       responses:
-        '202': { description: Evento aceptado para ingesta }
+        '201':
+          description: Operación nueva, mensaje aplicado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoIngesta' }
+        '200':
+          description: Versión mayor que la aplicada; la operación se actualizó
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoIngesta' }
+        '409':
+          description: >
+            Ya recibido (misma versión, codigo YA_RECIBIDO) o versión más antigua que la aplicada
+            (codigo VERSION_SUPERADA). AEXSA lo da por enviado y no reintenta.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoIngesta' }
+        '400':
+          description: Mensaje inválido; AEXSA no reintenta y avisa para corregir
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoIngesta' }
         '401': { $ref: '#/components/responses/Error401' }
 
 components:
@@ -1115,9 +1140,13 @@ components:
     EventoFacturable:
       type: object
       description: >
-        Mensaje que AEXSA SYS envía al Satélite (v3.0). Detalle de prioridades (A, B, C) y origen de cada
-        campo en contratos-integracion.md §2. Idempotente por entidad + operacionIdAexsa + version.
-      required: [entidad, tipoEvento, version, operacionIdAexsa, visadoAprobadoEn, estadoOperacion, tipoCarga, terminal, bls, consignatario, servicios]
+        Mensaje que AEXSA SYS envía al Satélite (v3.0: entidad, operacionIdAexsa como arreglo, bls con id
+        y número; sin documentoCargaId, conConvenio, bajoAforo, dus ni cantidadDus). Trae el estado completo
+        de la operación. Idempotente por entidad + operacionIdAexsa + version. Los campos de prioridad A
+        están en `required` y siempre viajan, aunque algunos pueden ir null (sentido, tipoRetiro, terminal).
+        din es obligatorio en importación (regla de validación). Detalle de prioridades y origen en
+        contratos-integracion.md §2.
+      required: [entidad, tipoEvento, version, operacionIdAexsa, visadoAprobadoEn, estadoOperacion, tipoCarga, sentido, tipoRetiro, terminal, bls, consignatario, servicios]
       properties:
         entidad: { $ref: '#/components/schemas/EntidadOrigen' }
         tipoEvento: { type: string, enum: [VISADO_APROBADO, OPERACION_ACTUALIZADA] }
@@ -1181,9 +1210,20 @@ components:
       properties:
         id: { type: integer }
         nombre: { type: string }
+    ResultadoIngesta:
+      type: object
+      required: [resultado]
+      properties:
+        resultado: { type: string, enum: [APLICADO, DUPLICADO, RECHAZADO] }
+        codigo: { type: string, nullable: true, enum: [YA_RECIBIDO, VERSION_SUPERADA, INVALIDO, ENTIDAD_NO_HABILITADA, null] }
+        operacionId: { type: string, format: uuid, nullable: true }
+        versionAplicada: { type: integer, nullable: true, description: Versión vigente en el Satélite tras procesar el mensaje }
+        errores:
+          type: array
+          items: { type: string }
     ServicioEvento:
       type: object
-      required: [tipoServicioId]
+      required: [tipoServicioId, cantidad]
       properties:
         tipoServicioId: { type: integer }
         cantidad: { type: number, nullable: true, description: Puede venir vacía en AEXSA. Sin cantidad el servicio no se valoriza hasta que el facturador la complete. }
@@ -1225,6 +1265,7 @@ components:
         razonSocial: { type: string, nullable: true }
     ContenedorOperacion:
       type: object
+      required: [numero]
       properties:
         numero: { type: string }
         fechaRecepcion: { type: string, format: date-time, nullable: true }

@@ -26,11 +26,11 @@ Ajustes de la etapa 1 (`02`):
 
 | Marca | Qué hace |
 |---|---|
-| E1-1 | Ingesta de AEXSA: `version_evento` nunca baja (trigger). Un mensaje `RECHAZADO` lleva `codigo_error` (p. ej. `VERSION_SUPERADA`). El algoritmo de ingesta está comentado en el script |
-| E1-2 | Catálogo: cada versión queda completa. `base_version` en la importación; la primera carga trae artículos; los kits tienen FK al artículo de su misma versión |
+| E1-1 | Ingesta de AEXSA: un mensaje `RECHAZADO` lleva `codigo_error` (p. ej. `VERSION_SUPERADA`, `ENTIDAD_NO_HABILITADA`). El trigger de versión y el algoritmo ya están en el modelo (DBA-1b) |
 | E1-3 | Tipo de cambio: fuente `API` / `ARCHIVO` / `MANUAL` (antes `API_SAP`), coherente con `importacion_id`. Gana el valor de SAP: un manual no lo reemplaza (trigger) |
-| E1-4 | Ítem agregado a mano: exige quién, cuándo y motivo, y los prohíbe en las demás líneas |
-| E1-5 | Pendientes: la resolución trae fecha, usuario y tipo juntos; una `DECISION` exige motivo no vacío y la decisión |
+| E1-4 | Ítem agregado a mano: `agregada_en` (cuándo). Quién y por qué ya los exige el modelo (DBA-6b) |
+
+E1-2 (catálogo completo por versión) y E1-5 (CHECK de pendientes) se quitaron porque la segunda revisión del DBA ya los incluye en el modelo (DBA-3b y DBA-8b). Las pruebas siguen cubriéndolos.
 | E1-6 | Contrato de entrada de AEXSA v3.0: `entidad` y `ids_aexsa` (clave única por entidad; visado virtual con un solo ID); `entidad` en la clave de `evento_aexsa`; tabla `operacion_bl` en lugar de `documento_carga_id` y `bls`; `din` y `papeletas` como arreglos de números; sin columnas de aforo (llega en `inspecciones`, con `resultado` validado) |
 | E1-7 | Inspecciones: tabla `tipo_inspeccion_mapa` (código de AEXSA → `AFORO_ADUANA` / `SAG` / `OTRA` / `SIN_MAPEAR`) y pendientes `INSPECCION_NO_FINALIZADA` e `INSPECCION_RECHAZADA` (RN-058) |
 

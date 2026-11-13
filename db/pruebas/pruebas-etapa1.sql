@@ -37,8 +37,7 @@ SELECT pg_temp.debe_fallar('E1-1 RECHAZADO sin codigo de error', $q$INSERT INTO 
 SELECT pg_temp.debe_pasar ('E1-1 RECHAZADO con VERSION_SUPERADA', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado, codigo_error) VALUES ('VISADO_VIRTUAL', '98933', 2, 'OPERACION_ACTUALIZADA', '{}', 'RECHAZADO', 'VERSION_SUPERADA')$q$);
 SELECT pg_temp.debe_fallar('DBA-7 segunda OFA principal', $q$INSERT INTO ofa (operacion_id, estado) SELECT id, 'BORRADOR' FROM operacion$q$);
 
--- [E1-2] Catalogo: versiones completas
-SELECT pg_temp.debe_fallar('E1-2 primera importacion solo de listas (sin base)', $q$INSERT INTO catalogo_importacion (origen, tipo, estado, cargado_por) VALUES ('ARCHIVO', 'LISTAS_PRECIOS', 'PENDIENTE_CONFIRMACION', 'p')$q$);
+-- [E1-2 -> DBA-3b] Catalogo: versiones completas (regla del modelo; base_version en catalogo_snapshot)
 SELECT pg_temp.debe_pasar ('E1-2 version 1 completa (COMPLETO)', $q$
     INSERT INTO catalogo_importacion (id, origen, tipo, estado, cargado_por) VALUES ('20000000-0000-0000-0000-000000000001', 'ARCHIVO', 'COMPLETO', 'CONFIRMADA', 'p');
     INSERT INTO catalogo_snapshot (version, origen, importacion_id, confirmado_por, confirmado_en) VALUES (1, 'ARCHIVO', '20000000-0000-0000-0000-000000000001', 'p', now());
@@ -46,9 +45,12 @@ SELECT pg_temp.debe_pasar ('E1-2 version 1 completa (COMPLETO)', $q$
     INSERT INTO sap_lista_precios VALUES (1, 'LP-PUB', 'Publica', true);
     INSERT INTO tarifa_snapshot (version, articulo_id, lista_precios_id, precio, moneda, vigente_desde) VALUES (1, 'SRV-001', 'LP-PUB', 17000, 'CLP', '2026-01-01')$q$);
 SELECT pg_temp.debe_pasar ('E1-2 version 2: importacion parcial de listas con base 1', $q$
-    INSERT INTO catalogo_importacion (id, origen, tipo, estado, cargado_por, base_version) VALUES ('20000000-0000-0000-0000-000000000002', 'ARCHIVO', 'LISTAS_PRECIOS', 'CONFIRMADA', 'p', 1);
-    INSERT INTO catalogo_snapshot (version, origen, importacion_id, confirmado_por, confirmado_en) VALUES (2, 'ARCHIVO', '20000000-0000-0000-0000-000000000002', 'p', now());
+    INSERT INTO catalogo_importacion (id, origen, tipo, estado, cargado_por) VALUES ('20000000-0000-0000-0000-000000000002', 'ARCHIVO', 'LISTAS_PRECIOS', 'CONFIRMADA', 'p');
+    INSERT INTO catalogo_snapshot (version, origen, importacion_id, base_version, confirmado_por, confirmado_en) VALUES (2, 'ARCHIVO', '20000000-0000-0000-0000-000000000002', 1, 'p', now());
     INSERT INTO sap_lista_precios VALUES (2, 'LP-PUB', 'Publica', true)$q$);
+SELECT pg_temp.debe_fallar('E1-2 base_version que no es anterior', $q$
+    INSERT INTO catalogo_importacion (id, origen, tipo, estado, cargado_por) VALUES ('20000000-0000-0000-0000-000000000003', 'ARCHIVO', 'KITS', 'CONFIRMADA', 'p');
+    INSERT INTO catalogo_snapshot (version, origen, importacion_id, base_version, confirmado_por, confirmado_en) VALUES (3, 'ARCHIVO', '20000000-0000-0000-0000-000000000003', 3, 'p', now())$q$);
 SELECT pg_temp.debe_fallar('E1-2 precio en v2 sin copiar los articulos', $q$INSERT INTO tarifa_snapshot (version, articulo_id, lista_precios_id, precio, moneda, vigente_desde) VALUES (2, 'SRV-001', 'LP-PUB', 18000, 'CLP', '2026-06-01')$q$);
 SELECT pg_temp.debe_pasar ('E1-2 precio en v2 despues de copiar los articulos de la base', $q$
     INSERT INTO sap_articulo SELECT 2, codigo, descripcion, unidad_medida, activo, grupo FROM sap_articulo WHERE snapshot_version = 1;
@@ -71,6 +73,7 @@ SELECT pg_temp.debe_fallar('E1-4 manual sin quien', $q$INSERT INTO linea_ofa (of
 SELECT pg_temp.debe_fallar('E1-4 manual sin motivo', $q$INSERT INTO linea_ofa (ofa_id, tipo_servicio_id, cantidad, unidad, tarifa, moneda, monto, version_calculo, origen, agregada_por, agregada_en) VALUES ('10000000-0000-0000-0000-000000000001', 42, 1, 'CTR', 1, 'CLP', 1, 1, 'AGREGADA_MANUAL', 'facturador', now())$q$);
 SELECT pg_temp.debe_fallar('E1-4 manual con motivo en blanco', $q$INSERT INTO linea_ofa (ofa_id, tipo_servicio_id, cantidad, unidad, tarifa, moneda, monto, version_calculo, origen, agregada_por, motivo_agregada, agregada_en) VALUES ('10000000-0000-0000-0000-000000000001', 42, 1, 'CTR', 1, 'CLP', 1, 1, 'AGREGADA_MANUAL', 'facturador', '   ', now())$q$);
 SELECT pg_temp.debe_pasar ('E1-4 manual completa', $q$INSERT INTO linea_ofa (ofa_id, tipo_servicio_id, cantidad, unidad, tarifa, moneda, monto, version_calculo, origen, agregada_por, motivo_agregada, agregada_en) VALUES ('10000000-0000-0000-0000-000000000001', 42, 1, 'CTR', 1, 'CLP', 1, 1, 'AGREGADA_MANUAL', 'facturador', 'Pedido por correo', now())$q$);
+SELECT pg_temp.debe_fallar('E1-4 manual sin cuando (agregada_en)', $q$INSERT INTO linea_ofa (ofa_id, tipo_servicio_id, cantidad, unidad, tarifa, moneda, monto, version_calculo, origen, agregada_por, motivo_agregada) VALUES ('10000000-0000-0000-0000-000000000001', 42, 1, 'CTR', 1, 'CLP', 1, 1, 'AGREGADA_MANUAL', 'facturador', 'Pedido por correo')$q$);
 SELECT pg_temp.debe_fallar('E1-4 calculada con datos de agregado manual', $q$INSERT INTO linea_ofa (ofa_id, tipo_servicio_id, cantidad, unidad, tarifa, moneda, monto, version_calculo, origen, agregada_por) VALUES ('10000000-0000-0000-0000-000000000001', 42, 1, 'CTR', 1, 'CLP', 1, 1, 'CALCULADA', 'facturador')$q$);
 SELECT pg_temp.debe_pasar ('E1-4 calculada limpia', $q$INSERT INTO linea_ofa (ofa_id, tipo_servicio_id, cantidad, unidad, tarifa, moneda, monto, version_calculo) VALUES ('10000000-0000-0000-0000-000000000001', 42, 1, 'CTR', 1, 'CLP', 1, 1)$q$);
 

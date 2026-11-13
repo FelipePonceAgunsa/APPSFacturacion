@@ -32,15 +32,35 @@ Todos los contratos: transporte y seguridad los fija Agunsa Connect (PA-002); aq
 **Cuándo se envía:** AEXSA envía al aprobarse el visado, y el Satélite decide cuándo corresponde facturar (RN-046: con convenio, se retiene hasta la fecha de despacho, con tope de 7 días). Si el negocio quiere que AEXSA envíe en otro momento, se cambia el disparador, no el mensaje `[POR CONFIRMAR]`.
 
 ```csharp
+// Entrada (push): caso de uso que invoca POST /aexsa/eventos. Aplica el algoritmo de modelo-datos.md §4b.
+public interface IIngestaEventoFacturable
+{
+    Task<ResultadoIngesta> IngresarAsync(EventoFacturableDto evento, CancellationToken ct);
+}
+
+// Conciliación: adaptador del GET de solo lectura que AEXSA expone sobre su tabla de salida (no es la vía de entrada).
 public interface IEventoFacturablePort
 {
-    // pull: trae lo pendiente de ingerir
-    Task<IReadOnlyList<EventoFacturableDto>> ObtenerPendientesAsync(CancellationToken ct);
+    Task<IReadOnlyList<EventoFacturableDto>> ObtenerDesdeAsync(DateTimeOffset desde, CancellationToken ct);
 }
 ```
 
+**Respuesta de `POST /aexsa/eventos`** (igual en el OpenAPI):
+
+| Código | `resultado` | Cuándo | Qué hace AEXSA |
+|---|---|---|---|
+| `201` | `APLICADO` | Operación nueva | Lo da por enviado |
+| `200` | `APLICADO` | Versión mayor que la aplicada: actualiza | Lo da por enviado |
+| `409` | `DUPLICADO` (`YA_RECIBIDO`) | Misma versión ya aplicada | Lo da por enviado, sin reintento |
+| `409` | `RECHAZADO` (`VERSION_SUPERADA`) | Versión menor que la aplicada (llegó tarde) | Lo da por enviado, sin reintento |
+| `400` | `RECHAZADO` | Mensaje inválido | Sin reintento; avisa para corregir |
+| `401` | — | Credencial inválida | Sin reintento; avisa |
+| `5xx` o sin respuesta | — | Falla del Satélite | Reintenta con espera creciente |
+
+**Cada mensaje trae el estado completo** de la operación, no solo lo que cambió. Si se pierde una versión intermedia, la siguiente basta.
+
 ```jsonc
-// EventoFacturableDto  (v3.0, 2026-11-13: ajustes del equipo de AEXSA, notas 12 a 16). Prioridad: A = obligatorio, B = necesario en casos concretos, C = deseable.
+// EventoFacturableDto  (v3.0, 2026-11-13: ajustes del equipo de AEXSA, notas 12 a 16; v2.2 quitó conConvenio). Prioridad: A = el campo siempre viaja (puede ir null donde se indica), B = necesario en casos concretos, C = deseable.
 // "Puede venir vacío" = el Satélite NO falla: lo marca como pendiente y el facturador lo completa a mano, con registro.
 {
   // --- Control del mensaje
@@ -124,7 +144,7 @@ Fuente: documento de diseño `AEXSA-SAT-API` (revisión de código y de la base 
 7. **Cantidad de un servicio.** Ningún servicio del ambiente revisado la tiene vacía, así que no hay cantidad por defecto. Si llega `null`, el servicio no se valoriza hasta que el facturador la complete.
 8. **Unidad.** En AEXSA es texto sin normalizar (por ejemplo "Contenedor", "Contenedor / Día", "Por B/L", "Vehículo"). Se envía como viene, solo como información. El Satélite normaliza a su enumeración por `tipoServicioId`, con el catálogo de la tarea 1.1.
 9. **Cliente facturador.** Casi siempre vacío (66 de 191.906 con valor). Es el caso normal: el Satélite usa al consignatario y el facturador reparte a mano si hace falta (RN-050).
-10. **Cómo se envía.** AEXSA registra el mensaje en una tabla de salida **en la misma transacción** que la aprobación del visado, y un proceso lo envía con `POST /aexsa/eventos` con reintentos. Idempotencia por `entidad` + `operacionIdAexsa` + `version` (nota 12): 200 o 201, aceptado; 409, ya recibido (AEXSA lo da por enviado); 4xx de validación, sin reintento y con aviso; 5xx o timeout, reintento. AEXSA además expone un `GET` de solo lectura sobre la misma tabla, que el Satélite usa para **conciliar** (cuadratura eventos AEXSA ↔ operaciones del Satélite). Pendiente: autenticación de la llamada y si pasa por Agunsa Connect (PA-002).
+10. **Cómo se envía.** AEXSA registra el mensaje en una tabla de salida **en la misma transacción** que la aprobación del visado, y un proceso lo envía con `POST /aexsa/eventos` con reintentos. Idempotencia por `entidad` + `operacionIdAexsa` + `version` (nota 12); los códigos de respuesta están en la tabla de arriba (`409` cubre tanto el repetido como la versión superada). AEXSA además expone un `GET` de solo lectura sobre la misma tabla, que el Satélite usa para **conciliar** (cuadratura eventos AEXSA ↔ operaciones del Satélite). Pendiente: autenticación de la llamada y si pasa por Agunsa Connect (PA-002).
 11. **Entrega en dos etapas en AEXSA.** Etapa 1: `VISADO_APROBADO`, anulación y el `GET`. Etapa 2: `OPERACION_ACTUALIZADA` completo, porque los puntos donde cambian los datos están dispersos en AEXSA.
 
 ### Ajustes del equipo de AEXSA (2026-11-13, contrato v3.0)

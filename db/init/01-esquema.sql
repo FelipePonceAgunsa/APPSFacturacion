@@ -99,6 +99,20 @@ CREATE TABLE operacion (
     actualizado_en      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_operacion_cliente ON operacion (cliente_id);
+
+-- [DBA-1b] La version aplicada nunca retrocede: una version mas antigua que llega tarde no puede pisar a una mas nueva.
+-- Respaldo en la base de la regla de ingesta (ver "Algoritmo de ingesta" en la seccion 5).
+CREATE FUNCTION operacion_version_no_retrocede() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.version_evento < OLD.version_evento THEN
+        RAISE EXCEPTION 'version_evento no puede retroceder (% -> %)', OLD.version_evento, NEW.version_evento
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER tr_operacion_version_no_retrocede
+    BEFORE UPDATE OF version_evento ON operacion
+    FOR EACH ROW EXECUTE FUNCTION operacion_version_no_retrocede();
 CREATE INDEX ix_operacion_documento ON operacion (documento_carga_id);
 
 -- Contenedores de la operacion: almacenaje, despacho, aforo e inspecciones (RN-033/046/052/058).
@@ -161,7 +175,15 @@ CREATE TABLE operacion_pendiente (
     resuelto_por   varchar(120),
     resolucion     text CHECK (resolucion IN ('DATO_COMPLETADO','DECISION','YA_NO_APLICA')),
     decision       jsonb,                                      -- p.ej. {convenioElegido} o {operacionValida}
-    motivo         text                                        -- obligatorio si resolucion = DECISION
+    motivo         text,                                       -- obligatorio si resolucion = DECISION
+    -- [DBA-8b] Resolver es todo o nada: fecha, usuario y tipo de resolucion van juntos.
+    CONSTRAINT ck_pendiente_resolucion_completa CHECK (
+        (resuelto_en IS NULL AND resuelto_por IS NULL AND resolucion IS NULL)
+     OR (resuelto_en IS NOT NULL AND resuelto_por IS NOT NULL AND resolucion IS NOT NULL)),
+    -- [DBA-8b] Una DECISION exige motivo no vacio y la decision tomada.
+    CONSTRAINT ck_pendiente_decision_con_motivo CHECK (
+        resolucion IS DISTINCT FROM 'DECISION'
+     OR (decision IS NOT NULL AND motivo IS NOT NULL AND btrim(motivo) <> ''))
 );
 CREATE UNIQUE INDEX ux_pendiente_abierto
     ON operacion_pendiente (operacion_id, tipo) WHERE resuelto_en IS NULL;
@@ -209,9 +231,15 @@ CREATE TABLE catalogo_snapshot (
     fecha           timestamptz NOT NULL DEFAULT now(),
     origen          text NOT NULL CHECK (origen IN ('ARCHIVO','API')),        -- [DBA-9]
     importacion_id  uuid NOT NULL UNIQUE REFERENCES catalogo_importacion(id),
+    base_version    int REFERENCES catalogo_snapshot(version), -- [DBA-3b] version de la que se copiaron los recursos no importados
     confirmado_por  varchar(120) NOT NULL,               -- confirmacion humana antes de activar
-    confirmado_en   timestamptz NOT NULL
+    confirmado_en   timestamptz NOT NULL,
+    CONSTRAINT ck_snapshot_base_anterior CHECK (base_version IS NULL OR base_version < version)
 );
+-- [DBA-3b] Cada version es COMPLETA. Al confirmar una importacion parcial (p.ej. solo LISTAS_PRECIOS), la version
+-- nueva copia de base_version (la vigente) los recursos que no vinieron: articulos, listas, kits. Asi las FK de
+-- tarifa_snapshot y sap_kit_articulo siempre encuentran sus articulos en la misma version.
+-- La primera version (base_version null) debe venir de una importacion COMPLETO o ARTICULOS (regla de aplicacion).
 ALTER TABLE catalogo_importacion
     ADD CONSTRAINT fk_importacion_snapshot FOREIGN KEY (snapshot_version) REFERENCES catalogo_snapshot(version);
 
@@ -242,14 +270,18 @@ CREATE TABLE sap_kit (
     kit_codigo       varchar(40) NOT NULL,
     nombre           text NOT NULL,
     ruta             text,                               -- ruta a la que aplica (directo, indirecto sin convenio, con convenio...)
-    UNIQUE (snapshot_version, kit_codigo)
+    UNIQUE (snapshot_version, kit_codigo),
+    UNIQUE (id, snapshot_version)                        -- para que la composicion use la misma version
 );
 
 CREATE TABLE sap_kit_articulo (
-    kit_id       uuid NOT NULL REFERENCES sap_kit(id),
-    articulo_id  varchar(40) NOT NULL,
-    cantidad     numeric(18,4) NOT NULL DEFAULT 1,
-    PRIMARY KEY (kit_id, articulo_id)
+    kit_id           uuid NOT NULL,
+    snapshot_version int  NOT NULL,                      -- [DBA-3b] misma version que el kit
+    articulo_id      varchar(40) NOT NULL,
+    cantidad         numeric(18,4) NOT NULL DEFAULT 1 CHECK (cantidad > 0),
+    PRIMARY KEY (kit_id, articulo_id),
+    FOREIGN KEY (kit_id, snapshot_version) REFERENCES sap_kit(id, snapshot_version),
+    FOREIGN KEY (snapshot_version, articulo_id) REFERENCES sap_articulo(snapshot_version, codigo)
 );
 
 -- Vinculo servicio del Satelite <-> articulo SAP (sugerencia opcional + confirmacion humana).
@@ -346,7 +378,13 @@ CREATE TABLE linea_ofa (
                          CHECK (origen IN ('CALCULADA','AGREGADA_MANUAL','REGLA_CONFIGURABLE')), -- [DBA-6]
     en_kit_sap          boolean,                           -- [DBA-6] esta en el kit sugerido (ADR-017); null si no hay kit
     agregada_por        varchar(120),                      -- [DBA-6] solo si origen = AGREGADA_MANUAL
-    linea_origen_id     uuid REFERENCES linea_ofa(id)      -- linea de la version anterior que esta reemplaza (trazabilidad del recalculo)
+    motivo_agregada     text,                              -- [DBA-6b] motivo obligatorio del agregado manual (POST /ofa/{id}/lineas)
+    linea_origen_id     uuid REFERENCES linea_ofa(id),     -- linea de la version anterior que esta reemplaza (trazabilidad del recalculo)
+    -- [DBA-6b] Una linea agregada a mano lleva quien y por que; las demas no llevan esos datos.
+    CONSTRAINT ck_linea_agregada_manual CHECK (
+        (origen = 'AGREGADA_MANUAL' AND agregada_por IS NOT NULL AND btrim(agregada_por) <> ''
+                                    AND motivo_agregada IS NOT NULL AND btrim(motivo_agregada) <> '')
+     OR (origen <> 'AGREGADA_MANUAL' AND agregada_por IS NULL AND motivo_agregada IS NULL))
 );
 CREATE INDEX ix_linea_ofa_ofa ON linea_ofa (ofa_id, version_calculo);
 CREATE INDEX ix_linea_ofa_origen ON linea_ofa (ofa_id, origen);
@@ -384,7 +422,13 @@ CREATE TABLE omision_detectada (
     motivo           text,                               -- obligatorio si DESCARTADA
     decidida_por     varchar(120),
     decidida_en      timestamptz,
-    linea_ofa_id     uuid REFERENCES linea_ofa(id)       -- linea creada si se incluyo
+    linea_ofa_id     uuid REFERENCES linea_ofa(id),      -- linea creada si se incluyo
+    -- Mismo criterio que operacion_pendiente: decidir es todo o nada, y descartar exige motivo.
+    CONSTRAINT ck_omision_decision_completa CHECK (
+        (decision IS NULL AND decidida_por IS NULL AND decidida_en IS NULL)
+     OR (decision IS NOT NULL AND decidida_por IS NOT NULL AND decidida_en IS NOT NULL)),
+    CONSTRAINT ck_omision_descarte_con_motivo CHECK (
+        decision IS DISTINCT FROM 'DESCARTADA' OR (motivo IS NOT NULL AND btrim(motivo) <> ''))
 );
 CREATE INDEX ix_omision_operacion ON omision_detectada (operacion_id);
 CREATE INDEX ix_omision_sin_decidir ON omision_detectada (operacion_id) WHERE decision IS NULL;
@@ -405,7 +449,10 @@ CREATE TABLE alerta (
     comentario     text
 );
 CREATE INDEX ix_alerta_abierta ON alerta (tipo, creada_en) WHERE estado = 'ABIERTA';
-CREATE UNIQUE INDEX ux_alerta_abierta_entidad ON alerta (tipo, entidad, entidad_id) WHERE estado = 'ABIERTA'; -- evita alertas repetidas
+-- [DBA-10b] NULLS NOT DISTINCT (PostgreSQL 15+): dos alertas abiertas del mismo tipo sin entidad_id (p.ej.
+-- CATALOGO_DESACTUALIZADO) cuentan como repetidas. Sin esto, PostgreSQL trata cada NULL como distinto.
+CREATE UNIQUE INDEX ux_alerta_abierta_entidad ON alerta (tipo, entidad, entidad_id) NULLS NOT DISTINCT
+    WHERE estado = 'ABIERTA';
 
 -- ===== 3.8 Factura y pago (ADR-004/010)
 CREATE TABLE factura (
