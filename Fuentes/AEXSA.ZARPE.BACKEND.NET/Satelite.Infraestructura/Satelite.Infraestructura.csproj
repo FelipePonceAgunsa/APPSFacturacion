@@ -12,5 +12,9 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.15" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Copias congeladas de db/init/01 y 02 que ejecuta la migración inicial -->
+    <EmbeddedResource Include="Persistencia\Migraciones\Sql\*.sql" LogicalName="Migraciones.%(Filename)%(Extension)" />
+  </ItemGroup>
 
 </Project>

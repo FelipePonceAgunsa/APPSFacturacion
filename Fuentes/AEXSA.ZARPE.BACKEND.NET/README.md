@@ -17,11 +17,11 @@ AEXSA.ZARPE.BACKEND.NET/
 ├── AEXSA.ZARPE.BACKEND.NET.sln
 ├── Directory.Build.props        # net10.0, Nullable, ImplicitUsings para todos los proyectos
 ├── global.json                  # SDK 10 y runner de pruebas Microsoft.Testing.Platform
-├── Satelite.Dominio/            # Entidades, motor de tarifas, reglas. Sin dependencias
+├── Satelite.Dominio/            # Entidades (Entidades/), enums (Comun/), motor de tarifas (Motor/). Sin dependencias
 ├── Satelite.Aplicacion/         # Casos de uso y puertos → Dominio
 │   └── Comun/                   # ServiceResult<T>, ICurrentUser
 ├── Satelite.Infraestructura/    # EF Core + PostgreSQL, adaptadores → Aplicacion
-│   └── Persistencia/            # PrincipalDbContext
+│   └── Persistencia/            # PrincipalDbContext, Configuraciones/ (mapeo de las 35 tablas), Migraciones/
 ├── Satelite.Api/                # REST para el frontend → Aplicacion + Infraestructura
 │   ├── Controllers/             # SessionController (GET /api/Session/Me)
 │   ├── Extensions/              # Cognito, autorización, esquema Bearer de OpenAPI
@@ -66,13 +66,16 @@ Dependencias: Dominio ← Aplicacion ← Infraestructura ← Api. `Satelite.Test
 | `http://localhost:5228/scalar/v1` | Documentación (solo en Development) |
 | `http://localhost:5228/openapi/v1.json` | Spec OpenAPI para generar el cliente del frontend |
 
-Las migraciones no se aplican al arrancar. La migración inicial desde `docs/arquitectura/modelo-datos.md` es la tarea 0.2.
+Las migraciones no se aplican al arrancar. La migración `Inicial` (`Satelite.Infraestructura/Persistencia/Migraciones`) ejecuta copias de `db/init/01-esquema.sql` y `02-ajustes-etapa1.sql`. Para recrear la base local con ella y comprobar que el esquema equivale a `db/init`: `& ..\..\db\recrear-con-migracion.ps1 *>&1` (ver `db/README.md`). Un cambio de esquema posterior va en una migración nueva (`dotnet ef migrations add <Nombre> --project Satelite.Infraestructura --startup-project Satelite.Api --output-dir Persistencia/Migraciones`) y en `db/init/02-ajustes-etapa1.sql` con su marca `[E1-n]`.
 
 ## Pruebas
 
 ```powershell
 dotnet test --solution AEXSA.ZARPE.BACKEND.NET.sln
 ```
+
+- `Satelite.Tests/Motor`: casos T1 a T12 del motor de tarifas y reconstrucción del monto desde la memoria (sin infraestructura).
+- `Satelite.Tests/Infraestructura`: PostgreSQL 16 en contenedor (Testcontainers, imagen `postgres:16-alpine`) con la migración aplicada. **Requiere Docker corriendo.** `PostgresFixture` se comparte con `[Collection(PostgresCollection.Nombre)]`.
 
 ## Autenticación y autorización
 

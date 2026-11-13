@@ -51,7 +51,37 @@ Get-Content .\pruebas\pruebas-etapa1.sql -Raw | docker exec -i zarpe-postgres ps
 python .\pruebas\validar-openapi.py
 ```
 
-## Cuando cambie el modelo de datos
+## La migración de EF Core es la fuente del esquema
+
+Desde la etapa 1 el esquema de la base lo crea la migración inicial de EF Core
+(`Fuentes/AEXSA.ZARPE.BACKEND.NET/Satelite.Infraestructura/Persistencia/Migraciones`). Esa migración ejecuta
+copias congeladas de `init/01-esquema.sql` e `init/02-ajustes-etapa1.sql` (en `Migraciones/Sql/`), así que los
+CHECK, triggers e índices parciales son exactamente los mismos. Los scripts de `init/` quedan como referencia y
+siguen creando la base cuando el volumen de Docker está vacío.
+
+Para recrear la base local con la migración y comprobar que equivale a `init/` (**borra los datos locales**):
+
+```powershell
+& .\recrear-con-migracion.ps1 *>&1
+```
+
+El script:
+1. borra y crea `zarpe_facturacion`;
+2. aplica la migración con `dotnet ef database update` (clave: `ZARPE_DB_PASSWORD`, por defecto `postgres`);
+3. crea `zarpe_referencia` con `init/01` y `init/02`;
+4. compara los dos esquemas con `pg_dump -s` (sin `__EFMigrationsHistory`) y falla si hay diferencias;
+5. corre `pruebas/pruebas-etapa1.sql` y falla si alguna prueba falla;
+6. carga, en orden de nombre, las semillas de `semillas/*.sql` (datos de prueba inventados). Van después de las pruebas porque las pruebas insertan algunos de esos mismos datos dentro de una transacción que se revierte;
+7. borra `zarpe_referencia`.
+
+Resultado esperado: `0 diferencias de esquema` y `ok = 63, fallas = 0`.
+
+## Cuando cambie el esquema
+
+Un cambio que pide el código se agrega a `init/02-ajustes-etapa1.sql` con su marca `[E1-n]` (re-ejecutable) **y** a
+una migración nueva de EF Core con el mismo SQL. La migración inicial no se modifica.
+
+Cuando cambie `modelo-datos.md` (DBA):
 
 ```powershell
 .\generar-esquema.ps1
@@ -60,6 +90,4 @@ docker compose up -d
 Get-Content .\pruebas\pruebas-etapa1.sql -Raw | docker exec -i zarpe-postgres psql -U postgres -d zarpe_facturacion -q
 ```
 
-Los scripts de `init/` solo corren cuando el volumen está vacío; por eso hay que borrar el volumen (`down -v`), y eso **borra los datos locales**. Si el modelo nuevo ya incluye un ajuste de `02`, el script no falla (es re-ejecutable); revisa igual que no queden dos versiones de la misma regla.
-
-Cuando exista la migración inicial de EF Core, esa pasa a ser la fuente del esquema y estos scripts quedan solo como referencia.
+Los scripts de `init/` solo corren cuando el volumen está vacío; por eso hay que borrar el volumen (`down -v`), y eso **borra los datos locales**. Si el modelo nuevo ya incluye un ajuste de `02`, el script no falla (es re-ejecutable); revisa igual que no queden dos versiones de la misma regla. Si el modelo cambia, también hace falta una migración nueva de EF Core con la diferencia.

@@ -56,7 +56,7 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
   - Proyectos: `Satelite.Dominio`, `Satelite.Aplicacion`, `Satelite.Infraestructura`, `Satelite.Api`, `Satelite.Worker` (Outbox), `Satelite.Tests`.
   - Referencias: Dominio sin dependencias; Aplicación→Dominio; Infraestructura→Aplicación; Api/Worker→todo.
   - Cubre: ADR-001. Verificación: compila y corre un test vacío.
-- [ ] **0.2 Base de datos y EF Core** (PostgreSQL)
+- [x] **0.2 Base de datos y EF Core** (PostgreSQL) — *migración `Inicial` que ejecuta `db/init/01` + `02`; equivalencia probada con `pg_dump -s` (`db/recrear-con-migracion.ps1`)*
   - Migración inicial a partir de `docs/arquitectura/modelo-datos.md`; convención de entidades versionadas y tablas append-only.
   - Cubre: ADR-010. Verificación: migración aplica sobre PostgreSQL local o en contenedor.
 - [ ] **0.3 CI/CD y entorno**
@@ -93,17 +93,17 @@ El orden por número de fase no es el orden óptimo. Este es el recomendado, pen
   - Una versión nace en BORRADOR; una persona con rol la confirma y pasa a VIGENTE. Nunca se edita una versión vigente: cada cambio es una versión nueva. Los ajustes por correo se registran como complemento versionado (RN-037).
   - Cubre: REQ-004, REQ-012, RN-015/018/021/037/043. ADR-007, ADR-012.
   - Verificación: pruebas de vigencia, reemplazo de versión, alerta de vencimiento y override.
-- [ ] **1.3 Motor de tarifas — pipeline base**
+- [x] **1.3 Motor de tarifas — pipeline base**
   - `ContextoCalculo` inmutable; reglas puras: resolución de tarifa (convenio→pública con marca excepción, RN-006/014), cantidad×tarifa por unidad, USD→CLP con piso (RN-022).
   - Cubre: REQ-005. ADR-006. Verificación: pruebas unitarias por regla (T1 a T4, T12).
-- [ ] **1.4 Motor de tarifas — reglas de almacenaje y recargos**
+- [x] **1.4 Motor de tarifas — reglas de almacenaje y recargos**
   - Días calculados − días libres (RN-023/051); no cobro bajo aforo (RN-052); recargos 15%/90%/sobrepeso/fuera de horario (RN-024); "mayor m³/ton" (RN-048).
   - Cubre: REQ-005. ADR-006. Verificación: casos T5 a T9.
-- [ ] **1.5 Unidad de cobro DUS/BL, repartido y directo STI/DP World**
+- [~] **1.5 Unidad de cobro DUS/BL, repartido y directo STI/DP World** — *hecha la parte del motor (driver DUS/BL/CTR/TON/M3, Regla 0 con T10, T10b y T10c); falta el repartido manual (`AsignacionCobro`), que no tiene endpoint en el OpenAPI*
   - Driver de cobro por servicio (BL/DUS/CTR/TON/M3); `CantidadDus` en Operación por captura manual (RN-047); OFA multi-destinatario `AsignacionCobro` (RN-050/077); RUT de la DIN (RN-057).
   - Regla 0 del directo sin convenio: tres conceptos (visación, security fee y refacturación); refacturación con valor en STI y en cero en DP World (RN-078/079, ADR-015). Casos T10, T10b y T10c.
   - Cubre: REQ-003, REQ-005. ADR-011, ADR-015.
-- [ ] **1.6 MemoriaCalculo y auditoría**
+- [x] **1.6 MemoriaCalculo y auditoría** — *memoria por línea en el motor y reconstrucción probada; la escritura en `memoria_calculo` y `evento_auditoria` la hacen los casos de uso de los bloques 2 a 5*
   - Append-only por `LineaOfa`: reglas/versiones, versión de convenio, versión de snapshot, TC, ajustes; `EventoAuditoria` transversal.
   - Cubre: REQ-011, RNF-01. ADR-010. Verificación: reconstruir un cálculo desde la memoria en un test.
 
@@ -253,3 +253,4 @@ Completar una fila por tarea terminada (regla del procedimiento de desarrollo: a
 | Tarea | Fecha | Archivos generados | Pruebas (cantidad y resultado) | Hallazgos | Pendientes abiertos |
 |---|---|---|---|---|---|
 | 0.1 (parcial) + 0.4 (parcial) + base de 5.1a | 2026-11-13 | `Fuentes/AEXSA.ZARPE.BACKEND.NET` (solución con `Satelite.Dominio`, `.Aplicacion`, `.Infraestructura`, `.Api`, `.Tests`) y `Fuentes/AEXSA.ZARPE.FRONTEND.ANGULAR` (Angular 22.2), desde el estándar AGUNSA BPT | Backend: 2 pruebas de arquitectura, verdes. Frontend: build de producción sin advertencias | El estándar BPT trae login propio con contraseñas; se reemplazó por Cognito (ADR-016). Su `appsettings.json` trae en claro una contraseña SMTP y la clave JWT: no se copiaron | CI (0.3); valores de Cognito y nombres de grupos (PA-009); matriz rol→acceso `[SUPUESTO]`; migración inicial (0.2); `Satelite.Worker` en etapa 2 |
+| 0.2 + 1.3 + 1.4 + 1.5 (motor) + 1.6 (memoria en el motor) — etapa 1, bloque 1 | 2026-11-13 | Backend: `Satelite.Dominio/Comun` (enums de los CHECK, `Rut`), `Satelite.Dominio/Entidades` (35 tablas de 01 + 02), `Satelite.Dominio/Motor` (`ContextoCalculo`, `ResultadoCalculo`, `MotorTarifas`, `DiasBajoAforo`, `Reglas/R0` a `R7`), `Satelite.Infraestructura/Persistencia` (`Configuraciones/`, columnas en snake_case, `DisenoDbContextFactory`, migración `Inicial` que ejecuta copias de `db/init/01` y `02` embebidas en `Migraciones/Sql/`), `Satelite.Tests/Motor` y `Satelite.Tests/Infraestructura` (`PostgresFixture` con Testcontainers 4.16.0). Base: `db/recrear-con-migracion.ps1`, `db/semillas/` | `dotnet test`: 23 de 23 verdes (2 de arquitectura; T1–T12 con T10b, T10c, directo con convenio y conteo de días de aforo: 16; reconstrucción desde la memoria: 2; migración aplicada, sin cambios pendientes del modelo y trigger de versión: 3). `dotnet ef migrations has-pending-model-changes`: sin cambios. `recrear-con-migracion.ps1`: 0 diferencias de esquema con `pg_dump -s` y pruebas SQL ok = 63, fallas = 0 | Sin cambios de esquema `[E1-n]`: la migración reproduce 01 + 02 tal cual. EF Core agrega al snapshot índices de FK que la base no tiene (no afecta: el esquema real lo crea el SQL). Montos sin redondeo (4 decimales en la base): no hay regla de redondeo documentada. Supuestos marcados en el código: días bajo aforo por fecha calendario UTC (`DiasBajoAforo`, nota 15 `[POR CONFIRMAR]`); el piso `tc_minimo` solo aplica a tarifas del convenio, no a la pública de excepción; terminal `OTRO` cobra la refacturación del directo con tarifa pública como STI; recargos sobre el monto antes de recargos, sin componerse | Regla de redondeo de montos; confirmar los 3 supuestos del motor con facturación; repartido manual (1.5); escritura de memoria y auditoría en los casos de uso (bloques 4 y 5) |
