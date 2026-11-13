@@ -23,7 +23,7 @@ Propósito: especificar el **modelo físico** (tablas, columnas, tipos, claves, 
 > | 10 | Sin tablas para omisiones ni alertas | Nuevas tablas `omision_detectada` (con la decisión) y `alerta` |
 > | 11 | `memoria_calculo.tarifa_snapshot_ver` y `tipo_cambio.fuente` sin FK ni CHECK | FK a `catalogo_snapshot(version)` y `CHECK (fuente IN ('API_SAP','ARCHIVO','MANUAL'))` |
 >
-> **Segunda revisión del DBA (2026-11-05).** Marcadas `-- [DBA-nb]`. Probadas con casos que deben fallar y casos que deben pasar (`scripts/desarrollo/probar_ddl.py`).
+> **Segunda revisión del DBA (2026-11-05).** Marcadas `-- [DBA-nb]`. Probadas con 22 casos que deben fallar o pasar (`DBA/probar_ddl.py`; detalle en `DBA/README.md`).
 >
 > | N.º | Observación | Corrección |
 > |---|---|---|

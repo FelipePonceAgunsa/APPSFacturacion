@@ -50,6 +50,10 @@ docs/arquitectura/*
 # (preguntas-arquitectura.md, plan-entregas.md, estimacion-hh.md, estado-arquitectura.md)
 # Quedan en disco, fuera del control de versiones.
 
+# Revisión del modelo de datos para el DBA: observaciones, correcciones y pruebas (datos inventados)
+!DBA/
+!DBA/**
+
 # 4) Permitir SOLO el diseño y el plan del spec (son arquitectura),
 #    NO el requirements.md (negocio)
 !.kiro/
