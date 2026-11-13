@@ -23,18 +23,18 @@ END $$;
 \o /dev/null
 -- Datos base
 INSERT INTO tipo_servicio VALUES (42, 'REC', 'Recepcion', 'CTR', 'Contenedor', true);
-INSERT INTO operacion (operacion_id_aexsa, documento_carga_id, version_evento) VALUES ('OP-1', 'DOC-1', 3);
+INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa, version_evento) VALUES ('VISADO_VIRTUAL', '98933', '{98933}', 3);
 INSERT INTO ofa (id, operacion_id, estado) SELECT '10000000-0000-0000-0000-000000000001', id, 'BORRADOR' FROM operacion;
 
 -- [E1-1] Ingesta de versiones
-SELECT pg_temp.debe_fallar('E1-1 version_evento baja de 3 a 2', $q$UPDATE operacion SET version_evento = 2 WHERE operacion_id_aexsa = 'OP-1'$q$);
-SELECT pg_temp.debe_pasar ('E1-1 version_evento sube de 3 a 4', $q$UPDATE operacion SET version_evento = 4 WHERE operacion_id_aexsa = 'OP-1'$q$);
-SELECT pg_temp.debe_pasar ('E1-1 completar datos sin cambiar la version', $q$UPDATE operacion SET tipo_retiro = 'DIRECTO' WHERE operacion_id_aexsa = 'OP-1'$q$);
-SELECT pg_temp.debe_pasar ('E1-1 primer APLICADO de la v4', $q$INSERT INTO evento_aexsa (operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('OP-1', 4, 'OPERACION_ACTUALIZADA', '{}', 'APLICADO')$q$);
-SELECT pg_temp.debe_fallar('E1-1 segundo APLICADO de la misma version', $q$INSERT INTO evento_aexsa (operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('OP-1', 4, 'OPERACION_ACTUALIZADA', '{}', 'APLICADO')$q$);
-SELECT pg_temp.debe_pasar ('E1-1 DUPLICADO de la misma version se registra', $q$INSERT INTO evento_aexsa (operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('OP-1', 4, 'OPERACION_ACTUALIZADA', '{}', 'DUPLICADO')$q$);
-SELECT pg_temp.debe_fallar('E1-1 RECHAZADO sin codigo de error', $q$INSERT INTO evento_aexsa (operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('OP-1', 2, 'OPERACION_ACTUALIZADA', '{}', 'RECHAZADO')$q$);
-SELECT pg_temp.debe_pasar ('E1-1 RECHAZADO con VERSION_SUPERADA', $q$INSERT INTO evento_aexsa (operacion_id_aexsa, version, tipo_evento, carga, resultado, codigo_error) VALUES ('OP-1', 2, 'OPERACION_ACTUALIZADA', '{}', 'RECHAZADO', 'VERSION_SUPERADA')$q$);
+SELECT pg_temp.debe_fallar('E1-1 version_evento baja de 3 a 2', $q$UPDATE operacion SET version_evento = 2 WHERE operacion_id_aexsa = '98933'$q$);
+SELECT pg_temp.debe_pasar ('E1-1 version_evento sube de 3 a 4', $q$UPDATE operacion SET version_evento = 4 WHERE operacion_id_aexsa = '98933'$q$);
+SELECT pg_temp.debe_pasar ('E1-1 completar datos sin cambiar la version', $q$UPDATE operacion SET tipo_retiro = 'DIRECTO' WHERE operacion_id_aexsa = '98933'$q$);
+SELECT pg_temp.debe_pasar ('E1-1 primer APLICADO de la v4', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('VISADO_VIRTUAL', '98933', 4, 'OPERACION_ACTUALIZADA', '{}', 'APLICADO')$q$);
+SELECT pg_temp.debe_fallar('E1-1 segundo APLICADO de la misma version', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('VISADO_VIRTUAL', '98933', 4, 'OPERACION_ACTUALIZADA', '{}', 'APLICADO')$q$);
+SELECT pg_temp.debe_pasar ('E1-1 DUPLICADO de la misma version se registra', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('VISADO_VIRTUAL', '98933', 4, 'OPERACION_ACTUALIZADA', '{}', 'DUPLICADO')$q$);
+SELECT pg_temp.debe_fallar('E1-1 RECHAZADO sin codigo de error', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('VISADO_VIRTUAL', '98933', 2, 'OPERACION_ACTUALIZADA', '{}', 'RECHAZADO')$q$);
+SELECT pg_temp.debe_pasar ('E1-1 RECHAZADO con VERSION_SUPERADA', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado, codigo_error) VALUES ('VISADO_VIRTUAL', '98933', 2, 'OPERACION_ACTUALIZADA', '{}', 'RECHAZADO', 'VERSION_SUPERADA')$q$);
 SELECT pg_temp.debe_fallar('DBA-7 segunda OFA principal', $q$INSERT INTO ofa (operacion_id, estado) SELECT id, 'BORRADOR' FROM operacion$q$);
 
 -- [E1-2] Catalogo: versiones completas
@@ -81,6 +81,33 @@ SELECT pg_temp.debe_fallar('E1-5 DECISION con motivo en blanco', $q$INSERT INTO 
 SELECT pg_temp.debe_fallar('E1-5 DECISION sin la decision', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion, resuelto_en, resuelto_por, resolucion, motivo) SELECT id, 'SENTIDO', true, now(), 'f', 'DECISION', 'Segun DIN' FROM operacion$q$);
 SELECT pg_temp.debe_fallar('E1-5 resuelto sin usuario', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion, resuelto_en, resolucion) SELECT id, 'SENTIDO', true, now(), 'YA_NO_APLICA' FROM operacion$q$);
 SELECT pg_temp.debe_pasar ('E1-5 DECISION completa', $q$INSERT INTO operacion_pendiente (operacion_id, tipo, bloquea_validacion, resuelto_en, resuelto_por, resolucion, decision, motivo) SELECT id, 'SENTIDO', true, now(), 'f', 'DECISION', '{"sentido":"IMPORTACION"}', 'Segun DIN' FROM operacion$q$);
+
+-- [E1-6] Contrato de entrada v3.0
+SELECT pg_temp.debe_fallar('E1-6 visado virtual con dos IDs', $q$INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa) VALUES ('VISADO_VIRTUAL', '111', '{111,222}')$q$);
+SELECT pg_temp.debe_fallar('E1-6 visado virtual sin IDs', $q$INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa) VALUES ('VISADO_VIRTUAL', '111', '{}')$q$);
+SELECT pg_temp.debe_fallar('E1-6 visado virtual con clave distinta del ID', $q$INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa) VALUES ('VISADO_VIRTUAL', '999', '{111}')$q$);
+SELECT pg_temp.debe_fallar('E1-6 entidad desconocida', $q$INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa) VALUES ('OTRA', '111', '{111}')$q$);
+SELECT pg_temp.debe_fallar('E1-6 misma entidad y clave dos veces', $q$INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa) VALUES ('VISADO_VIRTUAL', '98933', '{98933}')$q$);
+SELECT pg_temp.debe_pasar ('E1-6 misma clave en otra entidad', $q$INSERT INTO operacion (entidad, operacion_id_aexsa, ids_aexsa) VALUES ('VISADO_PRESENCIAL', '98933', '{98933,98934}')$q$);
+SELECT pg_temp.debe_pasar ('E1-6 APLICADO de la misma version en otra entidad', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('VISADO_PRESENCIAL', '98933', 4, 'VISADO_APROBADO', '{}', 'APLICADO')$q$);
+SELECT pg_temp.debe_fallar('E1-6 APLICADO sin entidad', $q$INSERT INTO evento_aexsa (operacion_id_aexsa, version, tipo_evento, carga, resultado) VALUES ('77', 1, 'VISADO_APROBADO', '{}', 'APLICADO')$q$);
+SELECT pg_temp.debe_pasar ('E1-6 RECHAZADO con entidad invalida se registra', $q$INSERT INTO evento_aexsa (entidad, operacion_id_aexsa, version, tipo_evento, carga, resultado, codigo_error) VALUES ('OTRA', '77', 1, 'VISADO_APROBADO', '{}', 'RECHAZADO', 'VALIDACION')$q$);
+SELECT pg_temp.debe_pasar ('E1-6 din, papeletas y BL de la operacion', $q$
+    UPDATE operacion SET din = '{6123456789}', papeletas = '{5512}' WHERE entidad = 'VISADO_VIRTUAL' AND operacion_id_aexsa = '98933';
+    INSERT INTO operacion_bl SELECT id, 184520, 'BL-0001' FROM operacion WHERE entidad = 'VISADO_VIRTUAL' AND operacion_id_aexsa = '98933'$q$);
+SELECT pg_temp.debe_pasar ('E1-6 otra operacion con el mismo documento (queda pendiente, no se bloquea)', $q$
+    INSERT INTO operacion (id, entidad, operacion_id_aexsa, ids_aexsa) VALUES ('40000000-0000-0000-0000-000000000001', 'VISADO_VIRTUAL', '98940', '{98940}');
+    INSERT INTO operacion_bl VALUES ('40000000-0000-0000-0000-000000000001', 184520, 'BL-0001')$q$);
+SELECT pg_temp.debe_fallar('E1-6 deteccion del documento compartido: encuentra las 2 operaciones del BL 184520', $q$
+    DO $d$ BEGIN IF (SELECT count(DISTINCT operacion_id) FROM operacion_bl WHERE bl_id = 184520) = 2 THEN RAISE EXCEPTION 'encontradas'; END IF; END $d$$q$);
+SELECT pg_temp.debe_fallar('E1-6 mismo BL dos veces en la misma operacion', $q$INSERT INTO operacion_bl VALUES ('40000000-0000-0000-0000-000000000001', 184520, 'BL-0001')$q$);
+SELECT pg_temp.debe_pasar ('E1-6 inspecciones validas (resultado y null)', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'ABCD1234567',
+    '[{"tipo":"SAG","asignadaEn":"2026-10-21T09:00:00Z","finalizadaEn":"2026-10-22T11:00:00Z","resultado":"APROBADA"},{"tipo":"ADUANA","asignadaEn":"2026-10-21T09:00:00Z","finalizadaEn":null,"resultado":null},{"tipo":"SAG"}]')$q$);
+SELECT pg_temp.debe_fallar('E1-6 inspeccion con resultado fuera de la lista (APROBADO)', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'EFGH1234567', '[{"tipo":"SAG","resultado":"APROBADO"}]')$q$);
+SELECT pg_temp.debe_fallar('E1-6 inspeccion sin tipo', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'EFGH1234567', '[{"resultado":"APROBADA"}]')$q$);
+SELECT pg_temp.debe_fallar('E1-6 inspecciones que no son arreglo', $q$INSERT INTO contenedor_operacion (operacion_id, numero, inspecciones) VALUES ('40000000-0000-0000-0000-000000000001', 'EFGH1234567', '{"tipo":"SAG"}')$q$);
+SELECT pg_temp.debe_fallar('E1-6 columna documento_carga_id ya no existe', $q$SELECT documento_carga_id FROM operacion$q$);
+SELECT pg_temp.debe_fallar('E1-6 columna aforo_asignado_en ya no existe', $q$SELECT aforo_asignado_en FROM contenedor_operacion$q$);
 
 \o
 \pset footer off

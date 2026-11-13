@@ -27,7 +27,7 @@ Todos los contratos: transporte y seguridad los fija Agunsa Connect (PA-002); aq
 
 ## 2. `IEventoFacturablePort` — entrada del evento (REQ-001, ADR-005)
 
-**Cómo se consume:** AEXSA **envía** el evento (push) al `POST /aexsa/eventos` del Satélite. Lo registra en una tabla de salida en la misma transacción que la aprobación del visado y un proceso lo envía con reintentos. El Satélite no consulta a AEXSA para recibir eventos. Un `GET` de solo lectura sobre esa tabla de salida queda solo para **conciliar** y recuperar lo que no llegó. Cada operación se procesa **una sola vez** (idempotencia por `operacionIdAexsa` + `version`). Ver ADR-005.
+**Cómo se consume:** AEXSA **envía** el evento (push) al `POST /aexsa/eventos` del Satélite. Lo registra en una tabla de salida en la misma transacción que la aprobación del visado y un proceso lo envía con reintentos. El Satélite no consulta a AEXSA para recibir eventos. Un `GET` de solo lectura sobre esa tabla de salida queda solo para **conciliar** y recuperar lo que no llegó. Cada operación se procesa **una sola vez** (idempotencia por `entidad` + `operacionIdAexsa` + `version`, nota 12). Ver ADR-005.
 
 **Cuándo se envía:** AEXSA envía al aprobarse el visado, y el Satélite decide cuándo corresponde facturar (RN-046: con convenio, se retiene hasta la fecha de despacho, con tope de 7 días). Si el negocio quiere que AEXSA envíe en otro momento, se cambia el disparador, no el mensaje `[POR CONFIRMAR]`.
 
@@ -40,30 +40,31 @@ public interface IEventoFacturablePort
 ```
 
 ```jsonc
-// EventoFacturableDto  (v2.1, ajustado tras la revisión del código de AEXSA SYS). Prioridad: A = obligatorio, B = necesario en casos concretos, C = deseable.
+// EventoFacturableDto  (v3.0, 2026-11-13: ajustes del equipo de AEXSA, notas 12 a 16). Prioridad: A = obligatorio, B = necesario en casos concretos, C = deseable.
 // "Puede venir vacío" = el Satélite NO falla: lo marca como pendiente y el facturador lo completa a mano, con registro.
 {
   // --- Control del mensaje
-  "tipoEvento": "VISADO_APROBADO",        // A · VISADO_APROBADO | OPERACION_ACTUALIZADA
-  "version": 1,                           // A · sube con cada actualización; el Satélite actualiza, no duplica
-  "operacionIdAexsa": "98933",            // A · clave de idempotencia = SolicitudVisadoID, enviado como texto
-  "documentoCargaId": "184520",           // A · documento de carga al que pertenece. El 1,9 % de los documentos tiene más de una solicitud de visado: sin este dato, el Satélite podría facturar dos veces el mismo documento
+  "entidad": "VISADO_VIRTUAL",            // A · VISADO_VIRTUAL | VISADO_PRESENCIAL. Desde dónde llega la operación a facturar. Etapa 1: solo VISADO_VIRTUAL (nota 12)
+  "tipoEvento": "VISADO_APROBADO",        // A · VISADO_APROBADO | OPERACION_ACTUALIZADA. Al aprobar el visado: VISADO_APROBADO
+  "version": 1,                           // A · entero >= 1; empieza en 1 y sube con cada actualización. El Satélite actualiza, no duplica
+  "operacionIdAexsa": [98933],            // A · arreglo de IDs numéricos que generan la operación. VISADO_VIRTUAL: siempre uno (SolicitudVisadoID). VISADO_PRESENCIAL: puede traer varios (nota 12)
   "visadoAprobadoEn": "2026-10-26T14:30:00Z", // A · AEXSA lo guarda con zona horaria; se envía en UTC
   "estadoOperacion": "ACTIVA",            // A · ACTIVA | ANULADA (visado devuelto, anulado o rectificado después de enviado)
 
   // --- Clasificación de la ruta (REQ-002)
   "tipoCarga": "CONTENEDOR",              // A · CONTENEDOR | BULTO (RN-027). BULTO es 2ª etapa: se recibe y se marca fuera de alcance
-  "sentido": "IMPORTACION",               // A · IMPORTACION | EXPORTACION (impo usa DIN, expo usa DUS)
+  "sentido": "IMPORTACION",               // A · IMPORTACION | EXPORTACION | null. Puede venir vacío: queda el pendiente SENTIDO
   "tipoRetiro": "DIRECTO",                // A · DIRECTO | INDIRECTO | null (RN-026). PUEDE VENIR VACÍO: en AEXSA está vacío en el 95,6 % de los contenedores del ambiente revisado. NO se deriva de IndicaRetiroDirecto (no coincide con el directo que se factura): si falta, se envía null y lo define el facturador
   // (revisado 2026-11-05) Ya NO viaja "conConvenio": el convenio lo busca el Satélite por RUT y fecha. Es parte del valor del cálculo (nota 3)
   "terminal": { "id": 2, "nombre": "TERMINAL DE EJEMPLO" }, // A · catálogo MasterData.TerminalRetiro: hay 7, pero solo 2 tienen documentos, y el 18 % de los documentos no tiene terminal. PUEDE VENIR null. El Satélite lo asocia a STI / DP World / OTRO con una tabla de mapeo configurable (RN-079)
 
   // --- Documentos
-  "din": "2026-6-123456",                 // A en impo
-  "dus": [],                              // A en expo (lista)
-  "cantidadDus": null,                    // B · captura manual en AEXSA (RN-047); si no existe, la completa el facturador
-  "bls": ["BL-0001"],                     // B · una factura puede agrupar varios BL (RN-055)
-  "papeleta": { "numero": "P-123", "rut": "76.123.456-7" }, // B · para contrastar con la DIN (RN-001)
+  "din": [6123456789],                    // A en impo · arreglo de números de DIN. Vacío en expo
+  "bls": [                                // A · documentos de carga (BL) de la operación; al menos uno. Reemplaza a documentoCargaId (nota 13). Una factura puede agrupar varios BL (RN-055)
+    { "id": 184520, "numero": "BL-0001" } //     id: número, ID del documento en AEXSA · numero: texto, número del BL
+  ],
+  "papeletas": [5512],                    // B · arreglo de IDs numéricos de papeleta (antes "papeleta" con número y RUT, nota 14)
+  // (revisado 2026-11-13) Ya NO viajan "dus" ni "cantidadDus": no se necesitan en esta entrega (nota 16)
 
   // --- Partes
   "consignatario": { "rut": "76.123.456-7", "razonSocial": "Cliente de ejemplo" }, // A · RUT de la DIN (RN-057)
@@ -81,9 +82,12 @@ public interface IEventoFacturablePort
       "fechaRetiro": null,
       "fechaDespacho": null,              // B · con convenio se factura tras el despacho, tope 7 días (RN-046)
       "diasAlmacenaje": 12,               // B · el que AEXSA ya calcula en SQL (RN-033), sin descontar días libres
-      "bajoAforo": { "asignadoEn": "2026-10-21T09:00:00Z", "finalizadoEn": null, "dias": null }, // B · RN-052 / RN-058. AEXSA solo guarda cuándo se asignó el aforo; el término y los días pueden venir vacíos
+      // (revisado 2026-11-13) Ya NO viaja "bajoAforo": el aforo llega como una inspección más (nota 15)
       "esReefer": false,                  // C
-      "inspecciones": [ { "tipo": "SAG", "asignadaEn": "2026-10-21T09:00:00Z", "finalizadaEn": null } ] // B · RN-054 / RN-058. El término puede venir vacío
+      "inspecciones": [                   // B · RN-052 / RN-054 / RN-058. El término y el resultado pueden venir vacíos mientras la inspección no termina
+        { "tipo": "SAG", "asignadaEn": "2026-10-21T09:00:00Z", "finalizadaEn": "2026-10-22T11:00:00Z",
+          "resultado": "APROBADA" }       // APROBADA | RECHAZADA_PARCIAL | RECHAZADA_TOTAL | VISADO_LIBERADO | null (nota 15)
+      ]
     }
   ],
 
@@ -111,7 +115,7 @@ public interface IEventoFacturablePort
 
 Fuente: documento de diseño `AEXSA-SAT-API` (revisión de código y de la base de desarrollo, con datos hasta 2026-06-22). Es un ambiente de desarrollo: las cifras de completitud hay que validarlas en producción.
 
-1. **Lo que AEXSA no tiene hoy:** cantidad de DUS (y una lista de DUS propia), fecha de despacho por contenedor, fecha de término del aforo, contenedor por servicio y origen "liquidación de puerto". El mensaje los admite vacíos; el Satélite los marca como **pendientes** y el facturador los completa.
+1. **Lo que AEXSA no tiene hoy:** fecha de despacho por contenedor, contenedor por servicio y origen "liquidación de puerto". El mensaje los admite vacíos; el Satélite los marca como **pendientes** y el facturador los completa. La cantidad de DUS ya no viaja (nota 16).
 2. **Terminal.** Hay 7 terminales de retiro, pero solo 2 tienen documentos (San Antonio Terminal Internacional y Puerto Central) y el 18 % de los documentos no tiene terminal. AEXSA envía el terminal tal cual (`id` y `nombre`) o `null`. El Satélite mantiene una tabla de mapeo `terminal_mapa` (id de AEXSA → `STI`, `DP_WORLD` u `OTRO`), editable por el rol Administrador. Un terminal sin mapear o ausente queda `SIN_MAPEAR`: el cálculo del directo sin convenio **no decide** la refacturación y deja la operación pendiente. Propuesta a confirmar por la jefatura de facturación: Puerto Central corresponde a DP World. `[SUPUESTO]` (se deduce por descarte; no hay evidencia directa)
 3. **Convenio (revisado 2026-11-05, decisión del negocio).** AEXSA envía `VISADO_APROBADO` para **todas** las operaciones aprobadas, sin indicar si tienen convenio. **El Satélite busca el convenio** vigente por el RUT del cliente facturador (o del consignatario) y la fecha de la operación, en su propio registro de convenios (fuente autoritativa, RN-071). Determinar el convenio y calcular con él es el valor central del Satélite; no depende de lo que responda una persona en AEXSA. Si no encuentra convenio, cobra con tarifa pública; si encuentra más de uno vigente, aplica RN-018 y deja el pendiente `VARIOS_CONVENIOS_VIGENTES`. Con convenio, el Satélite retiene la operación hasta el despacho (RN-046). `[POR CONFIRMAR]` con el equipo de AEXSA: el cuadro "¿el cliente tiene convenio?" y el estado `PREAPROBADO_CONVENIO` de AEXSA hoy cambian el recorrido de la operación dentro de AEXSA; definir si se quitan o se mantienen solo para el flujo interno de AEXSA. En cualquier caso, el Satélite no los usa para cobrar.
 4. **Fecha de despacho.** No existe como campo en AEXSA (candidatos: salida del contenedor o fecha de retiro). Cada solicitud puede traer adjunta una guía de despacho, pero no se sabe si sirve como fuente. Hasta que se defina qué equivale a "despacho", el Satélite usa `fechaRetiro` como referencia y lo muestra como tal. `[SUPUESTO]`
@@ -120,10 +124,20 @@ Fuente: documento de diseño `AEXSA-SAT-API` (revisión de código y de la base 
 7. **Cantidad de un servicio.** Ningún servicio del ambiente revisado la tiene vacía, así que no hay cantidad por defecto. Si llega `null`, el servicio no se valoriza hasta que el facturador la complete.
 8. **Unidad.** En AEXSA es texto sin normalizar (por ejemplo "Contenedor", "Contenedor / Día", "Por B/L", "Vehículo"). Se envía como viene, solo como información. El Satélite normaliza a su enumeración por `tipoServicioId`, con el catálogo de la tarea 1.1.
 9. **Cliente facturador.** Casi siempre vacío (66 de 191.906 con valor). Es el caso normal: el Satélite usa al consignatario y el facturador reparte a mano si hace falta (RN-050).
-10. **Cómo se envía.** AEXSA registra el mensaje en una tabla de salida **en la misma transacción** que la aprobación del visado, y un proceso lo envía con `POST /aexsa/eventos` con reintentos. Idempotencia por `operacionIdAexsa` + `version`: 200 o 201, aceptado; 409, ya recibido (AEXSA lo da por enviado); 4xx de validación, sin reintento y con aviso; 5xx o timeout, reintento. AEXSA además expone un `GET` de solo lectura sobre la misma tabla, que el Satélite usa para **conciliar** (cuadratura eventos AEXSA ↔ operaciones del Satélite). Pendiente: autenticación de la llamada y si pasa por Agunsa Connect (PA-002).
+10. **Cómo se envía.** AEXSA registra el mensaje en una tabla de salida **en la misma transacción** que la aprobación del visado, y un proceso lo envía con `POST /aexsa/eventos` con reintentos. Idempotencia por `entidad` + `operacionIdAexsa` + `version` (nota 12): 200 o 201, aceptado; 409, ya recibido (AEXSA lo da por enviado); 4xx de validación, sin reintento y con aviso; 5xx o timeout, reintento. AEXSA además expone un `GET` de solo lectura sobre la misma tabla, que el Satélite usa para **conciliar** (cuadratura eventos AEXSA ↔ operaciones del Satélite). Pendiente: autenticación de la llamada y si pasa por Agunsa Connect (PA-002).
 11. **Entrega en dos etapas en AEXSA.** Etapa 1: `VISADO_APROBADO`, anulación y el `GET`. Etapa 2: `OPERACION_ACTUALIZADA` completo, porque los puntos donde cambian los datos están dispersos en AEXSA.
 
-**Validaciones al consumir:** contrastar DIN↔papeleta; si discrepan → `facturable = false` y devolver a corrección (RN-001). Clasificar momento de facturación por convenio (RN-046).
+### Ajustes del equipo de AEXSA (2026-11-13, contrato v3.0)
+
+12. **Entidad e identidad de la operación.** `entidad` separa desde dónde llega la operación a facturar: hoy `VISADO_VIRTUAL`; en etapas siguientes, `VISADO_PRESENCIAL`. `operacionIdAexsa` pasa a ser un **arreglo de IDs numéricos**: en visado virtual trae siempre un ID (la `SolicitudVisadoID`); en visado presencial puede traer varios. La clave de idempotencia es `entidad` + `operacionIdAexsa` + `version`; la `entidad` va en la clave porque los IDs de dos orígenes distintos pueden repetirse.
+    - `VISADO_VIRTUAL` con un arreglo vacío o con más de un ID → 400, sin reintento.
+    - `VISADO_PRESENCIAL` está fuera de la etapa 1 → 400 `ENTIDAD_NO_HABILITADA`, hasta definir su identidad. `[POR CONFIRMAR]` con el equipo de AEXSA: con varios IDs, ¿qué identifica a la operación?, ¿pueden cambiar los IDs entre una versión y otra?, ¿un ID puede quedar en dos operaciones?
+13. **Documento de carga → `bls`.** Se eliminó `documentoCargaId`. Los documentos de carga llegan en `bls`, cada uno con su `id` (ID del documento en AEXSA) y su `numero` (número del BL). La detección del documento con varias solicitudes de visado (1,9 % de los documentos) se hace ahora por `bls[].id`: si otra operación activa comparte un mismo `id` de documento, ambas quedan con el pendiente `DOCUMENTO_CON_VARIAS_SOLICITUDES` y el facturador decide cuál se factura.
+14. **Papeletas.** `papeleta` (número y RUT) se reemplaza por `papeletas`, un arreglo de IDs numéricos. Sin el RUT de la papeleta, el Satélite **ya no puede contrastar** DIN contra papeleta (RN-001). Esa revisión la hace el visador en AEXSA antes de presionar "Aprueba": el visado aprobado es la señal de que la revisión documental está hecha. `[POR CONFIRMAR]` con negocio, porque REQ-001 pide que el Satélite haga el contraste. El RUT con que se factura sigue siendo el de la declaración (RN-057), que llega en `consignatario`.
+15. **Aforo dentro de `inspecciones`.** Se eliminó `bajoAforo` porque repetía lo que ya viene en `inspecciones`. Cada inspección suma `resultado`: `APROBADA`, `RECHAZADA_PARCIAL`, `RECHAZADA_TOTAL` o `VISADO_LIBERADO`, y `null` mientras no termina. Los días bajo aforo (RN-052) se calculan con `asignadaEn` y `finalizadaEn` de la inspección de aforo. Si falta `finalizadaEn`, queda el pendiente `DIAS_AFORO` y el facturador los completa. `[POR CONFIRMAR]` con el equipo de AEXSA: la lista de valores de `tipo` y cuál corresponde al aforo de aduana (el ejemplo usa `SAG`). `[POR CONFIRMAR]` con negocio: si algún `resultado` cambia el cobro.
+16. **DUS.** Se quitaron `dus` y `cantidadDus`: no se necesitan en esta entrega y AEXSA no tenía la cantidad. Agregarlos más adelante como campos opcionales no rompe el contrato. Si llega una exportación, el facturador completa la cantidad de DUS a mano (pendiente `CANTIDAD_DUS`), como ya preveía RN-047.
+
+**Validaciones al consumir:** `entidad` habilitada y `operacionIdAexsa` con un solo ID en visado virtual (nota 12); documento compartido con otra operación activa por `bls[].id` (nota 13). Clasificar momento de facturación por convenio (RN-046). El contraste DIN↔papeleta (RN-001) queda en AEXSA (nota 14).
 
 ---
 
@@ -246,8 +260,9 @@ public interface IAexsaRetornoPort
 // RetornoFacturaDto (Satélite → AEXSA). Endpoint de AEXSA: [POR CONFIRMAR con el equipo de AEXSA]
 {
   "claveIdempotencia": "F-00098765",       // el folio: repetir el aviso no duplica
-  "operacionIdAexsa": "98933",             // SolicitudVisadoID recibido en el evento
-  "documentoCargaId": "184520",
+  "entidad": "VISADO_VIRTUAL",             // la misma del evento (§2, nota 12)
+  "operacionIdAexsa": [98933],             // los mismos IDs recibidos en el evento
+  "bls": [ { "id": 184520, "numero": "BL-0001" } ], // documentos facturados (reemplaza a documentoCargaId, §2 nota 13)
   "ofaId": "a1b2c3d4-...",
   "folio": "F-00098765",
   "tipoDte": 33,

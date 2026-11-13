@@ -8,8 +8,8 @@
 
 -- ===== [E1-1] Ingesta de AEXSA: una version vieja no pisa a una nueva
 -- Algoritmo (en la aplicacion, una transaccion por mensaje):
---   1. SELECT ... FROM operacion WHERE operacion_id_aexsa = $1 FOR UPDATE   (serializa mensajes de la misma operacion)
---   2. Si no existe -> INSERT operacion (el UNIQUE de operacion_id_aexsa resuelve la carrera) -> APLICADO (201).
+--   1. SELECT ... FROM operacion WHERE entidad = $1 AND operacion_id_aexsa = $2 FOR UPDATE   (serializa mensajes de la misma operacion; clave en [E1-6])
+--   2. Si no existe -> INSERT operacion (el UNIQUE de entidad + operacion_id_aexsa resuelve la carrera) -> APLICADO (201).
 --   3. version  > version_evento -> UPDATE operacion -> APLICADO (200).
 --      version  = version_evento -> DUPLICADO (409, AEXSA lo da por enviado).
 --      version  < version_evento -> RECHAZADO, codigo_error = 'VERSION_SUPERADA' (409, sin reintento).
@@ -106,3 +106,76 @@ ALTER TABLE operacion_pendiente DROP CONSTRAINT IF EXISTS ck_pendiente_decision_
 ALTER TABLE operacion_pendiente ADD CONSTRAINT ck_pendiente_decision_con_motivo CHECK (
     resolucion IS DISTINCT FROM 'DECISION'
     OR (motivo IS NOT NULL AND btrim(motivo) <> '' AND decision IS NOT NULL));
+
+-- ===== [E1-6] Contrato de entrada de AEXSA v3.0 (2026-11-13, contratos-integracion.md §2 notas 12 a 16)
+-- Origen de la operacion: VISADO_VIRTUAL (etapa 1) o VISADO_PRESENCIAL (despues).
+ALTER TABLE operacion ADD COLUMN IF NOT EXISTS entidad text NOT NULL DEFAULT 'VISADO_VIRTUAL';
+ALTER TABLE operacion DROP CONSTRAINT IF EXISTS ck_operacion_entidad;
+ALTER TABLE operacion ADD CONSTRAINT ck_operacion_entidad CHECK (entidad IN ('VISADO_VIRTUAL','VISADO_PRESENCIAL'));
+
+-- operacionIdAexsa es un arreglo de IDs. operacion_id_aexsa queda como CLAVE de la operacion:
+-- en visado virtual es el unico ID, como texto. En visado presencial, como se arma la clave esta [POR CONFIRMAR].
+ALTER TABLE operacion ADD COLUMN IF NOT EXISTS ids_aexsa bigint[] NOT NULL;
+ALTER TABLE operacion DROP CONSTRAINT IF EXISTS ck_operacion_ids_aexsa;
+ALTER TABLE operacion ADD CONSTRAINT ck_operacion_ids_aexsa CHECK (
+    cardinality(ids_aexsa) >= 1
+    AND (entidad <> 'VISADO_VIRTUAL' OR (cardinality(ids_aexsa) = 1 AND operacion_id_aexsa = ids_aexsa[1]::text)));
+-- La clave es unica por entidad: los IDs de dos origenes distintos pueden repetirse.
+ALTER TABLE operacion DROP CONSTRAINT IF EXISTS operacion_operacion_id_aexsa_key;
+ALTER TABLE operacion DROP CONSTRAINT IF EXISTS ux_operacion_entidad_clave;
+ALTER TABLE operacion ADD CONSTRAINT ux_operacion_entidad_clave UNIQUE (entidad, operacion_id_aexsa);
+
+-- Registro de mensajes: la entidad entra en la clave de idempotencia (entidad + operacionIdAexsa + version).
+-- Puede faltar o ser invalida solo en un mensaje RECHAZADO (se guarda tal como llego).
+ALTER TABLE evento_aexsa ADD COLUMN IF NOT EXISTS entidad text;
+ALTER TABLE evento_aexsa DROP CONSTRAINT IF EXISTS ck_evento_aexsa_entidad;
+ALTER TABLE evento_aexsa ADD CONSTRAINT ck_evento_aexsa_entidad
+    CHECK (resultado = 'RECHAZADO' OR (entidad IS NOT NULL AND entidad IN ('VISADO_VIRTUAL','VISADO_PRESENCIAL')));  -- IS NOT NULL: un NULL IN (...) pasaria el CHECK
+DROP INDEX IF EXISTS ux_evento_aexsa_aplicado;
+CREATE UNIQUE INDEX ux_evento_aexsa_aplicado
+    ON evento_aexsa (entidad, operacion_id_aexsa, version) WHERE resultado = 'APLICADO';
+DROP INDEX IF EXISTS ix_evento_aexsa_operacion;
+CREATE INDEX ix_evento_aexsa_operacion ON evento_aexsa (entidad, operacion_id_aexsa, recibido_en);
+
+-- documentoCargaId se elimino: los documentos de carga llegan en bls (id y numero).
+-- El documento con varias solicitudes se detecta por bl_id compartido entre operaciones activas.
+DROP INDEX IF EXISTS ix_operacion_documento;
+ALTER TABLE operacion DROP COLUMN IF EXISTS documento_carga_id;
+ALTER TABLE operacion DROP COLUMN IF EXISTS bls;
+CREATE TABLE IF NOT EXISTS operacion_bl (
+    operacion_id  uuid NOT NULL REFERENCES operacion(id),
+    bl_id         bigint NOT NULL,                     -- bls[].id: ID del documento de carga en AEXSA
+    numero        varchar(40) NOT NULL,                -- bls[].numero: numero del BL
+    PRIMARY KEY (operacion_id, bl_id)
+);
+CREATE INDEX IF NOT EXISTS ix_operacion_bl_documento ON operacion_bl (bl_id);  -- DOCUMENTO_CON_VARIAS_SOLICITUDES
+
+-- din pasa a arreglo de numeros.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'operacion' AND column_name = 'din' AND data_type <> 'ARRAY') THEN
+        ALTER TABLE operacion ALTER COLUMN din TYPE bigint[]
+            USING CASE WHEN din IS NULL THEN NULL ELSE ARRAY[din::bigint] END;
+    END IF;
+END $$;
+
+-- papeleta (numero y RUT) pasa a papeletas: arreglo de IDs. El contraste DIN<->papeleta (RN-001) lo hace AEXSA [POR CONFIRMAR].
+ALTER TABLE operacion ADD COLUMN IF NOT EXISTS papeletas bigint[];
+ALTER TABLE operacion DROP COLUMN IF EXISTS papeleta_numero;
+ALTER TABLE operacion DROP COLUMN IF EXISTS papeleta_rut;
+-- dus y cantidad_dus se mantienen: no vienen de AEXSA, el facturador completa la cantidad de DUS en exportacion (RN-047).
+
+-- bajoAforo se elimino: el aforo llega en inspecciones. dias_bajo_aforo se mantiene (calculado desde la
+-- inspeccion de aforo o completado por el facturador, RN-052).
+ALTER TABLE contenedor_operacion DROP COLUMN IF EXISTS aforo_asignado_en;
+ALTER TABLE contenedor_operacion DROP COLUMN IF EXISTS aforo_finalizado_en;
+-- inspecciones: [{tipo, asignadaEn, finalizadaEn, resultado}]. tipo obligatorio; resultado null o uno de los 4 valores.
+ALTER TABLE contenedor_operacion DROP CONSTRAINT IF EXISTS ck_contenedor_inspecciones;
+ALTER TABLE contenedor_operacion ADD CONSTRAINT ck_contenedor_inspecciones CHECK (
+    inspecciones IS NULL OR (
+        jsonb_typeof(inspecciones) = 'array'
+        AND NOT jsonb_path_exists(inspecciones,
+            '$[*] ? (!exists(@.tipo) || (exists(@.resultado) && @.resultado != null
+                     && !(@.resultado == "APROBADA" || @.resultado == "RECHAZADA_PARCIAL"
+                          || @.resultado == "RECHAZADA_TOTAL" || @.resultado == "VISADO_LIBERADO")))')));

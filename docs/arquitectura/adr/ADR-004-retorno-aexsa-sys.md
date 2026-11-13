@@ -5,7 +5,7 @@ Estado: **Propuesto** (depende de PA-004, PA-008)
 > **Revisión 2026-11-05 (decisión del negocio, reemplaza la nota anterior del mismo día):** Agunsa Connect **avisa a ZARPE que se facturó** (callback de folio), y **ZARPE informa a AEXSA SYS** la factura emitida, ya conciliada, para tener la trazabilidad completa de que la factura se generó correctamente. Se mantiene el puerto `IAexsaRetornoPort` de la decisión de abajo, con estos ajustes:
 > - El aviso sale por el **Outbox** de ZARPE (misma transacción que la conciliación), con reintentos, registro de solicitud, respuesta y error, alerta al agotar reintentos y **reenvío desde la pantalla**. Idempotente por folio.
 > - AEXSA expone un **endpoint de recepción nuevo** y devuelve un **acuse de recibo**. Con el acuse, la OFA pasa a `INFORMADA_AEXSA`. ZARPE no escribe en la base de AEXSA (se mantiene el rechazo de la alternativa 1).
-> - El aviso lleva `operacionIdAexsa`, `documentoCargaId`, folio, tipo de DTE, montos neto y total, fecha de emisión y el XML del DTE.
+> - El aviso lleva `entidad`, `operacionIdAexsa` (arreglo de IDs), `bls` (documentos facturados, con `id` y `numero`), folio, tipo de DTE, montos neto y total, fecha de emisión y el XML del DTE. *(Revisado 2026-11-13: identidad del contrato de entrada v3.0; reemplaza a `documentoCargaId`.)*
 > - `[POR CONFIRMAR]` con el equipo de AEXSA: nombre y autenticación del endpoint, y si el canal actual `GetFactura` (SAP → AEXSA) se apaga para estas facturas. Recomendación: ZARPE como único emisor del aviso; si conviven, AEXSA ignora el segundo aviso de un mismo folio.
 > - `[POR CONFIRMAR]` qué pasa con las operaciones con convenio, que se facturan consolidadas fuera del flujo de AEXSA (PA-010).
 Fecha: 2026-10-26

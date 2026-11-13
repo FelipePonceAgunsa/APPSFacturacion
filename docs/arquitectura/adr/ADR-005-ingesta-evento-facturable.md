@@ -9,9 +9,14 @@ Decide: Arquitecto de Solución
 > 2. **Señal.** El disparador es el botón **"Aprueba"** de "Respuesta pre-visado": el visador lo presiona tras revisar los documentos. El evento se emite también en `PREAPROBADO_CONVENIO`: las operaciones con convenio no pasan por la fase Facturación de AEXSA y esa es la única señal que dan.
 > 3. **Dónde vive la selección de "qué facturar".** En el Satélite: la bandeja de operaciones es la lista de pendientes de facturar. AEXSA no tiene hoy esa lista; su pantalla "Facturas por cobrar" muestra facturas ya emitidas pendientes de cobro, y el estado `PENDIENTE_FACTURA` no tiene filas. La fuente es una entidad explícita (el evento y la operación del Satélite), no el estado del visado.
 > 4. **Ticket 1811 (facturación pendiente que bloquea retiros).** Queda separado: es control de retiros. En la Fase B podría consumir el estado de la operación del Satélite.
-> 5. **Identidad.** El 1,9 % de los documentos tiene más de una solicitud de visado; el evento incluye `documentoCargaId` y el Satélite no valida una OFA si hay otra solicitud activa del mismo documento.
+> 5. **Identidad.** El 1,9 % de los documentos tiene más de una solicitud de visado; el Satélite no valida una OFA si hay otra solicitud activa del mismo documento. *(Revisado 2026-11-13: el documento se identifica por `bls[].id`; ver punto 7.)*
 > 6. **Entrega en dos etapas** en AEXSA (visado aprobado, anulación y `GET`; luego actualizaciones).
 > Pendiente: fecha de AEXSA, autenticación de la llamada y si pasa por Agunsa Connect (PA-006, PA-002). Contrato en `contratos-integracion.md` §2.
+>
+> **Actualización 2026-11-13 (ajustes del equipo de AEXSA, contrato v3.0):**
+> 7. **Origen e identidad.** El evento trae `entidad` (`VISADO_VIRTUAL` hoy; `VISADO_PRESENCIAL` después) y `operacionIdAexsa` pasa a ser un arreglo de IDs (uno en visado virtual, varios posibles en presencial). La idempotencia es `entidad` + `operacionIdAexsa` + `version`. Se eliminó `documentoCargaId`: los documentos llegan en `bls` (`id` y `numero`) y el documento compartido se detecta por `bls[].id`. `VISADO_PRESENCIAL` queda fuera de la etapa 1 hasta definir su identidad `[POR CONFIRMAR]`.
+> 8. **DIN contra papeleta.** `papeletas` trae solo IDs, así que el Satélite ya no hace el contraste del punto 4 de la decisión: lo hace el visador en AEXSA antes de aprobar. `[POR CONFIRMAR]` con negocio (REQ-001).
+> 9. **Aforo e inspecciones.** Se eliminó `bajoAforo`; el aforo llega en `inspecciones`, que suman `resultado`. Se eliminaron `dus` y `cantidadDus` en esta entrega.
 
 ## Contexto
 El disparador del ciclo es la **aprobación del visado** por el visador en AEXSA SYS (RN-028, REQ-001). Hay dos mundos: con convenio se factura posterior al despacho (tope 7 días); carga suelta y sin convenio, en la visación (RN-046). AEXSA SYS **no publica eventos** hoy: la operación entra a "Facturación" cambiando de estado (`PREAPROBADO_* → FACTURA_EMITIDA`) en la BD (RN-028, BR-004). No hay un evento sistémico que alimente al Satélite (BR-004). Volumen ~2.428 documentos/mes (RNF-04).

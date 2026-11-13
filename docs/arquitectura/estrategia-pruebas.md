@@ -76,8 +76,8 @@ Las dependencias externas (SAP, Agunsa Connect, AEXSA SYS) están tras **puertos
 - **Callback de folio:** `POST /sap/callbacks/folio` cierra el vínculo por folio y marca la factura.
 
 ### 3.2 Ingesta desde AEXSA (ADR-005)
-- Pull idempotente: la misma operación no se ingiere dos veces (por `operacion_id_aexsa`).
-- Validación DIN↔papeleta: discrepancia → operación `facturable = false` (RN-001).
+- Ingesta idempotente: la misma operación no se ingiere dos veces (por `entidad` + `operacionIdAexsa` + `version`, contrato v3.0).
+- Validación DIN↔papeleta: con el contrato v3.0 la hace el visador en AEXSA (`papeletas` trae solo IDs); el Satélite ya no la prueba `[POR CONFIRMAR]` (contratos §2 nota 14).
 
 ### 3.3 Lectura de tarifas SAP (ADR-003)
 - Sync produce un `tarifa_snapshot` versionado; el cálculo fija y usa esa versión (reproducibilidad).
@@ -109,7 +109,7 @@ Flujo completo contra stubs de los terceros, en entorno dockerizado:
 - FULL con convenio (caso dominante, 90–95%).
 - FULL directo STI y directo DP World (ADR-015).
 - Repartido entre consignatario y forwarder (ADR-011).
-- Operación no facturable (DIN↔papeleta) devuelta a corrección.
+- Operación no facturable (DIN↔papeleta) devuelta a corrección. `[POR CONFIRMAR]` con el contrato v3.0 el contraste lo hace AEXSA (contratos §2 nota 14).
 - OFA con ajuste manual.
 - Falla de integración → emitida-sin-confirmación + alerta.
 

@@ -26,7 +26,7 @@ Los términos que verás en el código, los ADR y las reglas de negocio. Escrito
 ## La operación
 | Término | Qué es |
 |---|---|
-| **Operación** | Un movimiento de carga facturable. Se identifica por `operacionIdAexsa` |
+| **Operación** | Un movimiento de carga facturable. Se identifica por `entidad` (visado virtual o presencial) + `operacionIdAexsa` (arreglo de IDs; uno en visado virtual) |
 | **Contenedor / carga suelta** | Tipos de carga. La carga suelta (LCL) es de la 2ª etapa |
 | **Retiro directo / indirecto** | Directo: el contenedor sale del puerto sin entrar a AEXSA. Indirecto: entra al almacén. Un directo puede pasar a indirecto si aduana ordena una inspección |
 | **Ruta** | Combinación de {tipo de carga} × {tipo de retiro} × {con o sin convenio}. Define cómo se cobra |

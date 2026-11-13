@@ -31,6 +31,7 @@ Ajustes de la etapa 1 (`02`):
 | E1-3 | Tipo de cambio: fuente `API` / `ARCHIVO` / `MANUAL` (antes `API_SAP`), coherente con `importacion_id`. Gana el valor de SAP: un manual no lo reemplaza (trigger) |
 | E1-4 | Ítem agregado a mano: exige quién, cuándo y motivo, y los prohíbe en las demás líneas |
 | E1-5 | Pendientes: la resolución trae fecha, usuario y tipo juntos; una `DECISION` exige motivo no vacío y la decisión |
+| E1-6 | Contrato de entrada de AEXSA v3.0: `entidad` y `ids_aexsa` (clave única por entidad; visado virtual con un solo ID); `entidad` en la clave de `evento_aexsa`; tabla `operacion_bl` en lugar de `documento_carga_id` y `bls`; `din` y `papeletas` como arreglos de números; sin columnas de aforo (llega en `inspecciones`, con `resultado` validado) |
 
 Fuera de la etapa 1, sin ajustes: omisiones, alertas y reglas configurables.
 
@@ -44,6 +45,9 @@ docker exec -it zarpe-postgres psql -U postgres -d zarpe_facturacion   # consola
 
 # Pruebas de las reglas (no dejan datos: todo se revierte)
 Get-Content .\pruebas\pruebas-etapa1.sql -Raw | docker exec -i zarpe-postgres psql -U postgres -d zarpe_facturacion -q
+
+# Validar el OpenAPI (YAML, referencias rotas y esquema del evento de AEXSA). Requiere Python con PyYAML
+python .\pruebas\validar-openapi.py
 ```
 
 ## Cuando cambie el modelo de datos
