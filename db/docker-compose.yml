@@ -1,0 +1,29 @@
+# Base local de ZARPE - FACTURACION (solo desarrollo).
+# El esquema sale de docs/arquitectura/modelo-datos.md (ver db/generar-esquema.ps1).
+# Los scripts de db/init solo corren cuando el volumen esta vacio (primera vez o tras "down -v").
+name: zarpe-facturacion
+
+services:
+  zarpe-postgres:
+    image: postgres:16-alpine
+    container_name: zarpe-postgres
+    environment:
+      POSTGRES_DB: zarpe_facturacion
+      POSTGRES_USER: ${ZARPE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${ZARPE_DB_PASSWORD:-postgres}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "5433:5432"   # 5432 lo usa hc-postgres (Huella)
+    volumes:
+      - zarpe-pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d zarpe_facturacion"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  zarpe-pgdata:

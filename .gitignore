@@ -67,7 +67,16 @@ docs/arquitectura/*
 .kiro/steering/*
 !.kiro/steering/desarrollo-satelite.md
 
-# === Exclusiones técnicas habituales (por si se agrega código a futuro) ===
+# 6) Código fuente: backend (.NET) y frontend (Angular).
+#    Cada proyecto trae su propio .gitignore (bin/obj, node_modules, dist...).
+!Fuentes/
+!Fuentes/**
+
+# 7) Base local en Docker (esquema generado desde modelo-datos.md, ajustes y pruebas)
+!db/
+!db/**
+
+# === Exclusiones técnicas habituales ===
 # Secretos — nunca (evita el antipatrón del legacy, BR-016)
 .env
 .env.*

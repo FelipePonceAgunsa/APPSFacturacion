@@ -519,7 +519,11 @@ paths:
     post:
       tags: [Catalogo]
       summary: Ingresar el tipo de cambio de un día (alternativa al archivo A4)
-      description: Lo ingresa facturación cuando no viene en la importación. Queda auditado.
+      description: >
+        Lo ingresa facturación cuando falta el de SAP para ese día; queda con fuente MANUAL y auditado.
+        Gana el valor de SAP, para que la prefactura coincida con la factura (ADR-017): si el día ya
+        tiene valor de SAP (fuente API o ARCHIVO) responde 409, y si después llega el de SAP, reemplaza
+        al manual. Los cálculos ya hechos no cambian, porque la memoria de cálculo guarda el valor usado.
       requestBody:
         required: true
         content:
@@ -528,6 +532,11 @@ paths:
       responses:
         '201': { description: Tipo de cambio registrado }
         '400': { $ref: '#/components/responses/Error400' }
+        '409':
+          description: TIPO_CAMBIO_DE_SAP_EXISTE. El día ya tiene el valor de SAP.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /catalogo/importaciones:
     post:
@@ -543,10 +552,27 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [tipo, archivo]
+              required: [tipo]
+              description: >
+                Con un tipo parcial (ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO) se envía la parte
+                `archivo`. Con COMPLETO se envían en el mismo request las partes `articulos`,
+                `listasPrecios` y `kits` (obligatorias) y `tipoCambio` (opcional), cada una con el formato
+                de su archivo (A1 a A4). Una importación parcial parte de la versión vigente: al
+                confirmar, la versión nueva copia desde ella lo que no vino, así cada versión queda
+                completa. La primera carga del catálogo debe ser COMPLETO o ARTICULOS.
               properties:
-                tipo: { type: string, enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO] }
-                archivo: { type: string, format: binary, description: CSV UTF-8 separado por punto y coma }
+                tipo:
+                  type: string
+                  enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO, SOCIOS_NEGOCIO, COMPLETO]
+                  description: >
+                    Mismos valores que catalogo_importacion.tipo. SOCIOS_NEGOCIO es el archivo A5
+                    (RUT → código de cliente SAP); no está habilitado en la etapa 1 y responde 400 con
+                    código TIPO_NO_HABILITADO. Su formato se define con la tarea 3.2.
+                archivo: { type: string, format: binary, description: 'Tipos parciales. CSV UTF-8 separado por punto y coma' }
+                articulos: { type: string, format: binary, description: 'Solo COMPLETO. Archivo A1' }
+                listasPrecios: { type: string, format: binary, description: 'Solo COMPLETO. Archivo A2' }
+                kits: { type: string, format: binary, description: 'Solo COMPLETO. Archivo A3' }
+                tipoCambio: { type: string, format: binary, description: 'Solo COMPLETO, opcional. Archivo A4' }
       responses:
         '201':
           description: Archivo validado; pendiente de confirmación
@@ -808,6 +834,11 @@ components:
         fecha: { type: string, format: date }
         moneda: { type: string, enum: [USD, UF] }
         valor: { type: number }
+        fuente:
+          type: string
+          enum: [API, ARCHIVO, MANUAL]
+          readOnly: true
+          description: De dónde salió el valor. Mismo vocabulario que el origen del catálogo. MANUAL = ingresado por facturación.
     VinculoServicioArticulo:
       type: object
       properties:
@@ -821,7 +852,8 @@ components:
       type: object
       properties:
         importacionId: { type: string, format: uuid }
-        tipo: { type: string, enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO] }
+        tipo: { type: string, enum: [ARTICULOS, LISTAS_PRECIOS, KITS, TIPO_CAMBIO, SOCIOS_NEGOCIO, COMPLETO] }
+        versionBase: { type: integer, nullable: true, description: 'Versión vigente desde la que se copia lo que no vino. Null en COMPLETO y en la primera carga' }
         filasLeidas: { type: integer }
         filasValidas: { type: integer }
         errores:
@@ -939,6 +971,9 @@ components:
         origen: { type: string, enum: [CALCULADA, AGREGADA_MANUAL, REGLA_CONFIGURABLE], description: 'Cómo nació la línea (modelo-datos DBA-6)' }
         enKitSap: { type: boolean, nullable: true, description: 'Está en el kit SAP sugerido; null si no hay kit (ADR-017)' }
         versionCalculo: { type: integer, description: Versión de cálculo de la OFA a la que pertenece la línea }
+        agregadaPor: { type: string, nullable: true, description: 'Solo si origen = AGREGADA_MANUAL' }
+        agregadaEn: { type: string, format: date-time, nullable: true, description: 'Solo si origen = AGREGADA_MANUAL' }
+        motivoAgregada: { type: string, nullable: true, description: 'Solo si origen = AGREGADA_MANUAL (obligatorio en ese caso)' }
         memoria: { $ref: '#/components/schemas/MemoriaCalculo' }
     MemoriaCalculo:
       type: object

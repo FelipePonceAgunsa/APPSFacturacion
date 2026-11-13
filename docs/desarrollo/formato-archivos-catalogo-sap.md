@@ -104,8 +104,19 @@ Tabla destino: `tipo_cambio`.
 
 Últimos 30 días. El tipo de cambio de un día también puede ingresarse a mano (`POST /catalogo/tipo-cambio`). La fuente preferida es el mismo que usa SAP al emitir, para que la prefactura coincida con la factura. Quién es responsable del dato diario sigue abierto (ADR-017, pendientes).
 
+Cada valor guarda su fuente (`API`, `ARCHIVO` o `MANUAL`) y **gana el de SAP**:
+- El valor manual solo se ingresa si falta el de SAP para ese día. Si ya existe el de SAP, la API responde 409 `TIPO_CAMBIO_DE_SAP_EXISTE`.
+- Si después llega el de SAP para un día que tenía valor manual, lo reemplaza y el cambio queda en la auditoría.
+- Los cálculos ya hechos no cambian, porque la memoria de cálculo guarda el valor que usó.
+
 ## A5 — Socios de negocio (deseable, no bloquea la Fase A)
-No se importa en la Fase A. Sirve para mapear RUT→código de cliente SAP (PA-007) y traer condición de pago y lista de precios por cliente (RN-065). Se define en la Fase B (tarea 3.2).
+No se importa en la Fase A. Sirve para mapear RUT→código de cliente SAP (PA-007) y traer condición de pago y lista de precios por cliente (RN-065). Se define en la Fase B (tarea 3.2). El tipo `SOCIOS_NEGOCIO` ya existe en la API, pero responde 400 `TIPO_NO_HABILITADO` hasta entonces.
+
+---
+
+## Carga completa y cargas parciales
+- **Carga completa (`COMPLETO`):** A1, A2 y A3 (y A4 si se quiere) en **un mismo envío**, cada uno en su propia parte del formulario (`articulos`, `listasPrecios`, `kits`, `tipoCambio`). La validación cruzada (todo artículo de A2 y A3 existe en A1) se hace sobre ese envío. La **primera carga** del catálogo debe ser completa, o al menos traer A1.
+- **Carga parcial (un solo archivo):** parte de la versión vigente. Al confirmar, la versión nueva copia desde ella lo que no vino. Por ejemplo, si solo llega A2, la versión nueva copia los artículos y los kits de la vigente. Así cada versión queda completa y el cálculo nunca encuentra un precio sin su artículo.
 
 ---
 
