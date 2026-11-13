@@ -1,0 +1,15 @@
+{
+  "rut": "76.111.111-6",
+  "razonSocial": "Importadora de Ejemplo Uno SpA",
+  "comercial": "Comercial de ejemplo",
+  "vigenciaDesde": "2026-01-01",
+  "vigenciaHasta": "2026-12-31",
+  "tcMinimo": 800,
+  "diasLibres": 10,
+  "servicios": [
+    { "tipoServicioId": 42, "tarifa": 15000, "moneda": "CLP" },
+    { "tipoServicioId": 43, "tarifa": 13000, "moneda": "CLP" },
+    { "tipoServicioId": 45, "tarifa": 20, "moneda": "USD" },
+    { "tipoServicioId": 48, "tarifa": 8000, "moneda": "CLP" }
+  ]
+}

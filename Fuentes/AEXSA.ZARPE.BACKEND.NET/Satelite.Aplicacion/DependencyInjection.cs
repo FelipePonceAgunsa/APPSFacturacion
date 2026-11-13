@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Satelite.Aplicacion.Catalogo;
 using Satelite.Aplicacion.Configuracion;
+using Satelite.Aplicacion.Convenios;
 
 namespace Satelite.Aplicacion;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<ICatalogoService, CatalogoService>();
         services.AddScoped<IImportacionCatalogoService, ImportacionCatalogoService>();
         services.AddScoped<IConfiguracionService, ConfiguracionService>();
+        services.AddScoped<IConvenioService, ConvenioService>();
 
         return services;
     }

@@ -28,6 +28,26 @@ curl.exe -s -F tipo=COMPLETO -F articulos=@datos-prueba/catalogo/A1_articulos_20
 curl.exe -s -X POST http://localhost:5228/api/catalogo/importaciones/<importacionId>/confirmar
 ```
 
+## convenios/
+Cuerpos de `POST /api/convenios` (formulario manual, ADR-012). Nacen en BORRADOR y hay que confirmarlos.
+
+| Archivo | Contenido |
+|---|---|
+| `convenio-76111111-6.json` | Vigencia 2026; tarifas CLP (42, 43, 48) y USD (45); `tcMinimo` 800 (piso del caso T3 con el TC de 700 del 2026-10-26); `diasLibres` 10 |
+| `convenio-77222222-K.json` | Vigencia 2026-06-01 a 2027-05-31; tarifas CLP (42, 49) y USD (46); `tcMinimo` 820; `diasLibres` 5 |
+
+## e2e-etapa1.ps1
+Prueba de punta a punta contra la API local en modo abierto. Con la base recién creada y la API levantada **después**
+de recrearla (el script de la base corta las conexiones abiertas):
+```powershell
+& .\db\recrear-con-migracion.ps1 *>&1
+dotnet run --project Fuentes\AEXSA.ZARPE.BACKEND.NET\Satelite.Api --launch-profile http   # en otra consola
+& .\datos-prueba\e2e-etapa1.ps1 *>&1
+```
+Pasos: 1 importa y confirma el catálogo COMPLETO (y comprueba que un archivo con error queda RECHAZADA);
+2 vincula los servicios 42 a 52; 3 crea y confirma los dos convenios y los lee VIGENTE con `GET /convenios/{id}`;
+4 busca el convenio vigente de `76.111.111-6` al 2026-10-26. Si un paso falla, dice cuál y sale con código 1.
+
 ## Configuración del motor en Development
 `Motor:ConceptosDirecto` de `Satelite.Api/appsettings.Development.json` usa los IDs 42 a 47 de estas semillas
 (`[SUPUESTO: IDs de datos de prueba]`). `appsettings.json` no trae valores: cada ambiente fija los suyos.

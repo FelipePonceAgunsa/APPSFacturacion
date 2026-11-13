@@ -1,0 +1,14 @@
+{
+  "rut": "77.222.222-K",
+  "razonSocial": "Forwarder de Ejemplo Dos Ltda.",
+  "comercial": null,
+  "vigenciaDesde": "2026-06-01",
+  "vigenciaHasta": "2027-05-31",
+  "tcMinimo": 820,
+  "diasLibres": 5,
+  "servicios": [
+    { "tipoServicioId": 42, "tarifa": 16000, "moneda": "CLP" },
+    { "tipoServicioId": 46, "tarifa": 7.5, "moneda": "USD" },
+    { "tipoServicioId": 49, "tarifa": 22000, "moneda": "CLP" }
+  ]
+}

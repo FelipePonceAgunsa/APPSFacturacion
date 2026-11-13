@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Satelite.Aplicacion.Catalogo;
 using Satelite.Aplicacion.Comun;
 using Satelite.Aplicacion.Configuracion;
+using Satelite.Aplicacion.Convenios;
 using Satelite.Infraestructura.Archivos;
 using Satelite.Infraestructura.Persistencia;
 using Satelite.Infraestructura.Repositorios;
@@ -50,6 +51,7 @@ public static class DependencyInjection
 
         services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
         services.AddScoped<IConfiguracionRepositorio, ConfiguracionRepositorio>();
+        services.AddScoped<IConveniosRepositorio, ConveniosRepositorio>();
 
         return services;
     }

@@ -8,6 +8,8 @@ api/catalogo.service.ts
 api/catalogo.serviceInterface.ts
 api/configuracion.service.ts
 api/configuracion.serviceInterface.ts
+api/convenios.service.ts
+api/convenios.serviceInterface.ts
 api/session.service.ts
 api/session.serviceInterface.ts
 configuration.ts
@@ -16,9 +18,13 @@ git_push.sh
 index.ts
 model/articulo-sap-dto.ts
 model/catalogo-resumen-dto.ts
+model/convenio-detalle-dto.ts
+model/convenio-manual-request.ts
+model/convenio-resumen-dto.ts
 model/error-importacion-dto.ts
 model/error-respuesta.ts
 model/estado-importacion.ts
+model/estado-version-convenio.ts
 model/fuente-tipo-cambio.ts
 model/grupo-inspeccion-request.ts
 model/grupo-inspeccion.ts
@@ -28,11 +34,14 @@ model/kit-articulo-dto.ts
 model/kit-sap-dto.ts
 model/models.ts
 model/moneda.ts
+model/nueva-version-convenio-request.ts
 model/origen-catalogo.ts
+model/origen-version-convenio.ts
 model/origen-vinculo.ts
 model/precio-lista-dto.ts
 model/problem-details.ts
 model/resultado-importacion-dto.ts
+model/servicio-convenio-dto.ts
 model/terminal-mapa-dto.ts
 model/tipo-cambio-dto.ts
 model/tipo-importacion.ts
@@ -40,6 +49,8 @@ model/tipo-inspeccion-mapa-dto.ts
 model/tipo-servicio-dto.ts
 model/unidad-cobro.ts
 model/usuario-actual-response.ts
+model/version-convenio-dto.ts
+model/version-convenio-vigente-dto.ts
 model/vinculo-request.ts
 model/vinculo-servicio-articulo-dto.ts
 param.ts

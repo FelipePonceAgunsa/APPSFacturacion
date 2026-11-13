@@ -90,6 +90,40 @@ paths:
               schema: { $ref: '#/components/schemas/VersionConvenio' }
         '400': { $ref: '#/components/responses/Error400' }
 
+  /convenios/vigente:
+    get:
+      tags: [Convenios]
+      summary: Versión de convenio en vigor para un RUT a una fecha
+      description: >
+        Busca las versiones VIGENTE del cliente cuya vigencia cubre la fecha. Si hay varios convenios en
+        vigor se elige el más antiguo (RN-018; [SUPUESTO] el creado primero) y `candidatos` trae todas las
+        versiones en vigor, incluida la elegida. Es la misma búsqueda que usa el cálculo de la OFA.
+      parameters:
+        - { name: rut, in: query, required: true, schema: { type: string }, description: RUT del cliente (se normaliza el formato) }
+        - { name: fecha, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Versión en vigor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VersionConvenioVigente' }
+        '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
+
+  /convenios/{convenioId}:
+    get:
+      tags: [Convenios]
+      summary: Convenio con su cliente y todas sus versiones (pantalla C3)
+      parameters:
+        - { name: convenioId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Convenio y versiones, de la más nueva a la más antigua
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConvenioDetalle' }
+        '404': { $ref: '#/components/responses/Error404' }
+
   /convenios/{convenioId}/versiones:
     post:
       tags: [Convenios]
@@ -128,6 +162,11 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/VersionConvenio' }
         '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: VERSION_NO_EDITABLE. Solo se confirma una versión en BORRADOR; una VIGENTE nunca se edita.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   # ------------------------------------------------------------- Operaciones
   /operaciones:
@@ -818,8 +857,33 @@ components:
       properties:
         convenioId: { type: string, format: uuid }
         rut: { type: string }
-        comercial: { type: string }
+        razonSocial: { type: string }
+        comercial: { type: string, nullable: true }
         versionVigente: { type: integer, nullable: true }
+        vigenciaDesde: { type: string, format: date, nullable: true, description: De la versión VIGENTE }
+        vigenciaHasta: { type: string, format: date, nullable: true, description: De la versión VIGENTE; con ella se calcula el vencimiento (RN-021) }
+        ultimaVersion: { type: integer, description: Número de la versión más nueva }
+        estadoUltimaVersion: { $ref: '#/components/schemas/EstadoVersionConvenio' }
+    ConvenioDetalle:
+      type: object
+      properties:
+        convenioId: { type: string, format: uuid }
+        rut: { type: string }
+        razonSocial: { type: string }
+        comercial: { type: string, nullable: true }
+        creadoEn: { type: string, format: date-time }
+        versiones:
+          type: array
+          description: De la más nueva a la más antigua
+          items: { $ref: '#/components/schemas/VersionConvenio' }
+    VersionConvenioVigente:
+      type: object
+      properties:
+        version: { $ref: '#/components/schemas/VersionConvenio' }
+        candidatos:
+          type: array
+          description: Ids de todas las versiones en vigor del RUT a la fecha; más de uno = VARIOS_CONVENIOS_VIGENTES
+          items: { type: string, format: uuid }
     VersionConvenio:
       type: object
       properties:
@@ -833,6 +897,9 @@ components:
         diasLibres: { type: integer, nullable: true }
         origen: { type: string, enum: [IA_EXTRAIDO, MANUAL, COMPLEMENTO_CORREO] }
         confianzaIa: { type: number, nullable: true, description: Score IA; null si manual }
+        confirmadoPor: { type: string, nullable: true, readOnly: true }
+        confirmadoEn: { type: string, format: date-time, nullable: true, readOnly: true }
+        creadoEn: { type: string, format: date-time, readOnly: true }
         servicios:
           type: array
           items: { $ref: '#/components/schemas/ServicioConvenio' }
@@ -847,6 +914,7 @@ components:
             - $ref: '#/components/schemas/UnidadCobro'
           readOnly: true
           description: Sale del catálogo según el servicio; no se digita
+        descripcionServicio: { type: string, nullable: true, readOnly: true, description: Descripción en el catálogo de servicios }
 
     ConvenioManualRequest:
       type: object
