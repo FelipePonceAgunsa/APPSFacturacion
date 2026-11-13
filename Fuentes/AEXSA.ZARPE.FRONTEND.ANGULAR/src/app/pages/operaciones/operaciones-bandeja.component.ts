@@ -1,88 +1,90 @@
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
-import { MatTableModule } from '@angular/material/table';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { OperacionesService } from '../../api/api/operaciones.service';
 import { OperacionResumenDto } from '../../api/model/models';
 import { mensajeDeError } from '../../helpers/errores';
-import { TEXTO_PENDIENTE, textoIds } from './operaciones-util';
-/** F1 Bandeja de operaciones: lo que llegó de AEXSA, con el convenio encontrado y los pendientes. */
+import { textoIds } from './operaciones-util';
+import { estadoOperacion, textoRetiro } from './operaciones-vista';
+
+export type FiltroBandeja = 'todas' | 'falta' | 'ok';
+
+/**
+ * F1 "Por facturar": lo que llegó de AEXSA y qué tiene que mirar la persona (maqueta, pantalla 1).
+ * Filtros rápidos y buscador; un clic (o Enter) abre la operación. El estado siempre lleva texto.
+ */
 @Component({
   selector: 'app-operaciones-bandeja',
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [
-    DatePipe, FormsModule, RouterLink, MatTableModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatChipsModule,
-  ],
+  imports: [DatePipe],
   template: `
-    <div class="pagina">
-      <h2>Operaciones</h2>
-      <div class="fila-acciones">
-        <mat-form-field appearance="outline">
-          <mat-label>RUT del cliente</mat-label>
-          <input matInput [(ngModel)]="rut" (keyup.enter)="buscar()" placeholder="76.111.111-6" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Facturable</mat-label>
-          <mat-select [(ngModel)]="facturable">
-            <mat-option [value]="null">Todas</mat-option>
-            <mat-option [value]="true">Sí</mat-option>
-            <mat-option [value]="false">No</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <button mat-flat-button type="button" (click)="buscar()"><mat-icon>search</mat-icon>Buscar</button>
+    <div class="zp-pagina">
+      <h1>Por facturar</h1>
+      <p class="zp-sub">Operaciones que llegaron de AEXSA SYS. Abre una para ver <strong>cuánto cobrar</strong>. La factura se emite en SAP, con los valores que calcula esta pantalla.</p>
+      <div class="zp-filtros" role="group" aria-label="Filtros">
+        <button type="button" class="zp-pill" [attr.aria-pressed]="filtro() === 'todas'" (click)="filtro.set('todas')">Todas</button>
+        <button type="button" class="zp-pill" [attr.aria-pressed]="filtro() === 'falta'" (click)="filtro.set('falta')">Con dato pendiente</button>
+        <button type="button" class="zp-pill" [attr.aria-pressed]="filtro() === 'ok'" (click)="filtro.set('ok')">Calculadas</button>
+        <input type="search" aria-label="Buscar por cliente u operación" placeholder="Buscar cliente u operación"
+               [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
       </div>
-      <table mat-table [dataSource]="operaciones()" class="tabla-completa">
-        <ng-container matColumnDef="ids"><th mat-header-cell *matHeaderCellDef>IDs AEXSA</th><td mat-cell *matCellDef="let o">{{ textoIds(o.operacionIdAexsa) }}</td></ng-container>
-        <ng-container matColumnDef="visado"><th mat-header-cell *matHeaderCellDef>Visado</th><td mat-cell *matCellDef="let o">{{ o.visadoAprobadoEn | date: 'dd-MM-yyyy HH:mm' }}</td></ng-container>
-        <ng-container matColumnDef="rut"><th mat-header-cell *matHeaderCellDef>Cliente</th><td mat-cell *matCellDef="let o">{{ o.rut }} · {{ o.razonSocial }}</td></ng-container>
-        <ng-container matColumnDef="convenio"><th mat-header-cell *matHeaderCellDef>Convenio</th><td mat-cell *matCellDef="let o">{{ o.conConvenio ? 'Sí' : 'No' }}</td></ng-container>
-        <ng-container matColumnDef="ruta"><th mat-header-cell *matHeaderCellDef>Ruta</th>
-          <td mat-cell *matCellDef="let o">{{ o.rutaClasificada ?? 'Sin clasificar' }}@if (!o.facturable) { · <span class="texto-error">no facturable</span> }@if (o.estadoOperacion === 'ANULADA') { · <span class="texto-error">ANULADA</span> }</td></ng-container>
-        <ng-container matColumnDef="pendientes"><th mat-header-cell *matHeaderCellDef>Pendientes</th>
-          <td mat-cell *matCellDef="let o">
-            <mat-chip-set>
-              @for (p of o.pendientes; track p) { <mat-chip>{{ texto[p] }}</mat-chip> }
-            </mat-chip-set>
-            @if (!o.pendientes.length) { <span class="texto-secundario">—</span> }
-          </td></ng-container>
-        <ng-container matColumnDef="ofa"><th mat-header-cell *matHeaderCellDef>OFA</th><td mat-cell *matCellDef="let o">{{ o.estadoOfa ?? '—' }}</td></ng-container>
-        <ng-container matColumnDef="accion"><th mat-header-cell *matHeaderCellDef></th><td mat-cell *matCellDef="let o"><a mat-button [routerLink]="['/operaciones', o.operacionId]">Ver</a></td></ng-container>
-        <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-        <tr mat-row *matRowDef="let row; columns: columnas"></tr>
-      </table>
-      @if (!operaciones().length) {
-        <p class="texto-secundario">No hay operaciones con esos filtros.</p>
-      }
+      <div class="zp-tarjeta">
+        <table class="zp-tabla">
+          <thead><tr><th>Operación</th><th>Cliente</th><th>Convenio</th><th>Retiro</th><th>Aprobada el</th><th>Estado</th></tr></thead>
+          <tbody>
+            @for (o of visibles(); track o.operacionId) {
+              <tr class="zp-fila-click" tabindex="0" (click)="abrir(o)" (keydown.enter)="abrir(o)">
+                <td>{{ textoIds(o.operacionIdAexsa) }}</td>
+                <td>{{ o.razonSocial ?? o.rut }}<small>{{ o.rut }}</small></td>
+                <td>{{ o.conConvenio ? 'Sí' : 'No' }}</td>
+                <td>{{ retiro(o) }}</td>
+                <td>{{ o.visadoAprobadoEn | date: 'dd-MM-yyyy' }}</td>
+                <td><span class="zp-chip" [class]="estado(o).clase">{{ estado(o).texto }}</span></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6">{{ cargado() ? 'No hay operaciones con esos filtros.' : 'Cargando…' }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   `,
 })
 export class OperacionesBandejaComponent implements OnInit {
   private readonly api = inject(OperacionesService);
   private readonly toastr = inject(ToastrService);
-  readonly texto = TEXTO_PENDIENTE;
+  private readonly router = inject(Router);
   readonly textoIds = textoIds;
-  readonly columnas = ['ids', 'visado', 'rut', 'convenio', 'ruta', 'pendientes', 'ofa', 'accion'];
+  readonly estado = estadoOperacion;
   readonly operaciones = signal<OperacionResumenDto[]>([]);
-  rut = '';
-  facturable: boolean | null = null;
+  readonly cargado = signal(false);
+  readonly filtro = signal<FiltroBandeja>('todas');
+  readonly busqueda = signal('');
+  readonly visibles = computed(() => {
+    const q = this.busqueda().trim().toLowerCase();
+    return this.operaciones().filter(o => {
+      if (this.filtro() !== 'todas' && estadoOperacion(o).clase !== this.filtro()) return false;
+      return !q || `${textoIds(o.operacionIdAexsa)} ${o.razonSocial ?? ''} ${o.rut ?? ''}`.toLowerCase().includes(q);
+    });
+  });
   ngOnInit(): Promise<void> {
-    return this.buscar();
+    return this.cargar();
   }
-  async buscar(): Promise<void> {
+  retiro(o: OperacionResumenDto): string {
+    return o.tipoRetiro ? textoRetiro(o.tipoRetiro) : '—';
+  }
+  abrir(o: OperacionResumenDto): void {
+    void this.router.navigate(['/operaciones', o.operacionId]);
+  }
+  async cargar(): Promise<void> {
     try {
-      this.operaciones.set(await firstValueFrom(this.api.operacionesListar(this.facturable ?? undefined, this.rut.trim() || undefined)));
+      this.operaciones.set(await firstValueFrom(this.api.operacionesListar()));
     } catch (e) {
       this.toastr.error(mensajeDeError(e));
+    } finally {
+      this.cargado.set(true);
     }
   }
 }

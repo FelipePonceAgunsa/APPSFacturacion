@@ -1,4 +1,4 @@
-import { LineaOfaDto, ReglaAplicadaDto } from '../../api/model/models';
+import { ReglaAplicadaDto } from '../../api/model/models';
 /** Nombre legible de cada regla de la memoria de cálculo (motor-tarifas-detalle.md §1). */
 export const NOMBRE_REGLA: Record<string, string> = {
   R0_COMPOSICION_DIRECTO: 'Regla 0 · composición del directo sin convenio',
@@ -18,11 +18,4 @@ export function textoDetalle(r: ReglaAplicadaDto): string {
     .filter(([, v]) => v !== '')
     .map(([k, v]) => `${k}: ${v}`)
     .join(' · ');
-}
-/** Lo que impide validar una línea, o null. */
-export function problemaLinea(l: LineaOfaDto): string | null {
-  if (l.sinTarifa) return 'Sin tarifa';
-  if (l.sinTipoCambio) return 'Sin tipo de cambio';
-  if (!l.articuloSap) return 'Sin artículo SAP';
-  return null;
 }

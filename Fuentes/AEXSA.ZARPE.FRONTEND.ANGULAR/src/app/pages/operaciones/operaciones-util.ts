@@ -74,6 +74,11 @@ export function armarSolicitud(f: FormularioCompletar): CompletarOperacionReques
     decisiones: decisiones.length ? decisiones : null,
   };
 }
+/** ¿La persona informó algo además del motivo? Evita guardar un PATCH vacío. */
+export function hayCambios(f: FormularioCompletar): boolean {
+  const s = armarSolicitud(f);
+  return !!(s.tipoRetiro || s.sentido || s.cantidadDus !== null || s.fechaDespacho || s.diasAforo !== null || s.cantidadesServicio || s.decisiones);
+}
 /** IDs de AEXSA como texto (visado virtual: uno; presencial: varios). */
 export function textoIds(ids: number[] | null | undefined): string {
   return (ids ?? []).join(', ');

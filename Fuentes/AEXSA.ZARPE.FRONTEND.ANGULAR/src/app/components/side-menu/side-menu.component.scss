@@ -43,6 +43,15 @@ app-side-menu {
         padding: 24px 16px 16px;
     }
 
+    // Logo de AEXSA (rojo sobre blanco): va en una caja blanca sobre el degradado rojo del encabezado.
+    .logo-caja {
+        background: #fff;
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        justify-content: center;
+        img { max-width: 100%; height: auto; display: block; }
+    }
     .system-name {
         text-align: center;
         margin-bottom: 12px;

@@ -18,7 +18,7 @@ export interface MenuItem {
  */
 export const MENU_ITEMS: MenuItem[] = [
   { label: 'Inicio', icon: 'home', route: '/inicio', access: [] },
-  { label: 'Operaciones', icon: 'local_shipping', route: '/operaciones', access: [Access.Operaciones] },
+  { label: 'Por facturar', icon: 'local_shipping', route: '/operaciones', access: [Access.Operaciones] },
   { label: 'Convenios', icon: 'handshake', route: '/convenios', access: [Access.Convenios] },
   { label: 'Catálogo SAP', icon: 'inventory_2', route: '/catalogo', access: [Access.CatalogoSap] },
   {

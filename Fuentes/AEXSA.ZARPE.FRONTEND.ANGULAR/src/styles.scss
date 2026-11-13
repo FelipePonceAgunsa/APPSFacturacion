@@ -125,3 +125,130 @@ body {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+// ── Por facturar y Operación (maqueta ux/maqueta-satelite-simple.html) ──
+// Prefijo zp-: solo estas dos pantallas. Paleta de la maqueta; el estado nunca va solo por color.
+:root {
+  --zp-acento: #CC0000;
+  --zp-negro: #1A1A1A;
+  --zp-gris: #666666;
+  --zp-linea: #E3E3E3;
+  --zp-ok: #1B7F3B;
+  --zp-aviso: #9A5B00;
+}
+.zp-pagina {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+  color: var(--zp-negro);
+
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  h2 { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+  a.zp-volver { margin: 0 0 6px -12px; }
+}
+.zp-sub { color: var(--zp-gris); margin: 0 0 18px; font-size: 14px; }
+.zp-tarjeta {
+  background: #fff;
+  border: 1px solid var(--zp-linea);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.zp-tarjeta--acento { border-left: 5px solid var(--zp-acento); }
+.zp-tarjeta--aviso { border-left: 5px solid #d99a00; }
+.zp-tabla {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px;
+    color: var(--zp-gris); padding: 8px 10px; border-bottom: 2px solid var(--zp-linea);
+  }
+  td { padding: 11px 10px; border-bottom: 1px solid var(--zp-linea); vertical-align: middle; font-size: 14px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td small { display: block; color: var(--zp-gris); font-size: 12px; margin-top: 2px; }
+  tr.zp-fila-click { cursor: pointer; }
+  tr.zp-fila-click:hover td { background: #fafafa; }
+  tr.zp-fila-click:focus-visible { outline: 3px solid #1d4ed8; outline-offset: -3px; }
+  tr.zp-fila-extra td { background: #fcfcfc; }
+}
+.zp-chip {
+  display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; border: 1px solid;
+  white-space: nowrap;
+
+  &.ok { color: var(--zp-ok); border-color: #b7dcc3; background: #eef8f1; }
+  &.falta { color: var(--zp-aviso); border-color: #ecd3a8; background: #fff6e6; }
+  &.neutro { color: #333; border-color: #ccc; background: #f3f3f3; }
+  &.excepcion { color: #7a1f1f; border-color: #e5b4b4; background: #fdf0f0; }
+}
+.zp-filtros {
+  display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;
+
+  button.zp-pill {
+    border: 1px solid #ccc; background: #fff; border-radius: 16px; padding: 6px 14px; font: inherit; font-size: 13px;
+    cursor: pointer; color: var(--zp-negro);
+    &[aria-pressed='true'] { background: var(--zp-negro); color: #fff; border-color: var(--zp-negro); }
+    &:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+  }
+  input[type='search'] {
+    margin-left: auto; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font: inherit; font-size: 14px; min-width: 260px;
+  }
+}
+.zp-aviso {
+  border-left: 5px solid #d99a00; background: #fff6e6; padding: 14px 18px; border-radius: 6px; margin-bottom: 18px;
+
+  &.zp-aviso--error { border-left-color: var(--zp-acento); background: #fdf0f0; }
+  > strong { display: block; margin-bottom: 4px; }
+  .zp-aviso-item { margin-top: 12px; }
+  .zp-aviso-tipo { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+}
+.zp-grid-op {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px 24px; margin: 0;
+
+  dt { font-size: 12px; color: var(--zp-gris); text-transform: uppercase; letter-spacing: .3px; }
+  dd { margin: 2px 0 0; font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+  dd small { display: block; font-weight: 400; color: var(--zp-gris); }
+}
+.zp-convenio {
+  display: inline-block; margin: 0 0 18px; padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 600;
+  background: #f3f3f3; border: 1px solid #ccc;
+  &.zp-convenio--si { background: #eef8f1; border-color: #b7dcc3; color: var(--zp-ok); }
+}
+.zp-total {
+  display: flex; justify-content: space-between; align-items: baseline; padding: 16px 10px 4px;
+  span:first-child { color: var(--zp-gris); }
+  span:last-child { font-size: 28px; font-weight: 700; }
+}
+.zp-porque {
+  background: #f5f5f5; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #333;
+  p { margin: 0 0 6px; line-height: 1.5; }
+  details { margin-top: 6px; summary { cursor: pointer; color: #1d4ed8; } ol { margin: 6px 0 0; padding-left: 20px; } li { margin: 2px 0; } }
+}
+.zp-campo {
+  display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;
+  label { font-size: 13px; font-weight: 600; }
+  small { color: var(--zp-gris); }
+  input, select, textarea {
+    padding: 9px 11px; border: 1px solid #bbb; border-radius: 6px; font: inherit; font-size: 14px; max-width: 360px; background: #fff;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+}
+.zp-fila-campos { display: flex; gap: 8px 20px; flex-wrap: wrap; align-items: flex-end; }
+.zp-ajuste { display: flex; gap: 10px 16px; align-items: flex-end; flex-wrap: wrap; padding: 6px 0; .zp-campo { margin: 0; } }
+.zp-panel { background: #f5f5f5; border-radius: 6px; padding: 12px 14px; margin-top: 6px; }
+.zp-nota { color: var(--zp-gris); font-size: 13px; margin: 8px 0 0; }
+.zp-ok-msg { background: #eef8f1; border: 1px solid #b7dcc3; padding: 10px 14px; border-radius: 6px; color: #14532d; margin-top: 12px; }
+.zp-detalles {
+  summary { cursor: pointer; font-weight: 600; }
+  .zp-tabla { margin: 10px 0 14px; }
+}
+.zp-pasos { margin: 8px 0 0; padding-left: 20px; line-height: 1.7; }
+.zp-acciones { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.zp-link { padding: 0; min-width: 0; }
+.zp-sr { position: absolute; left: -9999px; }
+// Enlace en línea (como el "Cambiar" de la maqueta): no altera el alto de la fila.
+.zp-btn-link {
+  background: none; border: 0; padding: 0 0 0 8px; font: inherit; font-weight: 500; color: #1d4ed8;
+  text-decoration: underline; cursor: pointer;
+  &:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+}
