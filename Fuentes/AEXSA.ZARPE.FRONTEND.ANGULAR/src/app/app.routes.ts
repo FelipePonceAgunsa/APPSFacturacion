@@ -10,6 +10,8 @@ import { TerminalesComponent } from './pages/configuracion/terminales.component'
 import { TiposInspeccionComponent } from './pages/configuracion/tipos-inspeccion.component';
 import { OperacionesBandejaComponent } from './pages/operaciones/operaciones-bandeja.component';
 import { OperacionDetalleComponent } from './pages/operaciones/operacion-detalle.component';
+import { OfaDetalleComponent } from './pages/ofa/ofa-detalle.component';
+import { OfaDigitarComponent } from './pages/ofa/ofa-digitar.component';
 import { authGuard } from './helpers/auth.guard';
 import { Access } from './helpers/access.constants';
 
@@ -26,6 +28,8 @@ export const routes: Routes = [
   { path: 'convenios/:id/nueva-version', component: ConvenioFormComponent, canActivate: [authGuard], data: { access: [Access.Convenios_Edit] } },
   { path: 'operaciones', component: OperacionesBandejaComponent, canActivate: [authGuard], data: { access: [Access.Operaciones] } },
   { path: 'operaciones/:id', component: OperacionDetalleComponent, canActivate: [authGuard], data: { access: [Access.Operaciones] } },
+  { path: 'ofa/:id', component: OfaDetalleComponent, canActivate: [authGuard], data: { access: [Access.Ofa] } },
+  { path: 'ofa/:id/digitar', component: OfaDigitarComponent, canActivate: [authGuard], data: { access: [Access.Ofa] } },
   { path: 'catalogo', component: CatalogoComponent, canActivate: [authGuard], data: { access: [Access.CatalogoSap] } },
   { path: 'configuracion/terminales', component: TerminalesComponent, canActivate: [authGuard], data: { access: [Access.Configuracion] } },
   { path: 'configuracion/tipos-inspeccion', component: TiposInspeccionComponent, canActivate: [authGuard], data: { access: [Access.Configuracion] } },

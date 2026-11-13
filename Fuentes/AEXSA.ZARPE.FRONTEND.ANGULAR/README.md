@@ -79,6 +79,10 @@ Borra y regenera `src/app/api/` desde `http://localhost:5228/openapi/v1.json`. L
 npm test
 ```
 
+Un `*.spec.ts` por grupo de pantallas (`pages/**`) con los servicios de la API simulados, más `services/auth.service.spec.ts` (modo abierto).
+
+En la pantalla F6 el botón "Enviar a SAP" se ve pero está deshabilitado ("Disponible en la Fase B"): en la etapa 1 la OFA validada se digita en SAP y la API responde 409 `ENVIO_SAP_DESHABILITADO`.
+
 ## Estructura
 
 ```
@@ -90,6 +94,12 @@ src/app/
 │   ├── inicio/             # Pantalla de inicio
 │   ├── login/              # Ingreso con cuenta corporativa
 │   └── side-menu/          # Layout con menú lateral
+├── pages/                  # Pantallas de la etapa 1 (mapa-pantallas.md)
+│   ├── catalogo/           # T3 Catálogo SAP (resumen, artículos, precios, kits, TC, vínculos, importar)
+│   ├── configuracion/      # T4 Terminales y tipos de inspección
+│   ├── convenios/          # C1 lista, C2 formulario, C3 detalle, C4 confirmar versión
+│   ├── operaciones/        # F1 bandeja, F2 detalle con "Completar datos" (PATCH con motivo y decisiones)
+│   └── ofa/                # F3 OFA con memoria de cálculo, agregar ítem, F4 ajuste de monto, F6 validar y "digitar en SAP"
 ├── helpers/
 │   ├── access.constants.ts # Constantes de permisos
 │   ├── auth.guard.ts       # Guard de rutas

@@ -76,6 +76,8 @@ dotnet test --solution AEXSA.ZARPE.BACKEND.NET.sln
 
 - `Satelite.Tests/Motor`: casos T1 a T12 del motor de tarifas y reconstrucción del monto desde la memoria (sin infraestructura).
 - `Satelite.Tests/Infraestructura`: PostgreSQL 16 en contenedor (Testcontainers, imagen `postgres:16-alpine`) con la migración aplicada. **Requiere Docker corriendo.** `PostgresFixture` se comparte con `[Collection(PostgresCollection.Nombre)]`.
+- `Satelite.Tests/Api`: la API en memoria (`WebApplicationFactory`, modo abierto) sobre una base nueva por prueba. `ApiConOperaciones` carga además el catálogo de ejemplo de `datos-prueba/catalogo` y los vínculos 42 a 52 (ingesta, `PATCH`, OFA).
+- Prueba de punta a punta contra la API corriendo en local: `& ..\..\datos-prueba\e2e-etapa1.ps1 *>&1` sobre la base recién recreada (ver `datos-prueba/README.md`).
 
 ## Autenticación y autorización
 
@@ -123,9 +125,24 @@ Para agregar un módulo con permisos:
 
 4. Para auditar, inyectar `ICurrentUser` en el caso de uso y guardar `UsuarioAuditoria` (correo o `sub`).
 
-### Convención de servicios
+### Convención de servicios y errores
 
-Igual que el estándar: los servicios de aplicación devuelven `ServiceResult<T>` y el controller responde con `StatusCode(result.StatusCode, result.Success ? result.Data : new { message = result.Message })`. Cada servicio nuevo se registra en `Satelite.Aplicacion/DependencyInjection.cs` (casos de uso) o en `Satelite.Infraestructura/DependencyInjection.cs` (adaptadores).
+Los servicios de aplicación devuelven `ServiceResult<T>` y los controllers heredan de `SateliteControllerBase`, cuyo `Responder(result)` devuelve los datos o, si falla, el esquema `Error` del OpenAPI: `{ codigo, mensaje, detalle }` (por ejemplo `409 { codigo: "OFA_YA_ENVIADA" }`). La excepción es `POST /api/aexsa/eventos`, que responde siempre `ResultadoIngesta` (`{ resultado, codigo, operacionId, versionAplicada, errores }`). Cada servicio nuevo se registra en `Satelite.Aplicacion/DependencyInjection.cs` (casos de uso) o en `Satelite.Infraestructura/DependencyInjection.cs` (adaptadores).
+
+## Endpoints de la etapa 1
+
+Todos bajo `/api`, con las rutas de `docs/arquitectura/api/openapi.yaml`:
+
+| Módulo | Endpoints |
+|---|---|
+| Sesión | `GET /Session/Me` |
+| Catálogo SAP | `GET /tipos-servicio`, `GET /catalogo`, `/catalogo/articulos`, `/catalogo/listas-precios/{codigo}/precios`, `/catalogo/kits`, `GET/POST /catalogo/tipo-cambio`, `POST /catalogo/importaciones`, `POST /catalogo/importaciones/{id}/confirmar`, `GET /catalogo/vinculos`, `PUT /catalogo/vinculos/{tipoServicioId}` |
+| Configuración | `GET /configuracion/terminales`, `PUT /configuracion/terminales/{id}`, `GET /configuracion/tipos-inspeccion`, `PUT /configuracion/tipos-inspeccion/{codigo}` |
+| Convenios | `GET/POST /convenios`, `GET /convenios/vigente`, `GET /convenios/{id}`, `POST /convenios/{id}/versiones`, `POST /convenios/{id}/versiones/{v}/confirmar` |
+| Operaciones | `POST /aexsa/eventos` (contrato v3.0), `GET/POST /operaciones`, `GET/PATCH /operaciones/{id}` |
+| OFA | `POST /operaciones/{id}/ofa`, `GET /ofa/{id}`, `POST /ofa/{id}/lineas`, `POST /ofa/{id}/lineas/{l}/ajuste`, `POST /ofa/{id}/validar`, `POST /ofa/{id}/enviar` (409 `ENVIO_SAP_DESHABILITADO` mientras `Ofa:EnvioSapHabilitado = false`) |
+
+Configuración propia: `Catalogo:ListaPublica` (por defecto `LP-PUBLICA` `[SUPUESTO]`), `Motor:ConceptosDirecto` (IDs de `tipo_servicio` de la Regla 0; en Development los de los datos de prueba) y `Ofa:EnvioSapHabilitado` (`false`).
 
 ## Versión desplegada (tag de imagen Docker)
 

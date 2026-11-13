@@ -76,6 +76,11 @@ El script:
 
 Resultado esperado: `0 diferencias de esquema` y `ok = 63, fallas = 0`.
 
+Las semillas cargan solo tipos de servicio, terminales y tipos de inspección. El catálogo SAP, los vínculos, los
+convenios y los eventos de AEXSA de ejemplo se cargan por la API con `datos-prueba/e2e-etapa1.ps1` (ver
+`datos-prueba/README.md`). Si la API estaba corriendo, hay que reiniciarla después de recrear la base: el script corta
+las conexiones abiertas. Los bloques 4 y 5 de la etapa 1 no agregaron cambios de esquema `[E1-n]`.
+
 ## Cuando cambie el esquema
 
 Un cambio que pide el código se agrega a `init/02-ajustes-etapa1.sql` con su marca `[E1-n]` (re-ejecutable) **y** a

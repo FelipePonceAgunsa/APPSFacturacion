@@ -339,7 +339,11 @@ paths:
     post:
       tags: [OFA]
       summary: Calcular/armar la OFA de una operación (motor determinístico)
-      description: Ejecuta el pipeline de cálculo (ADR-006) y devuelve la OFA valorizada con su memoria.
+      description: >
+        Ejecuta el pipeline de cálculo (ADR-006) y devuelve la OFA valorizada con su memoria. Si la OFA ya existe en
+        BORRADOR o VALIDADA, la recalcula como versión nueva (DBA-7): las líneas agregadas a mano se copian, los
+        ajustes de monto no, y una VALIDADA vuelve a BORRADOR. Antes de calcular toma el convenio vigente y el mapeo
+        de terminal actuales.
       parameters:
         - { name: operacionId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
@@ -348,6 +352,15 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Ofa' }
+        '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: >
+            No se calcula: OFA_YA_ENVIADA, OPERACION_ANULADA, OPERACION_FUERA_DE_ALCANCE (BULTO),
+            OPERACION_NO_FACTURABLE, TERMINAL_SIN_MAPEAR (directo sin convenio), CONCEPTOS_DIRECTO_SIN_CONFIGURAR
+            o CATALOGO_NO_CARGADO
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /ofa/{ofaId}:
     get:
@@ -383,6 +396,12 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/LineaOfa' }
         '400': { $ref: '#/components/responses/Error400' }
+        '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: La OFA ya fue enviada (OFA_YA_ENVIADA) o la línea no es de la versión de cálculo vigente (LINEA_NO_VIGENTE)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /ofa/{ofaId}/lineas:
     post:
@@ -408,12 +427,20 @@ paths:
               schema: { $ref: '#/components/schemas/LineaOfa' }
         '400': { $ref: '#/components/responses/Error400' }
         '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: La OFA ya fue enviada (OFA_YA_ENVIADA)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /ofa/{ofaId}/validar:
     post:
       tags: [OFA]
       summary: Validar completitud de la OFA antes de enviarla a SAP (REQ-008)
-      description: Bloquea si falta destinatario, ítems sin tarifa, líneas sin artículo SAP, recargos/días sin resolver.
+      description: >
+        Bloquea si falta destinatario, ítems sin tarifa o sin tipo de cambio (salvo ajuste manual), líneas sin artículo
+        SAP, pendientes de la operación que bloquean o que exigen una decisión. Si está completa pasa a VALIDADA:
+        queda lista para digitar en SAP (Fase A).
       parameters:
         - { name: ofaId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
@@ -422,6 +449,12 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ResultadoValidacion' }
+        '404': { $ref: '#/components/responses/Error404' }
+        '409':
+          description: La OFA ya fue enviada (OFA_YA_ENVIADA)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /ofa/{ofaId}/enviar:
     post:
@@ -1181,19 +1214,40 @@ components:
       properties:
         ofaId: { type: string, format: uuid }
         operacionId: { type: string, format: uuid }
+        operacionIdAexsa:
+          type: array
+          items: { type: integer, format: int64 }
+        tipo: { type: string, enum: [PRINCIPAL, COMPLEMENTARIA] }
         estado: { $ref: '#/components/schemas/EstadoOfa' }
+        versionCalculo: { type: integer, description: 'Versión de cálculo vigente (DBA-7). Las líneas de versiones anteriores quedan en el histórico' }
         fechaCalculo: { type: string, format: date-time }
         asignaciones:
           type: array
           items: { $ref: '#/components/schemas/AsignacionCobro' }
         lineas:
           type: array
+          description: Líneas de la versión de cálculo vigente
           items: { $ref: '#/components/schemas/LineaOfa' }
+        totalClp: { type: number }
+        kitSugerido:
+          type: object
+          nullable: true
+          description: Kit SAP cuya ruta es la de la operación ("Directo sin convenio"…). Referencia para digitar en SAP (ADR-017)
+          properties:
+            codigoKit: { type: string }
+            nombre: { type: string }
+            ruta: { type: string, nullable: true }
+            articulos:
+              type: array
+              items: { type: string }
+        versionCatalogo: { type: integer, nullable: true, description: Versión del catálogo SAP usada en el cálculo }
+        envioSapHabilitado: { type: boolean, description: 'Ofa:EnvioSapHabilitado; false en la etapa 1 (el botón Enviar a SAP se ve deshabilitado)' }
     AsignacionCobro:
       type: object
       properties:
         asignacionId: { type: string, format: uuid }
         destinatarioRut: { type: string }
+        razonSocial: { type: string, nullable: true }
         rol: { type: string, enum: [CONSIGNATARIO, FORWARDER, EMBARCADOR] }
         origenInstruccion: { type: string, nullable: true }
     LineaOfa:
@@ -1215,11 +1269,19 @@ components:
         agregadaPor: { type: string, nullable: true, description: 'Solo si origen = AGREGADA_MANUAL' }
         agregadaEn: { type: string, format: date-time, nullable: true, description: 'Solo si origen = AGREGADA_MANUAL' }
         motivoAgregada: { type: string, nullable: true, description: 'Solo si origen = AGREGADA_MANUAL (obligatorio en ese caso)' }
+        descripcionServicio: { type: string, nullable: true }
+        lineaOrigenId: { type: string, format: uuid, nullable: true, description: 'Línea de la versión anterior que esta copia (ítem manual tras un recálculo, DBA-7)' }
+        fuenteTarifa: { type: string, nullable: true, description: 'CONVENIO, PUBLICA, MANUAL, SIN_TARIFA o REGLA_0_DP_WORLD (de la memoria)' }
+        listaPrecios: { type: string, nullable: true, description: Lista de precios de SAP si la tarifa es la pública }
+        sinTarifa: { type: boolean, description: 'Sin tarifa en ninguna fuente y sin ajuste manual: no pasa la validación' }
+        sinTipoCambio: { type: boolean, description: 'Sin tipo de cambio para la moneda y sin ajuste manual: no pasa la validación' }
+        cantidadMemorias: { type: integer, description: 'Registros de memoria de la línea (cálculo + cada ajuste)' }
         memoria: { $ref: '#/components/schemas/MemoriaCalculo' }
     MemoriaCalculo:
       type: object
-      description: Reconstrucción auditable del monto (REQ-011). Append-only.
+      description: Reconstrucción auditable del monto (REQ-011). Append-only; se devuelve la más reciente.
       properties:
+        memoriaId: { type: string, format: uuid }
         reglasAplicadas:
           type: array
           items:
@@ -1227,6 +1289,12 @@ components:
             properties:
               regla: { type: string }
               version: { type: integer }
+              detalle:
+                type: object
+                additionalProperties: { type: string }
+                description: Datos que usó la regla (texto con cultura invariante)
+        versionConvenioId: { type: string, format: uuid, nullable: true }
+        calculadoEn: { type: string, format: date-time }
         versionConvenio: { type: integer, nullable: true }
         versionTarifaPublica: { type: integer, nullable: true }
         tipoCambioAplicado: { type: number, nullable: true }
@@ -1245,6 +1313,11 @@ components:
         tipoServicioId: { type: integer, description: Servicio del catálogo }
         cantidad: { type: number, exclusiveMinimum: 0 }
         tarifa: { type: number, nullable: true, description: 'Opcional. Si no viene, se usa la del convenio o la pública' }
+        moneda:
+          nullable: true
+          description: Moneda de la tarifa informada (por defecto CLP). Solo se indica junto con la tarifa
+          allOf:
+            - $ref: '#/components/schemas/Moneda'
         motivo: { type: string, minLength: 1 }
     AjusteManual:
       type: object
@@ -1262,6 +1335,7 @@ components:
         faltantes:
           type: array
           items: { type: string }
+        estado: { $ref: '#/components/schemas/EstadoOfa' }
 
     # ----- facturas / pagos / omisiones
     Factura:
