@@ -95,6 +95,40 @@ public static class SeguridadExtensions
     }
 
     /// <summary>
+    /// Autenticación Basic provisoria del push de AEXSA SYS (PA-002 define el mecanismo definitivo).
+    /// Registra el esquema y la política <see cref="AexsaBasicAuthenticationHandler.Politica"/>, que usa solo
+    /// ese endpoint. Fuera de Development exige una clave de al menos
+    /// <see cref="AexsaBasicOptions.LargoMinimoClaveFueraDeDesarrollo"/> caracteres.
+    /// </summary>
+    public static IServiceCollection AddAutenticacionAexsa(
+        this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    {
+        var seccion = configuration.GetSection(AexsaBasicOptions.Seccion);
+        services.Configure<AexsaBasicOptions>(seccion);
+        var opciones = seccion.Get<AexsaBasicOptions>() ?? new AexsaBasicOptions();
+
+        if (!environment.IsDevelopment()
+            && opciones.EstaConfigurado
+            && opciones.Clave.Length < AexsaBasicOptions.LargoMinimoClaveFueraDeDesarrollo)
+        {
+            throw new InvalidOperationException(
+                $"'Aexsa:Basic:Clave' debe tener al menos {AexsaBasicOptions.LargoMinimoClaveFueraDeDesarrollo} caracteres fuera de Development.");
+        }
+
+        services.AddAuthentication()
+            .AddScheme<AuthenticationSchemeOptions, AexsaBasicAuthenticationHandler>(
+                AexsaBasicAuthenticationHandler.Esquema, _ => { });
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AexsaBasicAuthenticationHandler.Politica, politica => politica
+                .AddAuthenticationSchemes(AexsaBasicAuthenticationHandler.Esquema)
+                .RequireAuthenticatedUser()
+                .RequireClaim(AexsaBasicAuthenticationHandler.ClaimSistema, AexsaBasicAuthenticationHandler.ValorSistema));
+
+        return services;
+    }
+
+    /// <summary>
     /// Autorización: la política por defecto (y la de respaldo) exige usuario autenticado con al menos
     /// un rol del Satélite. Los endpoints públicos se marcan explícitamente con AllowAnonymous.
     /// <paramref name="esquema"/> es el esquema de autenticación activo (JWT de Cognito o modo abierto).

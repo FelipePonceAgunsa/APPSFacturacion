@@ -135,7 +135,16 @@ public abstract class ApiConOperaciones(PostgresFixture fixture) : ApiConBaseNue
             """);
         return e;
     }
-    protected Task<HttpResponseMessage> EnviarEventoAsync(JsonNode evento) => PostRawAsync("/api/aexsa/eventos", evento.ToJsonString());
+    /// <summary>Envía el evento como lo hace AEXSA SYS: con la credencial Basic de pruebas.</summary>
+    protected Task<HttpResponseMessage> EnviarEventoAsync(JsonNode evento)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/aexsa/eventos")
+        {
+            Content = new StringContent(evento.ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = ApiFactory.CabeceraAexsa();
+        return Cliente.SendAsync(request, Ct);
+    }
     protected Task<HttpResponseMessage> PostRawAsync(string url, string json) =>
         Cliente.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"), Ct);
     protected Task<HttpResponseMessage> PatchJsonAsync(string url, object cuerpo) =>

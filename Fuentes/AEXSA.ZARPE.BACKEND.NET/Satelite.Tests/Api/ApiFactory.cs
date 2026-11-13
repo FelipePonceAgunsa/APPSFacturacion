@@ -12,6 +12,13 @@ namespace Satelite.Tests.Api;
 public sealed class ApiFactory(string connectionString, IDictionary<string, string?>? ajustes = null, string ambiente = "Development")
     : WebApplicationFactory<Program>
 {
+    /// <summary>Credencial Basic de AEXSA que usan las pruebas (valores inventados; nunca reales).</summary>
+    public const string UsuarioAexsa = "aexsa-pruebas";
+    public const string ClaveAexsa = "clave-de-pruebas-aexsa-0001";
+
+    public static System.Net.Http.Headers.AuthenticationHeaderValue CabeceraAexsa(string usuario = UsuarioAexsa, string clave = ClaveAexsa) =>
+        new("Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{usuario}:{clave}")));
+
     private readonly string _almacen = Path.Combine(Path.GetTempPath(), "zarpe-pruebas", Guid.NewGuid().ToString("N"));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -22,6 +29,8 @@ public sealed class ApiFactory(string connectionString, IDictionary<string, stri
         builder.UseSetting("Almacen:RutaLocal", _almacen);
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
         builder.UseSetting("Logging:LogLevel:Microsoft.EntityFrameworkCore", "Warning");
+        builder.UseSetting("Aexsa:Basic:Usuario", UsuarioAexsa);
+        builder.UseSetting("Aexsa:Basic:Clave", ClaveAexsa);
         foreach (var (clave, valor) in ajustes ?? new Dictionary<string, string?>())
         {
             builder.UseSetting(clave, valor);

@@ -14,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Auth:ModoAbierto (solo Development) reemplaza la validación del JWT por un usuario local Administrador.
 var esquemaAuth = builder.Services.AddCognitoAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddAutorizacionSatelite(esquemaAuth);
+// Push de AEXSA SYS: Basic provisorio hasta PA-002 (credencial por entorno / user-secrets)
+builder.Services.AddAutenticacionAexsa(builder.Configuration, builder.Environment);
 
 // Capas de la solución (ADR-001)
 builder.Services.AddAplicacion();
@@ -84,6 +86,12 @@ else if (!authOptions.EstaConfigurado)
 {
     app.Logger.LogWarning(
         "Auth:Authority / Auth:ClientId sin configurar (PA-009): todos los endpoints protegidos responderán 401.");
+}
+
+if (!app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<AexsaBasicOptions>>().Value.EstaConfigurado)
+{
+    app.Logger.LogWarning(
+        "Aexsa:Basic:Usuario / Aexsa:Basic:Clave sin configurar: POST /api/aexsa/eventos responderá 401 a todo request.");
 }
 
 // Configure the HTTP request pipeline.

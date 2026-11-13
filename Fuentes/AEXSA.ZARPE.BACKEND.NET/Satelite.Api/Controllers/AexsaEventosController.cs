@@ -1,13 +1,16 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Satelite.Api.Extensions;
 using Satelite.Aplicacion.Operaciones;
 namespace Satelite.Api.Controllers;
 /// <summary>
 /// Vía de entrada del evento facturable que envía AEXSA SYS (push, ADR-005; contrato v3.0 en contratos-integracion.md §2).
-/// Responde siempre con <c>ResultadoIngesta</c>. Autenticación: política por defecto del Satélite
-/// [POR CONFIRMAR PA-002: credencial de AEXSA / Agunsa Connect].
+/// Responde siempre con <c>ResultadoIngesta</c>. Autenticación: HTTP Basic provisorio (credencial de AEXSA en
+/// <c>Aexsa:Basic</c>), independiente del login de usuarios [POR CONFIRMAR PA-002: mecanismo definitivo].
 /// </summary>
 [Route("api/aexsa/eventos")]
+[Authorize(Policy = AexsaBasicAuthenticationHandler.Politica)]
 [Tags("Callbacks")]
 public class AexsaEventosController(IIngestaEventoFacturable ingesta) : SateliteControllerBase
 {
@@ -19,6 +22,7 @@ public class AexsaEventosController(IIngestaEventoFacturable ingesta) : Satelite
     [ProducesResponseType<ResultadoIngestaDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ResultadoIngestaDto>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ResultadoIngestaDto>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> Recibir([FromBody] JsonElement evento, CancellationToken ct)
     {
         var resultado = await ingesta.IngresarAsync(evento, ct);
