@@ -3,6 +3,20 @@
 Todo lo de esta carpeta es inventado: códigos, precios, RUT y nombres. Nunca se copian datos reales de clientes ni de SAP.
 RUT de ejemplo (dígito verificador módulo 11): `76.111.111-6`, `77.222.222-K`, `78.333.333-3`.
 
+## Cargar todo de una vez (sin PowerShell)
+Con la API corriendo (F5 en Visual Studio), doble clic en `cargar-datos-demo.bat`, o bien
+`python datos-prueba/cargar_datos_demo.py [--api http://localhost:5228]`.
+Carga el catálogo A1 a A4, vincula los servicios 42 a 52, crea y confirma los dos convenios, envía los eventos
+01 a 06, 09 y 10 (no los 07 y 08, que son inválidos a propósito) y calcula la OFA de cada operación.
+Se puede repetir: salta el catálogo si ya hay uno vigente, los convenios que ya existen y los eventos ya recibidos.
+Requiere las semillas `db/semillas/*.sql` en la base; si faltan, el script lo avisa.
+
+`POST /api/aexsa/eventos` exige HTTP Basic (credencial provisoria de AEXSA SYS, PA-002). Para cargar eventos:
+1. En Visual Studio, clic derecho en `Satelite.Api` → *Administrar secretos de usuario*, y agregar
+   `"Aexsa:Basic:Usuario": "aexsa-local"` y `"Aexsa:Basic:Clave": "<una clave inventada>"`. Reiniciar la API.
+2. En la ventana de cmd, antes del script: `set ZARPE_AEXSA_USUARIO=aexsa-local` y `set ZARPE_AEXSA_CLAVE=<la misma clave>`.
+Sin eso el paso 5 responde 401 y el script explica qué falta. La clave nunca va en el código ni en `appsettings.json`.
+
 ## catalogo/
 Archivos A1 a A4 con el formato de `docs/desarrollo/formato-archivos-catalogo-sap.md`.
 
